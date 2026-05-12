@@ -1,4 +1,4 @@
-import { http } from './http';
+import { http, uploadHttp } from './http';
 import type {
   BatchDocumentIngestionResponse,
   BatchUploadDocumentPayload,
@@ -30,7 +30,7 @@ export async function uploadDocument(payload: UploadDocumentPayload) {
     formData.append('title', payload.title);
   }
 
-  const { data } = await http.post<DocumentIngestionResult>('/documents', formData, {
+  const { data } = await uploadHttp.post<DocumentIngestionResult>('/documents', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -52,7 +52,7 @@ export async function uploadDocumentsBatch(payload: BatchUploadDocumentPayload) 
   });
   formData.append('items', JSON.stringify(items));
 
-  const { data } = await http.post<BatchDocumentIngestionResponse>('/documents/batch', formData, {
+  const { data } = await uploadHttp.post<BatchDocumentIngestionResponse>('/documents/batch', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

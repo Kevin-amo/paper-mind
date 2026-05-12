@@ -46,6 +46,19 @@ function statusTagType(status: string) {
   }
 }
 
+function fileTypeTagType(fileType: string) {
+  if (!fileType) {
+    return 'info';
+  }
+  if (fileType.startsWith('image/')) {
+    return 'warning';
+  }
+  if (fileType.includes('pdf')) {
+    return 'success';
+  }
+  return 'info';
+}
+
 function formatDate(value: string) {
   if (!value) {
     return '-';
@@ -88,6 +101,11 @@ function handleCurrentChange(value: number) {
             <strong>{{ row.title || row.fileName || row.sourceId }}</strong>
             <span>{{ row.sourceId }}</span>
           </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="fileType" label="类型" width="140">
+        <template #default="{ row }">
+          <el-tag :type="fileTypeTagType(row.fileType)" size="small">{{ row.fileType || '-' }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="status" label="状态" width="110">

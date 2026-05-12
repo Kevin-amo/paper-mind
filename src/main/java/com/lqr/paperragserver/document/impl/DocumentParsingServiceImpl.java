@@ -1,39 +1,64 @@
 package com.lqr.paperragserver.document.impl;
 
 import com.lqr.paperragserver.common.DocumentSource;
+import com.lqr.paperragserver.common.ParsedDocument;
+import com.lqr.paperragserver.document.service.DocumentMultimodalExtractionService;
+import com.lqr.paperragserver.document.service.DocumentMultimodalExtractionService.DocumentMultimodalExtractionResult;
 import com.lqr.paperragserver.document.service.DocumentParsingService;
 import lombok.RequiredArgsConstructor;
 import org.apache.tika.Tika;
 import org.springframework.stereotype.Service;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
- * 基于 Tika 的文档解析实现。
- *
- * <p>这里优先提取正文文本，再结合文件名和内容类型生成统一的文档来源信息。</p>
+ * 基于 Tika 和原生多模态模型的文档解析实现。
  */
 @Service
 @RequiredArgsConstructor
 public class DocumentParsingServiceImpl implements DocumentParsingService {
 
+    private static final Pattern OFFICE_IMAGE_ARTIFACT_LINE = Pattern.compile(
+            "^image\\d+\\.(?:png|jpe?g|gif|bmp|webp|tiff?)$",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Set<String> SUPPORTED_OFFICE_IMAGE_EXTENSIONS = Set.of(
+            "png", "jpg", "jpeg", "gif", "bmp", "webp", "tif", "tiff"
+    );
+    private static final String WORD_DOCUMENT_XML = "word/document.xml";
+    private static final String WORD_DOCUMENT_RELS_XML = "word/_rels/document.xml.rels";
+
     private final Tika tika;
+    private final DocumentMultimodalExtractionService documentMultimodalExtractionService;
 
     /**
-     * 规范化文件信息并生成统一的文档来源对象。
+     * 规范化文件信息并生成统一的解析结果。
      *
      * @param fileName 原始文件名
      * @param content 文件内容字节
      * @param metadata 外部传入的元数据
-     * @return 组装完成的文档来源信息
+     * @return 组装完成的文档来源信息与正文文本
      */
     @Override
-    public DocumentSource parse(String fileName, byte[] content, Map<String, Object> metadata) {
+    public ParsedDocument parse(String fileName, byte[] content, Map<String, Object> metadata) {
         Objects.requireNonNull(content, "content 不能为空");
         String normalizedFileName = fileName == null || fileName.isBlank() ? "unknown" : fileName.trim();
         Map<String, Object> mergedMetadata = new LinkedHashMap<>();
@@ -43,28 +68,284 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
         mergedMetadata.putIfAbsent("fileName", normalizedFileName);
         mergedMetadata.putIfAbsent("contentLength", content.length);
         String contentType = tika.detect(content, normalizedFileName);
-        mergedMetadata.putIfAbsent("contentType", contentType);
+        mergedMetadata.put("contentType", contentType);
         String sourceId = mergedMetadata.containsKey("sourceId")
                 ? String.valueOf(mergedMetadata.get("sourceId"))
-                : UUID.nameUUIDFromBytes((normalizedFileName + "::" + content.length).getBytes(StandardCharsets.UTF_8)).toString();
+                : UUID.nameUUIDFromBytes(content).toString();
         mergedMetadata.putIfAbsent("sourceId", sourceId);
         String title = mergedMetadata.containsKey("title") && !String.valueOf(mergedMetadata.get("title")).isBlank()
                 ? String.valueOf(mergedMetadata.get("title"))
                 : normalizedFileName;
-        return new DocumentSource(sourceId, title, normalizedFileName, mergedMetadata);
+
+        DocumentSource provisionalSource = new DocumentSource(sourceId, title, normalizedFileName, mergedMetadata);
+        ExtractionResult extractionResult = extractContent(provisionalSource, content, contentType);
+        mergedMetadata.put("extractionMode", extractionResult.mode().name());
+        mergedMetadata.put("extractedTextLength", extractionResult.text().length());
+        if (extractionResult.renderedPageCount() > 0) {
+            mergedMetadata.put("renderedPageCount", extractionResult.renderedPageCount());
+        }
+        if (extractionResult.truncated()) {
+            mergedMetadata.put("multimodalTruncated", true);
+        }
+        DocumentSource source = new DocumentSource(sourceId, title, normalizedFileName, mergedMetadata);
+        return new ParsedDocument(source, extractionResult.text());
     }
 
-    /**
-     * 提取纯文本内容。
-     *
-     * @param content 原始文件字节
-     * @return 提取出的正文文本
-     */
-    public String extractText(byte[] content) {
+    private ExtractionResult extractContent(DocumentSource source, byte[] content, String contentType) {
+        String normalizedContentType = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
+        if (normalizedContentType.startsWith("image/")) {
+            DocumentMultimodalExtractionResult result = documentMultimodalExtractionService.extract(source, content);
+            String text = normalizeExtractedText(result.text());
+            if (text.isBlank()) {
+                throw new IllegalStateException("图片文档未提取到可用文本");
+            }
+            return new ExtractionResult(text, ExtractionMode.MULTIMODAL, result.pageCount(), result.truncated());
+        }
+
+        String tikaText = extractTextWithTika(source, content, contentType);
+        if (normalizedContentType.contains("pdf") && tikaText.isBlank()) {
+            DocumentMultimodalExtractionResult result = documentMultimodalExtractionService.extract(source, content);
+            String text = normalizeExtractedText(result.text());
+            if (text.isBlank()) {
+                throw new IllegalStateException("扫描版 PDF 未提取到可用文本");
+            }
+            return new ExtractionResult(text, ExtractionMode.MULTIMODAL, result.pageCount(), result.truncated());
+        }
+
+        return new ExtractionResult(tikaText, ExtractionMode.TEXT, 0, false);
+    }
+
+    private String extractTextWithTika(DocumentSource source, byte[] content, String contentType) {
         try {
-            return tika.parseToString(new ByteArrayInputStream(content));
+            String extractedText = normalizeExtractedText(tika.parseToString(new ByteArrayInputStream(content)));
+            if (!isOfficeDocument(contentType)) {
+                return extractedText;
+            }
+            String cleanedText = removeOfficeImageArtifactLines(extractedText);
+            return isWordprocessingDocument(contentType)
+                    ? mergeWordImagesIntoText(source, content, cleanedText)
+                    : cleanedText;
         } catch (Exception ex) {
             throw new IllegalStateException("文档解析失败", ex);
         }
+    }
+
+    private boolean isOfficeDocument(String contentType) {
+        if (contentType == null) {
+            return false;
+        }
+        String normalized = contentType.toLowerCase(Locale.ROOT);
+        return normalized.contains("officedocument")
+                || normalized.contains("msword")
+                || normalized.contains("vnd.ms-");
+    }
+
+    private boolean isWordprocessingDocument(String contentType) {
+        if (contentType == null) {
+            return false;
+        }
+        String normalized = contentType.toLowerCase(Locale.ROOT);
+        return normalized.contains("wordprocessingml.document") || normalized.contains("msword");
+    }
+
+    private String mergeWordImagesIntoText(DocumentSource source, byte[] content, String fallbackText) {
+        try {
+            WordPackage wordPackage = readWordPackage(content);
+            if (wordPackage.documentXml() == null || wordPackage.relationshipXml() == null) {
+                return fallbackText;
+            }
+            Map<String, String> relationshipTargets = readImageRelationshipTargets(wordPackage.relationshipXml());
+            if (relationshipTargets.isEmpty()) {
+                return fallbackText;
+            }
+            String orderedText = readWordDocumentTextWithImages(source, wordPackage.documentXml(), relationshipTargets, wordPackage.entries());
+            return orderedText.isBlank() ? fallbackText : orderedText;
+        } catch (RuntimeException ex) {
+            return fallbackText;
+        }
+    }
+
+    private WordPackage readWordPackage(byte[] content) {
+        Map<String, byte[]> entries = new HashMap<>();
+        String documentXml = null;
+        String relationshipXml = null;
+        try (ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(content))) {
+            ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                String name = entry.getName();
+                byte[] bytes = zipInputStream.readAllBytes();
+                entries.put(name, bytes);
+                if (WORD_DOCUMENT_XML.equals(name)) {
+                    documentXml = new String(bytes, StandardCharsets.UTF_8);
+                } else if (WORD_DOCUMENT_RELS_XML.equals(name)) {
+                    relationshipXml = new String(bytes, StandardCharsets.UTF_8);
+                }
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("读取 Word 文档结构失败", ex);
+        }
+        return new WordPackage(documentXml, relationshipXml, entries);
+    }
+
+    private Map<String, String> readImageRelationshipTargets(String relationshipXml) {
+        Map<String, String> targets = new HashMap<>();
+        Element root = parseXml(relationshipXml).getDocumentElement();
+        NodeList relationships = root.getElementsByTagNameNS("*", "Relationship");
+        for (int i = 0; i < relationships.getLength(); i++) {
+            Element relationship = (Element) relationships.item(i);
+            String type = relationship.getAttribute("Type");
+            String id = relationship.getAttribute("Id");
+            String target = relationship.getAttribute("Target");
+            if (type != null && type.endsWith("/image") && !id.isBlank() && !target.isBlank()) {
+                targets.put(id, normalizeWordTarget(target));
+            }
+        }
+        return targets;
+    }
+
+    private String readWordDocumentTextWithImages(DocumentSource source,
+                                                  String documentXml,
+                                                  Map<String, String> relationshipTargets,
+                                                  Map<String, byte[]> entries) {
+        Element body = firstElementByLocalName(parseXml(documentXml).getDocumentElement(), "body");
+        if (body == null) {
+            return "";
+        }
+        List<String> blocks = new ArrayList<>();
+        NodeList children = body.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node instanceof Element element && "p".equals(element.getLocalName())) {
+                String paragraphText = paragraphText(element);
+                if (!paragraphText.isBlank() && !OFFICE_IMAGE_ARTIFACT_LINE.matcher(paragraphText.strip()).matches()) {
+                    blocks.add(paragraphText.strip());
+                }
+                for (String relationshipId : imageRelationshipIds(element)) {
+                    String imagePath = relationshipTargets.get(relationshipId);
+                    byte[] imageBytes = imagePath == null ? null : entries.get(imagePath);
+                    if (imageBytes == null || !isSupportedOfficeImage(imagePath)) {
+                        continue;
+                    }
+                    String imageText = extractEmbeddedImageText(source, imagePath, imageBytes);
+                    if (!imageText.isBlank()) {
+                        blocks.add("【图片：" + imagePath.substring(imagePath.lastIndexOf('/') + 1) + "】\n" + imageText);
+                    }
+                }
+            }
+        }
+        return normalizeExtractedText(String.join("\n\n", blocks));
+    }
+
+    private org.w3c.dom.Document parseXml(String xml) {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            return factory.newDocumentBuilder().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception ex) {
+            throw new IllegalStateException("解析 Word XML 失败", ex);
+        }
+    }
+
+    private Element firstElementByLocalName(Element root, String localName) {
+        NodeList nodes = root.getElementsByTagNameNS("*", localName);
+        return nodes.getLength() == 0 ? null : (Element) nodes.item(0);
+    }
+
+    private String paragraphText(Element paragraph) {
+        StringBuilder builder = new StringBuilder();
+        NodeList textNodes = paragraph.getElementsByTagNameNS("*", "t");
+        for (int i = 0; i < textNodes.getLength(); i++) {
+            builder.append(textNodes.item(i).getTextContent());
+        }
+        return builder.toString();
+    }
+
+    private List<String> imageRelationshipIds(Element paragraph) {
+        List<String> ids = new ArrayList<>();
+        NodeList blips = paragraph.getElementsByTagNameNS("*", "blip");
+        for (int i = 0; i < blips.getLength(); i++) {
+            Element blip = (Element) blips.item(i);
+            String embed = blip.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "embed");
+            if (!embed.isBlank()) {
+                ids.add(embed);
+            }
+        }
+        return ids;
+    }
+
+    private String extractEmbeddedImageText(DocumentSource source, String imagePath, byte[] imageBytes) {
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        if (source.metadata() != null) {
+            metadata.putAll(source.metadata());
+        }
+        String contentType = imageContentType(imagePath);
+        metadata.put("contentType", contentType);
+        metadata.put("embeddedImagePath", imagePath);
+        DocumentSource imageSource = new DocumentSource(source.sourceId(), source.title(), source.origin(), metadata);
+        DocumentMultimodalExtractionResult result = documentMultimodalExtractionService.extract(imageSource, imageBytes);
+        return normalizeExtractedText(result.text());
+    }
+
+    private String imageContentType(String imagePath) {
+        String extension = extension(imagePath);
+        return switch (extension) {
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "gif" -> "image/gif";
+            case "bmp" -> "image/bmp";
+            case "webp" -> "image/webp";
+            case "tif", "tiff" -> "image/tiff";
+            default -> "image/png";
+        };
+    }
+
+    private boolean isSupportedOfficeImage(String imagePath) {
+        return SUPPORTED_OFFICE_IMAGE_EXTENSIONS.contains(extension(imagePath));
+    }
+
+    private String extension(String path) {
+        if (path == null) {
+            return "";
+        }
+        int dot = path.lastIndexOf('.');
+        return dot < 0 ? "" : path.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeWordTarget(String target) {
+        String normalized = target.replace('\\', '/');
+        if (normalized.startsWith("/")) {
+            return normalized.substring(1);
+        }
+        return normalized.startsWith("word/") ? normalized : "word/" + normalized;
+    }
+
+    private String removeOfficeImageArtifactLines(String text) {
+        if (text == null || text.isBlank()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder(text.length());
+        for (String line : text.split("\\R", -1)) {
+            if (OFFICE_IMAGE_ARTIFACT_LINE.matcher(line.strip()).matches()) {
+                continue;
+            }
+            builder.append(line).append('\n');
+        }
+        return normalizeExtractedText(builder.toString());
+    }
+
+    private String normalizeExtractedText(String text) {
+        return text == null ? "" : text.strip();
+    }
+
+    private enum ExtractionMode {
+        TEXT,
+        MULTIMODAL
+    }
+
+    private record WordPackage(String documentXml, String relationshipXml, Map<String, byte[]> entries) {
+    }
+
+    private record ExtractionResult(String text, ExtractionMode mode, int renderedPageCount, boolean truncated) {
     }
 }

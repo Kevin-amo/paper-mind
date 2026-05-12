@@ -11,6 +11,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,9 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
         for (Document document : documents) {
             Map<String, Object> metadata = document.getMetadata();
             String sourceId = metadata == null ? null : String.valueOf(metadata.getOrDefault("sourceId", ""));
+            if (!isIndexedDocument(sourceId)) {
+                continue;
+            }
             String chunkId = metadata == null ? document.getId() : String.valueOf(metadata.getOrDefault("chunkId", document.getId()));
             int currentIndex = index++;
             int chunkIndex = intMetadata(metadata, "chunkIndex", currentIndex);
@@ -77,23 +81,54 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
                     document.getText(),
                     metadata
             );
-            Double score = document.getScore();
-            vectorChunks.add(new RetrievedChunk(chunk, score == null ? 0.0 : score));
+            Double vectorScore = document.getScore();
+            vectorChunks.add(new RetrievedChunk(chunk, vectorRankContribution(vectorScore, currentIndex, documents.size())));
         }
 
         List<DocumentChunk> lexicalChunks = paperDocumentPersistenceService.searchChunks(question, Math.max(resolvedTopK * 3, resolvedTopK));
-        Map<String, RetrievedChunk> merged = new LinkedHashMap<>();
-        int lexicalRank = 0;
-        for (DocumentChunk chunk : lexicalChunks) {
-            double lexicalScore = Math.max(0.5, 2.0 - (lexicalRank++ * 0.01));
-            merged.put(chunk.chunkId(), new RetrievedChunk(chunk, lexicalScore));
+        Map<String, DocumentChunk> chunkById = new LinkedHashMap<>();
+        Map<String, Double> scoreById = new LinkedHashMap<>();
+        for (int lexicalIndex = 0; lexicalIndex < lexicalChunks.size(); lexicalIndex++) {
+            DocumentChunk chunk = lexicalChunks.get(lexicalIndex);
+            chunkById.put(chunk.chunkId(), chunk);
+            scoreById.merge(chunk.chunkId(), rankContribution(lexicalIndex, lexicalChunks.size()), Double::sum);
         }
         for (RetrievedChunk chunk : vectorChunks) {
-            merged.putIfAbsent(chunk.chunk().chunkId(), chunk);
+            String chunkId = chunk.chunk().chunkId();
+            chunkById.putIfAbsent(chunkId, chunk.chunk());
+            scoreById.merge(chunkId, chunk.rankScore(), Double::sum);
         }
-        return merged.values().stream()
+        return chunkById.entrySet().stream()
+                .map(entry -> new RetrievedChunk(entry.getValue(), scoreById.getOrDefault(entry.getKey(), 0.0)))
+                .sorted(Comparator.comparingDouble(RetrievedChunk::rankScore).reversed()
+                        .thenComparing(retrieved -> retrieved.chunk().sourceId(), Comparator.nullsLast(String::compareTo))
+                        .thenComparingInt(retrieved -> retrieved.chunk().chunkIndex()))
                 .limit(resolvedTopK)
                 .toList();
+    }
+
+    private boolean isIndexedDocument(String sourceId) {
+        if (sourceId == null || sourceId.isBlank()) {
+            return false;
+        }
+        return paperDocumentPersistenceService.findDocument(sourceId)
+                .filter(document -> document.deletedAt() == null)
+                .map(document -> "INDEXED".equals(document.status()))
+                .orElse(false);
+    }
+
+    private double vectorRankContribution(Double vectorScore, int index, int total) {
+        if (vectorScore != null && vectorScore > 0) {
+            return vectorScore;
+        }
+        return rankContribution(index, total);
+    }
+
+    private double rankContribution(int index, int total) {
+        if (total <= 0) {
+            return 0.0;
+        }
+        return (double) (total - index) / total;
     }
 
     /**

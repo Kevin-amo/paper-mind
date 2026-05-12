@@ -4,10 +4,10 @@ package com.lqr.paperragserver.common;
  * 检索命中的文本片段。
  *
  * @param chunk 命中的文档片段
- * @param score 检索相关性分数，数值含义由底层向量检索实现决定
+ * @param rankScore 展示给上层的融合排序分；同时综合向量召回与词法召回顺位
  */
 public record RetrievedChunk(
         DocumentChunk chunk,
-        double score
+        double rankScore
 ) {
 }

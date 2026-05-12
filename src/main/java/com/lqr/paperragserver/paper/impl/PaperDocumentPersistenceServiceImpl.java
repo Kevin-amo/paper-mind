@@ -119,7 +119,7 @@ public class PaperDocumentPersistenceServiceImpl implements PaperDocumentPersist
                 from public.paper_document_chunk c
                 join public.paper_document d on d.source_id = c.source_id
                 where d.deleted_at is null
-                  and d.status <> 'DELETED'
+                  and d.status = 'INDEXED'
                 order by c.source_id asc, c.chunk_index asc
                 """, new MapSqlParameterSource(), (rs, rowNum) -> new DocumentChunk(
                 rs.getString("chunk_id"),
@@ -245,8 +245,10 @@ public class PaperDocumentPersistenceServiceImpl implements PaperDocumentPersist
     public void markIndexed(String sourceId, int chunkCount) {
         jdbcTemplate.update("""
                 update public.paper_document
-                set status = 'INDEXED', chunk_count = :chunkCount, error_message = null, deleted_at = null, updated_at = now()
+                set status = 'INDEXED', chunk_count = :chunkCount, error_message = null, updated_at = now()
                 where source_id = :sourceId
+                  and deleted_at is null
+                  and status <> 'DELETED'
                 """, new MapSqlParameterSource()
                 .addValue("sourceId", sourceId)
                 .addValue("chunkCount", chunkCount));

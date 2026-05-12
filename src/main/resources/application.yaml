@@ -34,7 +34,7 @@
       chat:
         enabled: true
         options:
-          model: qwen3.5-plus
+          model: qwen3.5-flash
           temperature: 0.2
           max-tokens: 256
           enable-thinking: false

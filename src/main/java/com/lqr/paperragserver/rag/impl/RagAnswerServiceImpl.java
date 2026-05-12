@@ -62,7 +62,7 @@ public class RagAnswerServiceImpl implements RagAnswerService {
                         chunk.chunk().chunkIndex(),
                         stringMetadata(chunk.chunk().metadata(), "title"),
                         cutExcerpt(chunk.chunk().content()),
-                        chunk.score()))
+                        chunk.rankScore()))
                 .toList();
         return new RagAnswer(answer, citations);
     }

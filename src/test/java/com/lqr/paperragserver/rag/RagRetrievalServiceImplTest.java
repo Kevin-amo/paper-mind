@@ -7,15 +7,17 @@ import com.lqr.paperragserver.paper.service.PaperDocumentPersistenceService;
 import com.lqr.paperragserver.rag.impl.RagRetrievalServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -50,8 +52,74 @@ class RagRetrievalServiceImplTest {
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).chunk().chunkId()).isEqualTo("chunk-0");
+        assertThat(results.get(0).rankScore()).isGreaterThan(0d);
         assertThat(results.get(0).chunk().content()).contains("学生姓名");
         verify(paperDocumentPersistenceService).searchChunks("这篇文章的学生姓名是谁", 9);
         verify(vectorStore).similaritySearch(any(SearchRequest.class));
+    }
+
+    @Test
+    void retrieveShouldSortByFusionScoreDescending() {
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(
+                new Document("vector-only hit", Map.of(
+                        "chunkId", "chunk-b",
+                        "sourceId", "source-1",
+                        "chunkIndex", 1,
+                        "title", "Paper B"
+                ))
+        ));
+        when(paperDocumentPersistenceService.findDocument("source-1"))
+                .thenReturn(Optional.of(indexedDocument("source-1")));
+
+        DocumentChunk lexicalFirst = new DocumentChunk(
+                "chunk-a",
+                "source-1",
+                0,
+                "A content",
+                Map.of("title", "Paper A")
+        );
+        DocumentChunk lexicalSecond = new DocumentChunk(
+                "chunk-b",
+                "source-1",
+                1,
+                "B content",
+                Map.of("title", "Paper B")
+        );
+        when(paperDocumentPersistenceService.searchChunks("排序测试", 9))
+                .thenReturn(List.of(lexicalFirst, lexicalSecond));
+
+        List<RetrievedChunk> results = service.retrieve("排序测试", 3);
+
+        assertThat(results).hasSize(2);
+        assertThat(results.get(0).chunk().chunkId()).isEqualTo("chunk-b");
+        assertThat(results.get(0).rankScore()).isGreaterThan(results.get(1).rankScore());
+        assertThat(results.get(1).chunk().chunkId()).isEqualTo("chunk-a");
+        assertThat(results.get(1).rankScore()).isGreaterThan(0d);
+    }
+
+    private PaperDocumentPersistenceService.DocumentDetail indexedDocument(String sourceId) {
+        OffsetDateTime now = OffsetDateTime.now();
+        return new PaperDocumentPersistenceService.DocumentDetail(
+                sourceId,
+                "Paper",
+                "paper.pdf",
+                "paper.pdf",
+                "application/pdf",
+                100L,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "content",
+                Map.of(),
+                "INDEXED",
+                1,
+                null,
+                now,
+                now,
+                null
+        );
     }
 }

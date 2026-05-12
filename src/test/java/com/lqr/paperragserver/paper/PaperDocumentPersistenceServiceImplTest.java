@@ -134,7 +134,7 @@ class PaperDocumentPersistenceServiceImplTest {
     }
 
     @Test
-    void markIndexedShouldClearDeletedAtMarker() {
+    void markIndexedShouldIgnoreDeletedDocument() {
         service.markIndexed("source-1", 12);
 
         ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
@@ -143,7 +143,8 @@ class PaperDocumentPersistenceServiceImplTest {
 
         assertThat(sqlCaptor.getValue())
                 .contains("status = 'INDEXED'")
-                .contains("deleted_at = null")
+                .contains("deleted_at is null")
+                .contains("status <> 'DELETED'")
                 .contains("chunk_count = :chunkCount");
         assertThat(paramCaptor.getValue().getValues())
                 .containsEntry("sourceId", "source-1")

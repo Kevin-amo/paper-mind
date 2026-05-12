@@ -72,7 +72,7 @@ function handleSubmit() {
         <el-card v-for="citation in props.answer.citations" :key="citation.chunkId" shadow="hover" class="citation-card">
           <div class="citation-meta">
             <strong>{{ citation.title || citation.sourceId }}</strong>
-            <el-tag size="small">score {{ citation.score.toFixed(4) }}</el-tag>
+            <el-tag size="small">rankScore {{ citation.rankScore.toFixed(4) }}</el-tag>
           </div>
           <p>{{ citation.excerpt }}</p>
           <small>{{ citation.sourceId }} · chunk #{{ citation.chunkIndex }}</small>

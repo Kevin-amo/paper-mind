@@ -20,10 +20,12 @@ interface EditableUploadItem {
 const props = defineProps<{
   loading: boolean;
   result: BatchDocumentIngestionResponse | null;
+  errorMessage?: string;
 }>();
 
 const emit = defineEmits<{
   submit: [payload: BatchUploadDocumentPayload];
+  remove: [sourceId: string];
 }>();
 
 const fileList = ref<UploadUserFile[]>([]);
@@ -80,6 +82,27 @@ watch(
   },
 );
 
+watch(
+  () => props.errorMessage,
+  (errorMessage) => {
+    if (!errorMessage) {
+      return;
+    }
+
+    uploadItems.value.forEach((item) => {
+      if (item.status !== 'uploading') {
+        return;
+      }
+      item.status = 'failed';
+      item.errorMessage = errorMessage;
+    });
+  },
+);
+
+function buildFallbackSourceId(file: File) {
+  return `upload-${file.name}-${file.size}-${file.lastModified}`.replace(/[^\p{L}\p{N}._-]+/gu, '-').slice(0, 128);
+}
+
 function handleSubmit() {
   if (!uploadItems.value.length) {
     ElMessage.warning('请先选择至少一个文件');
@@ -87,6 +110,7 @@ function handleSubmit() {
   }
 
   uploadItems.value.forEach((item) => {
+    item.sourceId = item.sourceId.trim() || buildFallbackSourceId(item.file);
     item.status = 'uploading';
     item.errorMessage = '';
     item.chunkCount = null;
@@ -95,13 +119,17 @@ function handleSubmit() {
   emit('submit', {
     items: uploadItems.value.map((item) => ({
       file: item.file,
-      sourceId: item.sourceId.trim() || undefined,
+      sourceId: item.sourceId,
       title: item.title.trim() || undefined,
     })),
   });
 }
 
 function removeItem(uid: number | string) {
+  const target = uploadItems.value.find((item) => String(item.uid) === String(uid));
+  if (target?.sourceId) {
+    emit('remove', target.sourceId);
+  }
   fileList.value = fileList.value.filter((file) => String(file.uid) !== String(uid));
 }
 

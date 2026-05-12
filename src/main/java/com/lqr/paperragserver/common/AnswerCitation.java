@@ -8,7 +8,7 @@ package com.lqr.paperragserver.common;
  * @param chunkIndex 片段在原文中的顺序号
  * @param title 文档标题
  * @param excerpt 展示给用户的引用摘要或原文摘录
- * @param score 该引用片段的检索相关性分数
+ * @param rankScore 该引用片段的融合排序分，用于前端展示与排序
  */
 public record AnswerCitation(
         String sourceId,
@@ -16,6 +16,6 @@ public record AnswerCitation(
         int chunkIndex,
         String title,
         String excerpt,
-        double score
+        double rankScore
 ) {
 }

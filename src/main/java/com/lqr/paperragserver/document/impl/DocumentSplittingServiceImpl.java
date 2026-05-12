@@ -35,6 +35,7 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
     private static final Pattern CHINESE_LIST_HEADING = Pattern.compile("^([一二三四五六七八九十]+)[、．.\\)]\\s*(.+)$");
     private static final Pattern CONTENTS_ENTRY_WITH_TRAILING_PAGE = Pattern.compile("^.+?(?:\\.{2,}|…{2,}|\\s{2,}|\\t+)\\s*(?:\\d+|[ivxlcdmIVXLCDM]+)\\s*$");
     private static final Pattern CONTENTS_NUMBERED_ENTRY = Pattern.compile("^(?:\\d+(?:\\.\\d+){0,4}|第[一二三四五六七八九十百千0-9]+[章节篇部分]|[一二三四五六七八九十]+[、．.\\)])\\s+.+?\\s+(?:\\d+|[ivxlcdmIVXLCDM]+)\\s*$");
+    private static final Pattern CONTENTS_NUMBERED_ENTRY_WITH_ATTACHED_PAGE = Pattern.compile("^\\d+(?:\\.\\d+){0,4}\\s+.+?\\d+$");
 
     private static final Set<String> ABSTRACT_HEADINGS = Set.of("摘要", "abstract");
     private static final Set<String> CONTENTS_HEADINGS = Set.of("目录", "目次", "contents", "table of contents");
@@ -199,8 +200,23 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
         SectionBuilder current = null;
         boolean seenAnyContent = false;
 
-        for (ParagraphBlock paragraph : paragraphs) {
+        for (int index = 0; index < paragraphs.size(); index++) {
+            ParagraphBlock paragraph = paragraphs.get(index);
+            if (current == null && startsImplicitContentsBlock(paragraphs, index)) {
+                current = new SectionBuilder("目录", SectionType.CONTENTS, 1);
+                current.add(paragraph);
+                seenAnyContent = true;
+                continue;
+            }
             if (current != null && current.type() == SectionType.CONTENTS && containsContentsEntries(paragraph)) {
+                current.add(paragraph);
+                seenAnyContent = true;
+                continue;
+            }
+
+            if (current != null && current.type() == SectionType.TITLE && startsImplicitContentsBlock(paragraphs, index)) {
+                sections.add(current.build());
+                current = new SectionBuilder("目录", SectionType.CONTENTS, 1);
                 current.add(paragraph);
                 seenAnyContent = true;
                 continue;
@@ -440,7 +456,7 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
      */
     private List<ChunkSlice> splitSection(SectionBlock section) {
         if (section.type() == SectionType.CONTENTS) {
-            return splitContentsSection(section);
+            return section.paragraphs().isEmpty() ? List.of() : List.of(toChunkSlice(section, section.paragraphs()));
         }
         return splitParagraphUnits(section, section.paragraphs());
     }
@@ -492,66 +508,30 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
         return chunks;
     }
 
-    private List<ChunkSlice> splitContentsSection(SectionBlock section) {
-        List<ParagraphBlock> units = new ArrayList<>();
-        for (ParagraphBlock paragraph : section.paragraphs()) {
-            if (paragraph.content().isBlank()) {
-                continue;
+    private boolean startsImplicitContentsBlock(List<ParagraphBlock> paragraphs, int startIndex) {
+        int matchedEntries = 0;
+        for (int index = startIndex; index < paragraphs.size() && index < startIndex + 12; index++) {
+            ParagraphBlock paragraph = paragraphs.get(index);
+            int paragraphEntries = countContentsEntryLines(paragraph);
+            if (paragraphEntries == 0) {
+                break;
             }
-            if (isContentsHeadingParagraph(paragraph, section.title())) {
-                units.add(paragraph);
-                continue;
+            matchedEntries += paragraphEntries;
+            if (matchedEntries >= 3) {
+                return true;
             }
-            units.addAll(splitContentsParagraphEntries(paragraph));
         }
-        return splitParagraphUnits(section, units);
+        return false;
     }
 
-    private boolean isContentsHeadingParagraph(ParagraphBlock paragraph, String sectionTitle) {
-        String normalized = normalizeWhitespace(paragraph.content());
-        if (!normalized.equals(sectionTitle)) {
-            return false;
-        }
-        return matchHeadingLabel(normalized, CONTENTS_HEADINGS) != null;
-    }
-
-    private List<ParagraphBlock> splitContentsParagraphEntries(ParagraphBlock paragraph) {
-        List<LineBlock> lines = extractLines(paragraph.content());
-        List<ParagraphBlock> entries = new ArrayList<>();
-        int entryStart = -1;
-        int entryEnd = -1;
-        boolean sawExplicitEntry = false;
-
-        for (LineBlock line : lines) {
-            String normalizedLine = normalizeWhitespace(line.content());
-            if (normalizedLine.isBlank()) {
-                continue;
+    private int countContentsEntryLines(ParagraphBlock paragraph) {
+        int count = 0;
+        for (LineBlock line : extractLines(paragraph.content())) {
+            if (looksLikeContentsEntry(line.content())) {
+                count++;
             }
-            if (looksLikeContentsEntry(normalizedLine)) {
-                if (entryStart >= 0) {
-                    appendDerivedParagraph(entries, paragraph, entryStart, entryEnd);
-                }
-                entryStart = line.start();
-                entryEnd = line.end();
-                sawExplicitEntry = true;
-                continue;
-            }
-
-            if (entryStart < 0) {
-                entryStart = line.start();
-                entryEnd = line.end();
-                continue;
-            }
-            entryEnd = line.end();
         }
-
-        if (entryStart >= 0) {
-            appendDerivedParagraph(entries, paragraph, entryStart, entryEnd);
-        }
-        if (!sawExplicitEntry || entries.isEmpty()) {
-            return List.of(paragraph);
-        }
-        return entries;
+        return count;
     }
 
     private boolean containsContentsEntries(ParagraphBlock paragraph) {
@@ -574,19 +554,8 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
             return false;
         }
         return CONTENTS_ENTRY_WITH_TRAILING_PAGE.matcher(normalized).matches()
-                || CONTENTS_NUMBERED_ENTRY.matcher(normalized).matches();
-    }
-
-    private void appendDerivedParagraph(List<ParagraphBlock> paragraphs, ParagraphBlock parent, int relativeStart, int relativeEnd) {
-        String content = parent.content().substring(relativeStart, relativeEnd).strip();
-        if (content.isBlank()) {
-            return;
-        }
-        paragraphs.add(new ParagraphBlock(
-                content,
-                parent.start() + relativeStart,
-                parent.start() + relativeEnd
-        ));
+                || CONTENTS_NUMBERED_ENTRY.matcher(normalized).matches()
+                || CONTENTS_NUMBERED_ENTRY_WITH_ATTACHED_PAGE.matcher(normalized).matches();
     }
 
     /**

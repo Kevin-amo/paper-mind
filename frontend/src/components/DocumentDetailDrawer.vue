@@ -8,10 +8,15 @@ const props = defineProps<{
   chunks: DocumentChunk[];
   loading: boolean;
   chunkLoading: boolean;
+  chunkPage: number;
+  chunkSize: number;
+  chunkTotal: number;
 }>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
+  'chunk-page-change': [page: number];
+  'chunk-size-change': [size: number];
 }>();
 
 const visible = computed({
@@ -51,6 +56,7 @@ function formatValue(value: unknown) {
               <el-descriptions-item label="标题">{{ props.detail.title || '-' }}</el-descriptions-item>
               <el-descriptions-item label="来源">{{ props.detail.origin || '-' }}</el-descriptions-item>
               <el-descriptions-item label="文件名">{{ props.detail.fileName || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="文件类型">{{ props.detail.fileType || '-' }}</el-descriptions-item>
               <el-descriptions-item label="状态">{{ props.detail.status }}</el-descriptions-item>
               <el-descriptions-item label="Chunks">{{ props.detail.chunkCount }}</el-descriptions-item>
               <el-descriptions-item label="期刊">{{ props.detail.journal || '-' }}</el-descriptions-item>
@@ -58,6 +64,21 @@ function formatValue(value: unknown) {
               <el-descriptions-item label="创建时间">{{ formatDate(props.detail.createdAt) }}</el-descriptions-item>
               <el-descriptions-item label="更新时间">{{ formatDate(props.detail.updatedAt) }}</el-descriptions-item>
             </el-descriptions>
+
+            <div class="block">
+              <h3>解析信息</h3>
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="解析方式">{{ formatValue(props.detail.metadata?.extractionMode) }}</el-descriptions-item>
+                <el-descriptions-item label="内容类型">{{ formatValue(props.detail.metadata?.contentType) }}</el-descriptions-item>
+                <el-descriptions-item label="页数">{{ formatValue(props.detail.metadata?.renderedPageCount) }}</el-descriptions-item>
+                <el-descriptions-item label="多模态截断">{{ props.detail.metadata?.multimodalTruncated ? '是' : '否' }}</el-descriptions-item>
+              </el-descriptions>
+            </div>
+
+            <div class="block">
+              <h3>正文提取结果</h3>
+              <pre>{{ props.detail.contentText || '暂无正文' }}</pre>
+            </div>
 
             <div class="block">
               <h3>摘要</h3>
@@ -83,7 +104,24 @@ function formatValue(value: unknown) {
                     </div>
                   </template>
                   <p class="chunk-content">{{ chunk.content }}</p>
+                  <div v-if="chunk.metadata && Object.keys(chunk.metadata).length" class="chunk-extra">
+                    <small>片段元数据</small>
+                    <pre>{{ formatValue(chunk.metadata) }}</pre>
+                  </div>
                 </el-card>
+              </div>
+              <div v-if="props.chunkTotal > 0" class="chunk-pagination">
+                <el-pagination
+                  background
+                  layout="total, sizes, prev, pager, next, jumper"
+                  :current-page="props.chunkPage + 1"
+                  :page-size="props.chunkSize"
+                  :page-sizes="[20, 50, 100, 200]"
+                  :total="props.chunkTotal"
+                  :disabled="props.chunkLoading"
+                  @current-change="(page: number) => emit('chunk-page-change', page - 1)"
+                  @size-change="(size: number) => emit('chunk-size-change', size)"
+                />
               </div>
             </el-skeleton>
           </el-tab-pane>
@@ -106,7 +144,8 @@ function formatValue(value: unknown) {
 }
 
 .block p,
-.block pre {
+.block pre,
+.chunk-extra pre {
   margin: 0;
   padding: 14px 16px;
   border-radius: 14px;
@@ -120,6 +159,12 @@ function formatValue(value: unknown) {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.chunk-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .chunk-card {
@@ -138,5 +183,15 @@ function formatValue(value: unknown) {
   color: #1f2937;
   line-height: 1.7;
   white-space: pre-wrap;
+}
+
+.chunk-extra {
+  margin-top: 12px;
+}
+
+.chunk-extra small {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: #64748b;
 }
 </style>

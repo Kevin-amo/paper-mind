@@ -39,10 +39,10 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
      */
     @Override
     public DocumentIngestionResult ingest(String fileName, byte[] content, Map<String, Object> metadata) {
-        DocumentSource source = documentParsingService.parse(fileName, content, metadata);
+        ParsedDocument parsedDocument = documentParsingService.parse(fileName, content, metadata);
+        DocumentSource source = parsedDocument.source();
+        String text = parsedDocument.text();
         try {
-            paperDocumentPersistenceService.markParsing(source, null);
-            String text = extractText(content);
             paperDocumentPersistenceService.markParsing(source, text);
             List<DocumentChunk> chunks = documentSplittingService.split(source, text);
             vectorWriteService.deleteBySourceId(source.sourceId());
@@ -65,19 +65,5 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
     public void deleteBySourceId(String sourceId) {
         vectorWriteService.deleteBySourceId(sourceId);
         paperDocumentPersistenceService.markDeleted(sourceId);
-    }
-
-    /**
-     * 通过具体解析实现提取正文文本。
-     *
-     * @param content 原始文件字节
-     * @return 提取出的正文文本，无法委派时返回空字符串
-     */
-    private String extractText(byte[] content) {
-        if (documentParsingService instanceof DocumentParsingServiceImpl tikaParsingService) {
-            return tikaParsingService.extractText(content);
-        }
-        ParsedDocument parsedDocument = new ParsedDocument(new DocumentSource("unknown", "unknown", "unknown", Map.of()), "");
-        return parsedDocument.text();
     }
 }

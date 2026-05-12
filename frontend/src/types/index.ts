@@ -123,7 +123,7 @@ export interface AnswerCitation {
   chunkIndex: number;
   title: string;
   excerpt: string;
-  score: number;
+  rankScore: number;
 }
 
 export interface RagAnswer {

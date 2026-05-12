@@ -102,7 +102,7 @@ class RagAnswerServiceImplTest {
         assertThat(citation.chunkIndex()).isEqualTo(4);
         assertThat(citation.title()).isEqualTo("Paper A");
         assertThat(citation.excerpt()).isEqualTo("This is the relevant text of the paper.");
-        assertThat(citation.score()).isEqualTo(0.93);
+        assertThat(citation.rankScore()).isEqualTo(0.93);
         // 确认检索服务确实被调用过一次，且参数正确
         verify(ragRetrievalService).retrieve("what is the main idea", 5);
     }

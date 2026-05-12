@@ -16,7 +16,11 @@ class DocumentSplittingServiceImplTest {
     @Test
     void splitShouldRecognizeEnglishContentsAndKeepStableIds() {
         DocumentSplittingServiceImpl service = new DocumentSplittingServiceImpl(new RagProperties(200, 20, 5, 0));
-        DocumentSource source = new DocumentSource("source-1", "Deep Learning for RAG", "paper.pdf", Map.of("title", "Deep Learning for RAG"));
+        DocumentSource source = new DocumentSource("source-1", "Deep Learning for RAG", "paper.pdf", Map.of(
+                "title", "Deep Learning for RAG",
+                "extractionMode", "MULTIMODAL",
+                "renderedPageCount", 2
+        ));
         String text = """
                 Deep Learning for RAG
 
@@ -55,10 +59,14 @@ class DocumentSplittingServiceImplTest {
         assertThat(first.get(1).content()).contains("Contents").contains("1 Introduction ........ 1").contains("1.1 Method ........ 3");
         assertThat(first).extracting(DocumentChunk::chunkId)
                 .containsExactlyElementsOf(second.stream().map(DocumentChunk::chunkId).toList());
+        assertThat(first).allSatisfy(chunk -> {
+            assertThat(chunk.metadata()).containsEntry("extractionMode", "MULTIMODAL");
+            assertThat(chunk.metadata()).containsEntry("renderedPageCount", 2);
+        });
     }
 
     @Test
-    void splitShouldSplitChineseContentsByEntriesBeforeFallbackToLength() {
+    void splitShouldKeepChineseContentsAsSingleChunk() {
         DocumentSplittingServiceImpl service = new DocumentSplittingServiceImpl(new RagProperties(26, 4, 5, 0));
         DocumentSource source = new DocumentSource("source-contents-cn", "结构化目录", "paper.pdf", Map.of("title", "结构化目录"));
         String text = """
@@ -78,17 +86,51 @@ class DocumentSplittingServiceImplTest {
                 .filter(chunk -> "CONTENTS".equals(chunk.metadata().get("sectionType")))
                 .toList();
 
-        assertThat(contentsChunks).hasSize(3);
-        assertThat(contentsChunks).extracting(DocumentChunk::content)
-                .containsExactly(
-                        "目录\n\n1 引言 ........ 1",
-                        "1.1 方法设计 ........ 3",
-                        "2 实验结果 ........ 5"
-                );
-        assertThat(contentsChunks).allMatch(chunk -> "目录".equals(chunk.metadata().get("sectionTitle")));
-        assertThat(contentsChunks).allMatch(chunk -> ((Number) chunk.metadata().get("chunkLength")).intValue() <= 26);
+        assertThat(contentsChunks).hasSize(1);
+        assertThat(contentsChunks.get(0).content())
+                .contains("目录")
+                .contains("1 引言 ........ 1")
+                .contains("1.1 方法设计 ........ 3")
+                .contains("2 实验结果 ........ 5");
+        assertThat(contentsChunks.get(0).metadata()).containsEntry("sectionTitle", "目录");
         assertThat(chunks).extracting(chunk -> String.valueOf(chunk.metadata().get("sectionType")))
-                .containsExactly("TITLE", "CONTENTS", "CONTENTS", "CONTENTS", "CONCLUSION");
+                .containsExactly("TITLE", "CONTENTS", "CONCLUSION");
+    }
+
+    @Test
+    void splitShouldKeepImplicitContentsEntriesAsSingleChunk() {
+        DocumentSplittingServiceImpl service = new DocumentSplittingServiceImpl(new RagProperties(800, 120, 5, 0));
+        DocumentSource source = new DocumentSource("source-implicit-contents", "软件分析与建模", "paper.docx", Map.of());
+        String text = """
+                软件分析与建模技术课程设计
+
+                1 引言1
+                1.1 项目背景2
+                1.2 研究内容3
+                1.3 论文结构3
+                2 需求分析3
+                2.1 业务分析3
+
+                1 引言
+                正文里的引言内容。
+
+                1.1 项目背景
+                正文里的项目背景内容。
+                """;
+
+        List<DocumentChunk> chunks = service.split(source, text);
+        List<DocumentChunk> contentsChunks = chunks.stream()
+                .filter(chunk -> "CONTENTS".equals(chunk.metadata().get("sectionType")))
+                .toList();
+
+        assertThat(contentsChunks).hasSize(1);
+        assertThat(contentsChunks.get(0).content())
+                .contains("1 引言1")
+                .contains("1.1 项目背景2")
+                .contains("2.1 业务分析3");
+        assertThat(contentsChunks.get(0).metadata()).containsEntry("sectionTitle", "目录");
+        assertThat(chunks).extracting(chunk -> String.valueOf(chunk.metadata().get("sectionType")))
+                .containsExactly("TITLE", "CONTENTS", "SECTION", "SECTION");
     }
 
     @Test

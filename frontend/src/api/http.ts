@@ -9,6 +9,11 @@ export const http = axios.create({
   timeout: 30000,
 });
 
+export const uploadHttp = axios.create({
+  baseURL: apiPrefix,
+  timeout: 300000,
+});
+
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data;

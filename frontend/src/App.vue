@@ -31,12 +31,20 @@ const chunks = ref<DocumentChunk[]>([]);
 const ragAnswer = ref<RagAnswer | null>(null);
 const detailVisible = ref(false);
 const lastBatchUploadResult = ref<BatchDocumentIngestionResponse | null>(null);
+const uploadErrorMessage = ref('');
 
 const pagination = reactive({
   page: 0,
   size: 10,
   total: 0,
 });
+
+const chunkPagination = reactive({
+  page: 0,
+  size: 50,
+  total: 0,
+});
+const selectedSourceId = ref<string | null>(null);
 
 const requestPrefixText = computed(() => (apiPrefix ? apiPrefix : '直连控制器路径'));
 
@@ -73,12 +81,15 @@ async function loadDocumentDetail(sourceId: string) {
   }
 }
 
-async function loadDocumentChunks(sourceId: string) {
+async function loadDocumentChunks(sourceId: string, page = chunkPagination.page, size = chunkPagination.size) {
   chunkLoading.value = true;
 
   try {
-    const result = await getDocumentChunks(sourceId, { page: 0, size: 50 });
+    const result = await getDocumentChunks(sourceId, { page, size });
     chunks.value = result.items;
+    chunkPagination.page = result.page;
+    chunkPagination.size = result.size;
+    chunkPagination.total = result.total;
   } catch (error) {
     ElMessage.error(getErrorMessage(error));
   } finally {
@@ -88,6 +99,8 @@ async function loadDocumentChunks(sourceId: string) {
 
 async function handleUpload(payload: BatchUploadDocumentPayload) {
   uploadLoading.value = true;
+  uploadErrorMessage.value = '';
+  lastBatchUploadResult.value = null;
 
   try {
     lastBatchUploadResult.value = await uploadDocumentsBatch(payload);
@@ -100,9 +113,21 @@ async function handleUpload(payload: BatchUploadDocumentPayload) {
     }
     await loadDocuments(0);
   } catch (error) {
-    ElMessage.error(getErrorMessage(error));
+    const errorMessage = getErrorMessage(error);
+    uploadErrorMessage.value = `上传请求失败，后端可能仍在处理；请刷新文档列表确认状态。${errorMessage}`;
+    ElMessage.error(uploadErrorMessage.value);
+    await loadDocuments(0);
   } finally {
     uploadLoading.value = false;
+  }
+}
+
+async function handleUploadRemove(sourceId: string) {
+  try {
+    await deleteDocument(sourceId);
+    await loadDocuments(0);
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error));
   }
 }
 
@@ -116,7 +141,10 @@ async function handleDelete(document: DocumentSummary) {
     if (detail.value?.sourceId === document.sourceId) {
       detailVisible.value = false;
       detail.value = null;
+      selectedSourceId.value = null;
       chunks.value = [];
+      chunkPagination.page = 0;
+      chunkPagination.total = 0;
     }
 
     const nextPage = documents.value.length === 1 && pagination.page > 0 ? pagination.page - 1 : pagination.page;
@@ -131,9 +159,26 @@ async function handleDelete(document: DocumentSummary) {
 async function handleOpenDetail(document: DocumentSummary) {
   detailVisible.value = true;
   detail.value = null;
+  selectedSourceId.value = document.sourceId;
   chunks.value = [];
+  chunkPagination.page = 0;
+  chunkPagination.total = 0;
 
-  await Promise.all([loadDocumentDetail(document.sourceId), loadDocumentChunks(document.sourceId)]);
+  await Promise.all([loadDocumentDetail(document.sourceId), loadDocumentChunks(document.sourceId, 0)]);
+}
+
+function handleChunkPageChange(page: number) {
+  if (!selectedSourceId.value) {
+    return;
+  }
+  void loadDocumentChunks(selectedSourceId.value, page);
+}
+
+function handleChunkSizeChange(size: number) {
+  if (!selectedSourceId.value) {
+    return;
+  }
+  void loadDocumentChunks(selectedSourceId.value, 0, size);
 }
 
 async function handleAsk(payload: { question: string; topK?: number }) {
@@ -175,7 +220,13 @@ onMounted(() => {
       </div>
     </header>
 
-    <UploadPanel :loading="uploadLoading" :result="lastBatchUploadResult" @submit="handleUpload" />
+    <UploadPanel
+      :loading="uploadLoading"
+      :result="lastBatchUploadResult"
+      :error-message="uploadErrorMessage"
+      @submit="handleUpload"
+      @remove="handleUploadRemove"
+    />
 
     <el-alert
       v-if="lastBatchUploadResult"
@@ -216,6 +267,11 @@ onMounted(() => {
       :chunks="chunks"
       :loading="detailLoading"
       :chunk-loading="chunkLoading"
+      :chunk-page="chunkPagination.page"
+      :chunk-size="chunkPagination.size"
+      :chunk-total="chunkPagination.total"
+      @chunk-page-change="handleChunkPageChange"
+      @chunk-size-change="handleChunkSizeChange"
     />
   </div>
 </template>
