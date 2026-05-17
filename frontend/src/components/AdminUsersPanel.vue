@@ -1,17 +1,10 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
-import {
-  createAdminUser,
-  deleteAdminUser,
-  listAdminUsers,
-  resetAdminUserPassword,
-  updateAdminUser,
-  updateAdminUserRoles,
-  updateAdminUserStatus,
-} from '../api/adminUsers';
-import { getErrorMessage } from '../api/http';
-import type { AdminUser } from '../types';
+import { computed, watch } from 'vue';
+import StatusTag from './common/StatusTag.vue';
+import RoleTag from './common/RoleTag.vue';
+import ConfirmDeleteButton from './common/ConfirmDeleteButton.vue';
+import { useAdminUsers } from '../composables/useAdminUsers';
+import type { AdminUser, UserRole, UserStatus } from '../types';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -26,214 +19,32 @@ const visible = computed({
   set: (value: boolean) => emit('update:modelValue', value),
 });
 
-const loading = ref(false);
-const saving = ref(false);
-const deletingUserId = ref<string | null>(null);
-const users = ref<AdminUser[]>([]);
-const keyword = ref('');
-const statusFilter = ref('');
-const pagination = reactive({ page: 0, size: 20, total: 0 });
-const formDialogVisible = ref(false);
-const passwordDialogVisible = ref(false);
-const selectedUser = ref<AdminUser | null>(null);
-const formMode = ref<'create' | 'edit'>('create');
-
-const userForm = reactive({
-  username: '',
-  password: '',
-  displayName: '',
-  email: '',
-  roles: ['USER'],
-});
-const passwordForm = reactive({ password: '' });
-
-const activeCount = computed(() => users.value.filter((user) => user.status === 'ACTIVE').length);
-const adminCount = computed(() => users.value.filter((user) => user.roles.includes('ADMIN')).length);
-const disabledCount = computed(() => users.value.filter((user) => user.status === 'DISABLED').length);
-const dialogTitle = computed(() => (formMode.value === 'create' ? '新建用户' : '编辑用户'));
+const admin = useAdminUsers();
 
 watch(
   () => props.modelValue,
   (open) => {
     if (open) {
-      void loadUsers(0);
+      void admin.loadUsers(0);
     }
   },
+  { immediate: props.modelValue },
 );
-
-async function loadUsers(page = pagination.page) {
-  loading.value = true;
-  try {
-    const result = await listAdminUsers({
-      page,
-      size: pagination.size,
-      keyword: keyword.value.trim() || undefined,
-      status: statusFilter.value || undefined,
-    });
-    users.value = result.items;
-    pagination.page = result.page;
-    pagination.size = result.size;
-    pagination.total = result.total;
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    loading.value = false;
-  }
-}
-
-function resetUserForm() {
-  Object.assign(userForm, { username: '', password: '', displayName: '', email: '', roles: ['USER'] });
-  selectedUser.value = null;
-}
-
-function openCreateDialog() {
-  formMode.value = 'create';
-  resetUserForm();
-  formDialogVisible.value = true;
-}
-
-function openEditDialog(user: AdminUser) {
-  formMode.value = 'edit';
-  selectedUser.value = user;
-  Object.assign(userForm, {
-    username: user.username,
-    password: '',
-    displayName: user.displayName || '',
-    email: user.email || '',
-    roles: [...user.roles],
-  });
-  formDialogVisible.value = true;
-}
-
-async function handleSaveUser() {
-  if (formMode.value === 'create' && !userForm.username.trim()) {
-    ElMessage.warning('请输入用户名');
-    return;
-  }
-  if (formMode.value === 'create' && !userForm.password) {
-    ElMessage.warning('请输入初始密码');
-    return;
-  }
-  if (!userForm.roles.length) {
-    ElMessage.warning('请至少选择一个角色');
-    return;
-  }
-
-  saving.value = true;
-  try {
-    if (formMode.value === 'create') {
-      await createAdminUser({
-        username: userForm.username.trim(),
-        password: userForm.password,
-        displayName: userForm.displayName.trim() || undefined,
-        email: userForm.email.trim() || undefined,
-        roles: userForm.roles,
-      });
-      ElMessage.success('用户已创建');
-      await loadUsers(0);
-    } else if (selectedUser.value) {
-      await updateAdminUser(selectedUser.value.id, {
-        displayName: userForm.displayName.trim() || undefined,
-        email: userForm.email.trim() || undefined,
-      });
-      await updateAdminUserRoles(selectedUser.value.id, userForm.roles);
-      ElMessage.success('用户资料已更新');
-      await loadUsers();
-    }
-    formDialogVisible.value = false;
-    resetUserForm();
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function handleRoleChange(user: AdminUser, roles: string[]) {
-  if (!roles.length) {
-    ElMessage.warning('请至少保留一个角色');
-    await loadUsers();
-    return;
-  }
-  try {
-    await updateAdminUserRoles(user.id, roles);
-    ElMessage.success('角色已更新');
-    await loadUsers();
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-    await loadUsers();
-  }
-}
-
-async function handleStatusChange(user: AdminUser, status: string) {
-  try {
-    await updateAdminUserStatus(user.id, status);
-    ElMessage.success('状态已更新');
-    await loadUsers();
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-    await loadUsers();
-  }
-}
-
-function openPasswordDialog(user: AdminUser) {
-  selectedUser.value = user;
-  passwordForm.password = '';
-  passwordDialogVisible.value = true;
-}
-
-async function handleResetPassword() {
-  if (!selectedUser.value) {
-    return;
-  }
-  if (!passwordForm.password) {
-    ElMessage.warning('请输入新密码');
-    return;
-  }
-  saving.value = true;
-  try {
-    await resetAdminUserPassword(selectedUser.value.id, { password: passwordForm.password });
-    ElMessage.success('密码已重置');
-    passwordDialogVisible.value = false;
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    saving.value = false;
-  }
-}
-
-async function handleDeleteUser(user: AdminUser) {
-  deletingUserId.value = user.id;
-  try {
-    await deleteAdminUser(user.id);
-    ElMessage.success('用户已删除');
-    const nextPage = users.value.length === 1 && pagination.page > 0 ? pagination.page - 1 : pagination.page;
-    await loadUsers(nextPage);
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    deletingUserId.value = null;
-  }
-}
 
 function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleString() : '-';
 }
 
-function roleTagType(role: string) {
-  return role === 'ADMIN' ? 'danger' : 'primary';
-}
-
-function statusTagType(status: string) {
-  return status === 'ACTIVE' ? 'success' : 'info';
+function userInitial(user: AdminUser) {
+  return (user.displayName || user.username).slice(0, 1).toUpperCase();
 }
 </script>
 
 <template>
-  <el-drawer v-model="visible" size="min(1080px, 92vw)" destroy-on-close class="admin-users-drawer">
+  <el-drawer v-model="visible" size="min(1120px, 94vw)" destroy-on-close class="admin-users-drawer">
     <template #header>
       <div class="drawer-title">
-        <span class="drawer-kicker">Admin Console</span>
+        <span>Admin Console</span>
         <strong>用户管理</strong>
       </div>
     </template>
@@ -241,43 +52,43 @@ function statusTagType(status: string) {
     <section class="admin-summary">
       <div class="summary-card">
         <span>当前页用户</span>
-        <strong>{{ users.length }}</strong>
+        <strong>{{ admin.users.value.length }}</strong>
       </div>
       <div class="summary-card">
         <span>启用账号</span>
-        <strong>{{ activeCount }}</strong>
+        <strong>{{ admin.activeCount.value }}</strong>
       </div>
       <div class="summary-card">
         <span>管理员</span>
-        <strong>{{ adminCount }}</strong>
+        <strong>{{ admin.adminCount.value }}</strong>
       </div>
       <div class="summary-card muted">
         <span>禁用账号</span>
-        <strong>{{ disabledCount }}</strong>
+        <strong>{{ admin.disabledCount.value }}</strong>
       </div>
     </section>
 
     <div class="toolbar">
       <el-input
-        v-model="keyword"
+        v-model="admin.keyword.value"
         clearable
         size="large"
         placeholder="搜索用户名 / 昵称 / 邮箱"
-        @keyup.enter="loadUsers(0)"
+        @keyup.enter="admin.loadUsers(0)"
       />
-      <el-select v-model="statusFilter" clearable size="large" placeholder="状态" class="status-filter">
+      <el-select v-model="admin.statusFilter.value" clearable size="large" placeholder="状态" class="status-filter">
         <el-option label="启用" value="ACTIVE" />
         <el-option label="禁用" value="DISABLED" />
       </el-select>
-      <el-button size="large" @click="loadUsers(0)">搜索</el-button>
-      <el-button size="large" type="primary" @click="openCreateDialog">新建用户</el-button>
+      <el-button size="large" @click="admin.loadUsers(0)">搜索</el-button>
+      <el-button size="large" type="primary" @click="admin.openCreateDialog">新建用户</el-button>
     </div>
 
-    <el-table :data="users" :loading="loading" height="560" class="users-table">
+    <el-table :data="admin.users.value" :loading="admin.loading.value" height="560" class="users-table">
       <el-table-column label="用户" min-width="220">
         <template #default="{ row }">
           <div class="user-cell">
-            <div class="user-avatar">{{ row.username.slice(0, 1).toUpperCase() }}</div>
+            <div class="user-avatar">{{ userInitial(row) }}</div>
             <div>
               <strong>{{ row.displayName || row.username }}</strong>
               <span>{{ row.username }}</span>
@@ -288,20 +99,32 @@ function statusTagType(status: string) {
       <el-table-column prop="email" label="邮箱" min-width="190" show-overflow-tooltip>
         <template #default="{ row }">{{ row.email || '-' }}</template>
       </el-table-column>
-      <el-table-column label="角色" min-width="220">
+      <el-table-column label="角色" min-width="230">
         <template #default="{ row }">
-          <el-select :model-value="row.roles" multiple collapse-tags collapse-tags-tooltip @change="(roles: string[]) => handleRoleChange(row, roles)">
+          <el-select
+            :model-value="row.roles"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            @change="(roles: UserRole[]) => admin.changeRoles(row, roles)"
+          >
             <el-option label="管理员" value="ADMIN" />
             <el-option label="普通用户" value="USER" />
           </el-select>
+          <div class="role-preview">
+            <RoleTag v-for="role in row.roles" :key="role" :role="role" />
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="状态" width="150">
         <template #default="{ row }">
-          <el-select :model-value="row.status" @change="(status: string) => handleStatusChange(row, status)">
+          <el-select :model-value="row.status" @change="(status: UserStatus) => admin.changeStatus(row, status)">
             <el-option label="启用" value="ACTIVE" />
             <el-option label="禁用" value="DISABLED" />
           </el-select>
+          <div class="status-preview">
+            <StatusTag :status="row.status" />
+          </div>
         </template>
       </el-table-column>
       <el-table-column label="最近登录" min-width="170">
@@ -313,76 +136,65 @@ function statusTagType(status: string) {
       <el-table-column label="操作" width="220" fixed="right">
         <template #default="{ row }">
           <div class="table-actions">
-            <el-button text type="primary" @click="openEditDialog(row)">编辑</el-button>
-            <el-button text type="primary" @click="openPasswordDialog(row)">密码</el-button>
-            <el-popconfirm
+            <el-button text type="primary" @click="admin.openEditDialog(row)">编辑</el-button>
+            <el-button text type="primary" @click="admin.openPasswordDialog(row)">重置密码</el-button>
+            <ConfirmDeleteButton
               title="确认删除这个用户吗？"
-              confirm-button-text="删除"
-              cancel-button-text="取消"
-              confirm-button-type="danger"
-              @confirm="handleDeleteUser(row)"
-            >
-              <template #reference>
-                <el-button text type="danger" :loading="deletingUserId === row.id">删除</el-button>
-              </template>
-            </el-popconfirm>
+              :loading="admin.deletingUserId.value === row.id"
+              @confirm="admin.removeUser(row)"
+            />
           </div>
         </template>
       </el-table-column>
     </el-table>
 
     <div class="pagination-wrap">
-      <div class="status-legend">
-        <el-tag :type="statusTagType('ACTIVE')" effect="plain">ACTIVE</el-tag>
-        <el-tag :type="statusTagType('DISABLED')" effect="plain">DISABLED</el-tag>
-        <el-tag :type="roleTagType('ADMIN')" effect="plain">ADMIN</el-tag>
-      </div>
       <el-pagination
         background
         layout="total, prev, pager, next"
-        :total="pagination.total"
-        :page-size="pagination.size"
-        :current-page="pagination.page + 1"
-        @current-change="(page: number) => loadUsers(page - 1)"
+        :total="admin.pagination.total"
+        :page-size="admin.pagination.size"
+        :current-page="admin.pagination.page + 1"
+        @current-change="(page: number) => admin.loadUsers(page - 1)"
       />
     </div>
 
-    <el-dialog v-model="formDialogVisible" :title="dialogTitle" width="480px" class="user-form-dialog">
+    <el-dialog v-model="admin.formDialogVisible.value" :title="admin.dialogTitle.value" width="480px" class="user-form-dialog">
       <el-form label-position="top">
         <el-form-item label="用户名" required>
-          <el-input v-model="userForm.username" :disabled="formMode === 'edit'" placeholder="例如 alice" />
+          <el-input v-model="admin.userForm.username" :disabled="admin.formMode.value === 'edit'" placeholder="例如 alice" />
         </el-form-item>
-        <el-form-item v-if="formMode === 'create'" label="初始密码" required>
-          <el-input v-model="userForm.password" type="password" show-password placeholder="请输入初始密码" />
+        <el-form-item v-if="admin.formMode.value === 'create'" label="初始密码" required>
+          <el-input v-model="admin.userForm.password" type="password" show-password placeholder="请输入初始密码" />
         </el-form-item>
         <el-form-item label="昵称">
-          <el-input v-model="userForm.displayName" placeholder="展示名称" />
+          <el-input v-model="admin.userForm.displayName" placeholder="展示名称" />
         </el-form-item>
         <el-form-item label="邮箱">
-          <el-input v-model="userForm.email" placeholder="name@example.com" />
+          <el-input v-model="admin.userForm.email" placeholder="name@example.com" />
         </el-form-item>
         <el-form-item label="角色" required>
-          <el-select v-model="userForm.roles" multiple class="full-select">
+          <el-select v-model="admin.userForm.roles" multiple class="full-select">
             <el-option label="管理员" value="ADMIN" />
             <el-option label="普通用户" value="USER" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleSaveUser">保存</el-button>
+        <el-button @click="admin.formDialogVisible.value = false">取消</el-button>
+        <el-button type="primary" :loading="admin.saving.value" @click="admin.saveUser">保存</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="passwordDialogVisible" title="重置密码" width="400px">
+    <el-dialog v-model="admin.passwordDialogVisible.value" title="重置密码" width="400px">
       <el-form label-position="top">
-        <el-form-item :label="`新密码${selectedUser ? ` · ${selectedUser.username}` : ''}`" required>
-          <el-input v-model="passwordForm.password" type="password" show-password placeholder="请输入新密码" />
+        <el-form-item :label="`新密码${admin.selectedUser.value ? ` · ${admin.selectedUser.value.username}` : ''}`" required>
+          <el-input v-model="admin.passwordForm.password" type="password" show-password placeholder="请输入新密码" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="passwordDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="handleResetPassword">确认重置</el-button>
+        <el-button @click="admin.passwordDialogVisible.value = false">取消</el-button>
+        <el-button type="primary" :loading="admin.saving.value" @click="admin.resetPassword">确认重置</el-button>
       </template>
     </el-dialog>
   </el-drawer>
@@ -395,8 +207,8 @@ function statusTagType(status: string) {
   gap: 3px;
 }
 
-.drawer-kicker {
-  color: #2563eb;
+.drawer-title span {
+  color: var(--app-primary);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -404,7 +216,7 @@ function statusTagType(status: string) {
 }
 
 .drawer-title strong {
-  color: #0f172a;
+  color: var(--app-text);
   font-size: 22px;
 }
 
@@ -419,23 +231,23 @@ function statusTagType(status: string) {
   border: 1px solid rgba(37, 99, 235, 0.11);
   border-radius: 20px;
   padding: 16px;
-  background: linear-gradient(135deg, #eff6ff, #ffffff);
+  background: linear-gradient(135deg, #eff6ff, #fff);
 }
 
 .summary-card.muted {
-  background: linear-gradient(135deg, #f8fafc, #ffffff);
+  background: linear-gradient(135deg, #f8fafc, #fff);
 }
 
 .summary-card span {
   display: block;
-  color: #64748b;
+  color: var(--app-text-muted);
   font-size: 13px;
 }
 
 .summary-card strong {
   display: block;
   margin-top: 8px;
-  color: #0f172a;
+  color: var(--app-text);
   font-size: 28px;
   line-height: 1;
 }
@@ -453,14 +265,8 @@ function statusTagType(status: string) {
 
 .users-table {
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--app-border);
   border-radius: 20px;
-}
-
-.users-table :deep(.el-table__header th) {
-  background: #f8fafc;
-  color: #475569;
-  font-weight: 800;
 }
 
 .user-cell {
@@ -471,50 +277,50 @@ function statusTagType(status: string) {
 
 .user-avatar {
   display: grid;
+  place-items: center;
   width: 38px;
   height: 38px;
-  place-items: center;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  border-radius: 12px;
   color: #fff;
+  background: linear-gradient(135deg, var(--app-primary), #60a5fa);
   font-weight: 800;
 }
 
-.user-cell strong,
-.user-cell span {
-  display: block;
+.user-cell div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .user-cell span {
-  margin-top: 2px;
-  color: #64748b;
+  color: var(--app-text-muted);
   font-size: 12px;
+}
+
+.role-preview,
+.status-preview {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .table-actions {
   display: flex;
-  align-items: center;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .pagination-wrap {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: flex-end;
   margin-top: 16px;
-}
-
-.status-legend {
-  display: flex;
-  gap: 8px;
 }
 
 .full-select {
   width: 100%;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 820px) {
   .admin-summary,
   .toolbar {
     grid-template-columns: 1fr;
@@ -522,11 +328,6 @@ function statusTagType(status: string) {
 
   .status-filter {
     width: 100%;
-  }
-
-  .pagination-wrap {
-    align-items: flex-start;
-    flex-direction: column;
   }
 }
 </style>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import EmptyState from './common/EmptyState.vue';
+import ConfirmDeleteButton from './common/ConfirmDeleteButton.vue';
 import type { Conversation, ConversationMessage } from '../types';
 
 const props = defineProps<{
@@ -10,11 +12,13 @@ const props = defineProps<{
   activeConversationId: string | null;
   conversationsLoading?: boolean;
   messagesLoading?: boolean;
+  cleaningConversations?: boolean;
 }>();
 
 const emit = defineEmits<{
   submit: [payload: { question: string; topK?: number }];
   createConversation: [];
+  cleanEmptyConversations: [];
   selectConversation: [conversationId: string];
   deleteConversation: [conversationId: string];
 }>();
@@ -26,7 +30,12 @@ const form = ref({
 const messageListRef = ref<HTMLElement | null>(null);
 
 const activeConversation = computed(() => props.conversations.find((item) => item.id === props.activeConversationId) ?? null);
-const sortedMessages = computed(() => [...props.messages].sort((a, b) => a.messageOrder - b.messageOrder));
+const sortedMessages = computed(() => props.messages
+  .filter((message) => {
+    const content = message.content.trim();
+    return (content && content !== '-') || message.citations?.length;
+  })
+  .sort((a, b) => a.messageOrder - b.messageOrder));
 
 watch(
   () => props.messages.length,
@@ -50,10 +59,7 @@ function handleSubmit() {
 }
 
 function formatDate(value: string) {
-  if (!value) {
-    return '-';
-  }
-  return new Date(value).toLocaleString();
+  return value ? new Date(value).toLocaleString() : '-';
 }
 
 function previewTitle(conversation: Conversation) {
@@ -66,38 +72,46 @@ function previewTitle(conversation: Conversation) {
     <template #header>
       <div class="rag-header">
         <div>
-          <h2>Agent 问答</h2>
-          <p>会话会自动保存，最近历史会注入 Prompt。</p>
+          <p class="section-kicker">RAG Assistant</p>
+          <h2>论文问答</h2>
+          <p>基于已解析文档进行检索增强回答，并展示引用来源。</p>
         </div>
-        <el-button type="primary" @click="emit('createConversation')">新建会话</el-button>
+        <div class="header-actions">
+          <el-button :loading="props.cleaningConversations" @click="emit('cleanEmptyConversations')">
+            清理空会话
+          </el-button>
+          <el-button type="primary" @click="emit('createConversation')">
+            新建会话
+          </el-button>
+        </div>
       </div>
     </template>
 
     <div class="chat-layout">
       <aside class="conversation-panel" v-loading="props.conversationsLoading">
-        <el-empty v-if="!props.conversations.length" description="暂无会话" :image-size="80" />
+        <EmptyState v-if="!props.conversations.length" compact title="暂无会话" description="发送问题或新建会话后会出现在这里。" />
         <div v-else class="conversation-list">
-          <button
+          <div
             v-for="conversation in props.conversations"
             :key="conversation.id"
             class="conversation-item"
             :class="{ active: conversation.id === props.activeConversationId }"
-            type="button"
-            @click="emit('selectConversation', conversation.id)"
           >
-            <span class="conversation-title">{{ previewTitle(conversation) }}</span>
-            <span class="conversation-time">{{ formatDate(conversation.updatedAt) }}</span>
-            <el-popconfirm
-              title="确认删除这个会话吗？"
-              confirm-button-text="确认"
-              cancel-button-text="取消"
-              @confirm.stop="emit('deleteConversation', conversation.id)"
+            <button
+              class="conversation-select"
+              type="button"
+              @click="emit('selectConversation', conversation.id)"
             >
-              <template #reference>
-                <el-button class="delete-button" text type="danger" size="small" @click.stop>删除</el-button>
-              </template>
-            </el-popconfirm>
-          </button>
+              <span class="conversation-title">{{ previewTitle(conversation) }}</span>
+              <span class="conversation-time">{{ formatDate(conversation.updatedAt) }}</span>
+            </button>
+            <ConfirmDeleteButton
+              class="delete-button"
+              title="确认删除这个会话吗？"
+              confirm-text="删除"
+              @confirm="emit('deleteConversation', conversation.id)"
+            />
+          </div>
         </div>
       </aside>
 
@@ -111,7 +125,7 @@ function previewTitle(conversation: Conversation) {
         </div>
 
         <div ref="messageListRef" class="message-list" v-loading="props.messagesLoading">
-          <el-empty v-if="!sortedMessages.length" description="选择会话或直接输入问题开始问答" />
+          <EmptyState v-if="!sortedMessages.length" title="开始提问" description="可以询问论文观点、方法、结论、实验设置或引用依据。" />
           <template v-else>
             <article
               v-for="message in sortedMessages"
@@ -125,10 +139,10 @@ function previewTitle(conversation: Conversation) {
                 <el-card v-for="citation in message.citations" :key="`${message.id}-${citation.chunkId}`" shadow="never" class="citation-card">
                   <div class="citation-meta">
                     <strong>{{ citation.title || citation.sourceId }}</strong>
-                    <el-tag size="small">rankScore {{ citation.rankScore.toFixed(4) }}</el-tag>
+                    <el-tag size="small">相关度 {{ citation.rankScore.toFixed(4) }}</el-tag>
                   </div>
                   <p>{{ citation.excerpt }}</p>
-                  <small>{{ citation.sourceId }} · chunk #{{ citation.chunkIndex }}</small>
+                  <small>{{ citation.sourceId }} · 分块 #{{ citation.chunkIndex }}</small>
                 </el-card>
               </div>
               <time>{{ formatDate(message.createdAt) }}</time>
@@ -143,15 +157,15 @@ function previewTitle(conversation: Conversation) {
               type="textarea"
               :rows="4"
               resize="none"
-              placeholder="例如：这篇论文的核心观点是什么？"
+              placeholder="例如：这篇论文的核心贡献是什么？请给出引用依据。"
               @keydown.ctrl.enter="handleSubmit"
             />
           </el-form-item>
           <div class="composer-actions">
-            <el-form-item label="Top K" class="topk-field">
+            <el-form-item label="召回数量" class="topk-field">
               <el-input-number v-model="form.topK" :min="1" :max="10" />
             </el-form-item>
-            <el-button type="primary" :loading="props.loading" @click="handleSubmit">发送</el-button>
+            <el-button type="primary" :loading="props.loading" @click="handleSubmit">发送问题</el-button>
           </div>
         </el-form>
       </section>
@@ -161,30 +175,40 @@ function previewTitle(conversation: Conversation) {
 
 <style scoped>
 .rag-card {
-  border: none;
-  border-radius: 20px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-shadow);
 }
 
 .rag-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
 
-.rag-header h2 {
-  margin: 0;
-  font-size: 18px;
+.section-kicker {
+  margin: 0 0 6px;
+  color: var(--app-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.rag-header p {
+.rag-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.rag-header p:last-child {
   margin: 6px 0 0;
-  color: #6b7280;
+  color: var(--app-text-muted);
 }
 
 .chat-layout {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
+  grid-template-columns: 190px minmax(0, 1fr);
   gap: 16px;
   min-height: 680px;
 }
@@ -192,7 +216,7 @@ function previewTitle(conversation: Conversation) {
 .conversation-panel {
   min-height: 100%;
   padding-right: 12px;
-  border-right: 1px solid #e5e7eb;
+  border-right: 1px solid var(--app-border);
 }
 
 .conversation-list {
@@ -203,22 +227,33 @@ function previewTitle(conversation: Conversation) {
 
 .conversation-item {
   width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--app-text);
+}
+
+.conversation-select {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 6px;
-  padding: 10px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  background: #fff;
-  color: #111827;
+  border: 0;
+  background: transparent;
+  color: inherit;
   text-align: left;
   cursor: pointer;
 }
 
 .conversation-item.active {
-  border-color: #2563eb;
-  background: #eff6ff;
+  border-color: var(--app-primary);
+  background: var(--app-primary-soft);
 }
 
 .conversation-title {
@@ -231,12 +266,11 @@ function previewTitle(conversation: Conversation) {
 
 .conversation-time {
   font-size: 12px;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .delete-button {
   align-self: flex-end;
-  padding: 0;
 }
 
 .message-panel {
@@ -253,7 +287,7 @@ function previewTitle(conversation: Conversation) {
   gap: 12px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: #f8fafc;
+  background: var(--app-surface-soft);
 }
 
 .message-title div {
@@ -264,7 +298,7 @@ function previewTitle(conversation: Conversation) {
 
 .message-title span {
   font-size: 12px;
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .message-list {
@@ -276,13 +310,13 @@ function previewTitle(conversation: Conversation) {
   flex-direction: column;
   gap: 12px;
   padding: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border);
   border-radius: 18px;
   background: #f8fafc;
 }
 
 .message-bubble {
-  max-width: 86%;
+  max-width: 88%;
   padding: 12px 14px;
   border-radius: 18px;
   background: #fff;
@@ -291,7 +325,7 @@ function previewTitle(conversation: Conversation) {
 
 .user-message {
   align-self: flex-end;
-  background: #2563eb;
+  background: var(--app-primary);
   color: #fff;
 }
 
@@ -343,12 +377,12 @@ function previewTitle(conversation: Conversation) {
 }
 
 .citation-card small {
-  color: #64748b;
+  color: var(--app-text-muted);
 }
 
 .composer {
   padding: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border);
   border-radius: 18px;
   background: #fff;
 }
@@ -364,21 +398,24 @@ function previewTitle(conversation: Conversation) {
   margin-bottom: 0;
 }
 
-@media (max-width: 900px) {
-  .chat-layout {
+@media (max-width: 760px) {
+  .rag-header,
+  .chat-layout,
+  .composer-actions {
+    align-items: stretch;
     grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .conversation-panel {
     padding-right: 0;
     padding-bottom: 12px;
     border-right: none;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--app-border);
   }
 
-  .conversation-list {
-    max-height: 220px;
-    overflow-y: auto;
+  .message-bubble {
+    max-width: 100%;
   }
 }
 </style>

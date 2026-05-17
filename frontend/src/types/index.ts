@@ -5,6 +5,11 @@ export interface PageResponse<T> {
   total: number;
 }
 
+export type UserRole = 'USER' | 'ADMIN';
+export type UserStatus = 'ACTIVE' | 'DISABLED';
+export type DocumentStatus = 'PENDING' | 'PROCESSING' | 'INDEXED' | 'READY' | 'FAILED' | string;
+export type MessageRole = 'USER' | 'ASSISTANT';
+
 export interface DocumentSource {
   sourceId: string;
   title: string;
@@ -25,7 +30,7 @@ export interface DocumentSummary {
   fileName: string;
   fileType: string;
   fileSize: number | null;
-  status: string;
+  status: DocumentStatus;
   chunkCount: number;
   publishYear: number | null;
   createdAt: string;
@@ -48,7 +53,7 @@ export interface DocumentDetail {
   keywords: unknown;
   contentText: string | null;
   metadata: Record<string, unknown> | null;
-  status: string;
+  status: DocumentStatus;
   chunkCount: number;
   errorMessage: string | null;
   createdAt: string;
@@ -92,7 +97,7 @@ export interface DocumentAsset {
 
 export interface ListDocumentsParams {
   keyword?: string;
-  status?: string;
+  status?: DocumentStatus;
   page?: number;
   size?: number;
 }
@@ -165,7 +170,7 @@ export interface Conversation {
 export interface ConversationMessage {
   id: string;
   conversationId: string;
-  role: 'USER' | 'ASSISTANT';
+  role: MessageRole;
   messageOrder: number;
   content: string;
   citations: AnswerCitation[];
@@ -181,7 +186,7 @@ export interface AuthUser {
   username: string;
   displayName: string | null;
   email: string | null;
-  roles: string[];
+  roles: UserRole[];
 }
 
 export interface LoginPayload {
@@ -212,8 +217,8 @@ export interface AdminUser {
   username: string;
   displayName: string | null;
   email: string | null;
-  status: string;
-  roles: string[];
+  status: UserStatus;
+  roles: UserRole[];
   lastLoginAt: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -224,7 +229,7 @@ export interface CreateAdminUserPayload {
   password: string;
   displayName?: string;
   email?: string;
-  roles: string[];
+  roles: UserRole[];
 }
 
 export interface UpdateAdminUserPayload {
