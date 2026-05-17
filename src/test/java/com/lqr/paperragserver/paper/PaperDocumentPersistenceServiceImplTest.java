@@ -143,6 +143,50 @@ class PaperDocumentPersistenceServiceImplTest {
     }
 
     @Test
+    void replaceChunksShouldAssignPrimaryKeyBeforeInsert() {
+        DocumentChunk chunk = new DocumentChunk(
+                "chunk-1",
+                "source-1",
+                0,
+                "chunk text",
+                Map.of()
+        );
+
+        service.replaceChunks(ownerUserId, "source-1", List.of(chunk));
+
+        ArgumentCaptor<PaperDocumentChunk> entityCaptor = ArgumentCaptor.forClass(PaperDocumentChunk.class);
+        verify(chunkMapper).insert(entityCaptor.capture());
+
+        assertThat(entityCaptor.getValue().getId()).isNotNull();
+    }
+
+    @Test
+    void replaceAssetsShouldAssignPrimaryKeyBeforeInsert() {
+        com.lqr.paperragserver.common.model.DocumentAsset asset = new com.lqr.paperragserver.common.model.DocumentAsset(
+                "asset-1",
+                "source-1",
+                0,
+                "IMAGE",
+                "image.png",
+                "image/png",
+                3L,
+                "hash",
+                new byte[]{1, 2, 3},
+                "ocr text",
+                0,
+                8,
+                Map.of()
+        );
+
+        service.replaceAssets(ownerUserId, "source-1", List.of(asset));
+
+        ArgumentCaptor<com.lqr.paperragserver.paper.entity.PaperDocumentAsset> entityCaptor = ArgumentCaptor.forClass(com.lqr.paperragserver.paper.entity.PaperDocumentAsset.class);
+        verify(assetMapper).insert(entityCaptor.capture());
+
+        assertThat(entityCaptor.getValue().getId()).isNotNull();
+    }
+
+    @Test
     void markIndexedShouldIgnoreDeletedDocument() {
         service.markIndexed(ownerUserId, "source-1", 12);
 

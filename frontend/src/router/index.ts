@@ -1,5 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { authState } from '../composables/authState';
+import type { UserRole } from '../types';
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    public?: boolean;
+    roles?: UserRole[];
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(),
@@ -31,14 +39,17 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
+  const isLoginPage = to.path === '/login';
+
   if (!to.meta.public && !authState.accessToken) {
     return { path: '/login', query: { redirect: to.fullPath } };
   }
-  if (to.path === '/login' && authState.accessToken) {
+
+  if (isLoginPage && authState.accessToken) {
     return { path: '/' };
   }
 
-  const requiredRoles = to.meta.roles as string[] | undefined;
+  const requiredRoles = to.meta.roles;
   if (requiredRoles?.length && !requiredRoles.some((role) => authState.user?.roles.includes(role))) {
     return { path: '/' };
   }

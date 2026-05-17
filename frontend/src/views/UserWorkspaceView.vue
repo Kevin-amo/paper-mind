@@ -1,291 +1,38 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import MainLayout from '../layouts/MainLayout.vue';
+import PageHeader from '../components/common/PageHeader.vue';
 import UploadPanel from '../components/UploadPanel.vue';
 import DocumentTable from '../components/DocumentTable.vue';
 import DocumentDetailDrawer from '../components/DocumentDetailDrawer.vue';
 import RagChatPanel from '../components/RagChatPanel.vue';
-import { deleteDocument, getDocumentChunks, getDocumentDetail, listDocuments, uploadDocumentsBatch } from '../api/documents';
-import { apiPrefix, getErrorMessage } from '../api/http';
-import { askQuestion } from '../api/rag';
-import { createConversation, deleteConversation, listConversationMessages, listConversations } from '../api/conversations';
+import { apiPrefix } from '../api/http';
 import { useAuth } from '../composables/useAuth';
-import type {
-  BatchDocumentIngestionResponse,
-  BatchUploadDocumentPayload,
-  Conversation,
-  ConversationMessage,
-  DocumentChunk,
-  DocumentDetail,
-  DocumentSummary,
-} from '../types';
+import { useDocuments } from '../composables/useDocuments';
+import { useConversations } from '../composables/useConversations';
+import { useRagChat } from '../composables/useRagChat';
 
 const router = useRouter();
 const auth = useAuth();
-const uploadLoading = ref(false);
-const documentsLoading = ref(false);
-const detailLoading = ref(false);
-const chunkLoading = ref(false);
-const ragLoading = ref(false);
-const conversationsLoading = ref(false);
-const messagesLoading = ref(false);
-const deletingSourceId = ref<string | null>(null);
-
-const keyword = ref('');
-const documents = ref<DocumentSummary[]>([]);
-const detail = ref<DocumentDetail | null>(null);
-const chunks = ref<DocumentChunk[]>([]);
-const conversations = ref<Conversation[]>([]);
-const activeConversationId = ref<string | null>(null);
-const conversationMessages = ref<ConversationMessage[]>([]);
-const detailVisible = ref(false);
-const lastBatchUploadResult = ref<BatchDocumentIngestionResponse | null>(null);
-const uploadErrorMessage = ref('');
-
-const pagination = reactive({
-  page: 0,
-  size: 10,
-  total: 0,
+const documentsState = useDocuments();
+const conversationsState = useConversations();
+const ragState = useRagChat({
+  activeConversationId: conversationsState.activeConversationId,
+  conversationMessages: conversationsState.conversationMessages,
+  loadConversations: () => conversationsState.loadConversations(),
+  loadMessages: conversationsState.loadMessages,
 });
 
-const chunkPagination = reactive({
-  page: 0,
-  size: 50,
-  total: 0,
-});
-const selectedSourceId = ref<string | null>(null);
-
-const requestPrefixText = computed(() => (apiPrefix ? apiPrefix : '直连控制器路径'));
+const requestPrefixText = computed(() => (apiPrefix ? apiPrefix : 'Vite 代理直连'));
 const currentUserName = computed(() => auth.state.user?.displayName || auth.state.user?.username || '当前用户');
-
-async function loadDocuments(page = pagination.page) {
-  documentsLoading.value = true;
-
-  try {
-    const result = await listDocuments({
-      keyword: keyword.value || undefined,
-      page,
-      size: pagination.size,
-    });
-
-    documents.value = result.items;
-    pagination.page = result.page;
-    pagination.size = result.size;
-    pagination.total = result.total;
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    documentsLoading.value = false;
+const successUploadDescription = computed(() => {
+  const result = documentsState.lastBatchUploadResult.value;
+  if (!result) {
+    return '';
   }
-}
-
-async function loadDocumentDetail(sourceId: string) {
-  detailLoading.value = true;
-
-  try {
-    detail.value = await getDocumentDetail(sourceId);
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    detailLoading.value = false;
-  }
-}
-
-async function loadDocumentChunks(sourceId: string, page = chunkPagination.page, size = chunkPagination.size) {
-  chunkLoading.value = true;
-
-  try {
-    const result = await getDocumentChunks(sourceId, { page, size });
-    chunks.value = result.items;
-    chunkPagination.page = result.page;
-    chunkPagination.size = result.size;
-    chunkPagination.total = result.total;
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    chunkLoading.value = false;
-  }
-}
-
-async function loadConversations(selectFirst = false) {
-  conversationsLoading.value = true;
-
-  try {
-    conversations.value = await listConversations();
-    if (selectFirst && !activeConversationId.value && conversations.value.length > 0) {
-      await handleSelectConversation(conversations.value[0].id);
-    }
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    conversationsLoading.value = false;
-  }
-}
-
-async function loadMessages(conversationId: string) {
-  messagesLoading.value = true;
-
-  try {
-    conversationMessages.value = await listConversationMessages(conversationId);
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    messagesLoading.value = false;
-  }
-}
-
-async function handleSelectConversation(conversationId: string) {
-  activeConversationId.value = conversationId;
-  await loadMessages(conversationId);
-}
-
-async function handleCreateConversation() {
-  try {
-    const conversation = await createConversation({ title: '新会话' });
-    conversations.value = [conversation, ...conversations.value];
-    activeConversationId.value = conversation.id;
-    conversationMessages.value = [];
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  }
-}
-
-async function handleDeleteConversation(conversationId: string) {
-  try {
-    await deleteConversation(conversationId);
-    conversations.value = conversations.value.filter((conversation) => conversation.id !== conversationId);
-    if (activeConversationId.value === conversationId) {
-      activeConversationId.value = conversations.value[0]?.id ?? null;
-      if (activeConversationId.value) {
-        await loadMessages(activeConversationId.value);
-      } else {
-        conversationMessages.value = [];
-      }
-    }
-    ElMessage.success('会话已删除');
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  }
-}
-
-async function handleUpload(payload: BatchUploadDocumentPayload) {
-  uploadLoading.value = true;
-  uploadErrorMessage.value = '';
-  lastBatchUploadResult.value = null;
-
-  try {
-    lastBatchUploadResult.value = await uploadDocumentsBatch(payload);
-    if (lastBatchUploadResult.value.successCount > 0 && lastBatchUploadResult.value.failureCount === 0) {
-      ElMessage.success(`批量上传成功，共 ${lastBatchUploadResult.value.successCount} 个文件`);
-    } else if (lastBatchUploadResult.value.successCount > 0) {
-      ElMessage.warning(`上传完成：成功 ${lastBatchUploadResult.value.successCount} 个，失败 ${lastBatchUploadResult.value.failureCount} 个`);
-    } else {
-      ElMessage.error('批量上传失败');
-    }
-    await loadDocuments(0);
-  } catch (error) {
-    const errorMessage = getErrorMessage(error);
-    uploadErrorMessage.value = `上传请求失败，后端可能仍在处理；请刷新文档列表确认状态。${errorMessage}`;
-    ElMessage.error(uploadErrorMessage.value);
-    await loadDocuments(0);
-  } finally {
-    uploadLoading.value = false;
-  }
-}
-
-async function handleUploadRemove(sourceId: string) {
-  try {
-    await deleteDocument(sourceId);
-    await loadDocuments(0);
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  }
-}
-
-async function handleDelete(document: DocumentSummary) {
-  deletingSourceId.value = document.sourceId;
-
-  try {
-    await deleteDocument(document.sourceId);
-    ElMessage.success('文档已移除');
-
-    if (detail.value?.sourceId === document.sourceId) {
-      detailVisible.value = false;
-      detail.value = null;
-      selectedSourceId.value = null;
-      chunks.value = [];
-      chunkPagination.page = 0;
-      chunkPagination.total = 0;
-    }
-
-    const nextPage = documents.value.length === 1 && pagination.page > 0 ? pagination.page - 1 : pagination.page;
-    await loadDocuments(nextPage);
-  } catch (error) {
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    deletingSourceId.value = null;
-  }
-}
-
-async function handleOpenDetail(document: DocumentSummary) {
-  detailVisible.value = true;
-  detail.value = null;
-  selectedSourceId.value = document.sourceId;
-  chunks.value = [];
-  chunkPagination.page = 0;
-  chunkPagination.total = 0;
-
-  await Promise.all([loadDocumentDetail(document.sourceId), loadDocumentChunks(document.sourceId, 0)]);
-}
-
-function handleChunkPageChange(page: number) {
-  if (!selectedSourceId.value) {
-    return;
-  }
-  void loadDocumentChunks(selectedSourceId.value, page);
-}
-
-function handleChunkSizeChange(size: number) {
-  if (!selectedSourceId.value) {
-    return;
-  }
-  void loadDocumentChunks(selectedSourceId.value, 0, size);
-}
-
-async function handleAsk(payload: { question: string; topK?: number }) {
-  ragLoading.value = true;
-  const tempMessage: ConversationMessage = {
-    id: `pending-${Date.now()}`,
-    conversationId: activeConversationId.value ?? 'pending',
-    role: 'USER',
-    messageOrder: conversationMessages.value.length + 1,
-    content: payload.question,
-    citations: [],
-    createdAt: new Date().toISOString(),
-  };
-  conversationMessages.value = [...conversationMessages.value, tempMessage];
-
-  try {
-    const answer = await askQuestion({
-      conversationId: activeConversationId.value ?? undefined,
-      question: payload.question,
-      topK: payload.topK,
-    });
-    activeConversationId.value = answer.conversationId;
-    await Promise.all([loadConversations(), loadMessages(answer.conversationId)]);
-  } catch (error) {
-    conversationMessages.value = conversationMessages.value.filter((message) => message.id !== tempMessage.id);
-    ElMessage.error(getErrorMessage(error));
-  } finally {
-    ragLoading.value = false;
-  }
-}
-
-function handleSearch(nextKeyword: string) {
-  keyword.value = nextKeyword.trim();
-  void loadDocuments(0);
-}
+  return result.items.filter((item) => item.success).map((item) => item.source?.sourceId || item.fileName).join('、') || '暂无成功项';
+});
 
 async function handleLogout() {
   await auth.logout();
@@ -299,147 +46,143 @@ onMounted(async () => {
     await router.replace('/login');
     return;
   }
-  await Promise.all([loadDocuments(0), loadConversations(true)]);
+  await Promise.all([documentsState.loadDocuments(0), conversationsState.loadConversations(true)]);
 });
 </script>
 
 <template>
-  <div class="page-shell">
-    <header class="hero-card">
-      <div>
-        <p class="eyebrow">User Workspace</p>
-        <h1>文档知识库与 Agent 问答</h1>
-        <p class="hero-desc">
-          上传和管理自己的私有文档，在持久化会话中基于个人文档进行检索增强问答。
-        </p>
-      </div>
-      <div class="hero-meta">
-        <el-tag type="info" size="large">请求前缀：{{ requestPrefixText }}</el-tag>
+  <MainLayout>
+    <PageHeader
+      eyebrow="User Workspace"
+      title="论文知识库与 RAG 问答"
+      description="上传、解析并管理个人论文文档，在持久化会话中基于私有知识库完成检索增强问答。"
+    >
+      <template #actions>
+        <el-tag type="info" size="large">接口前缀：{{ requestPrefixText }}</el-tag>
         <el-tag type="success" size="large">{{ currentUserName }} · 普通用户</el-tag>
-        <div class="hero-actions">
-          <el-button v-if="auth.isAdmin.value" @click="router.push('/admin')">管理后台</el-button>
-          <el-button @click="handleLogout">退出登录</el-button>
-        </div>
+        <el-button v-if="auth.isAdmin.value" @click="router.push('/admin')">管理后台</el-button>
+        <el-button @click="handleLogout">退出登录</el-button>
+      </template>
+    </PageHeader>
+
+    <section class="workspace-summary">
+      <div class="metric-card">
+        <span>文档总数</span>
+        <strong>{{ documentsState.pagination.total }}</strong>
       </div>
-    </header>
+      <div class="metric-card">
+        <span>当前页文档</span>
+        <strong>{{ documentsState.documents.value.length }}</strong>
+      </div>
+      <div class="metric-card">
+        <span>会话数量</span>
+        <strong>{{ conversationsState.conversations.value.length }}</strong>
+      </div>
+      <div class="metric-card soft">
+        <span>当前用户</span>
+        <strong>{{ currentUserName }}</strong>
+      </div>
+    </section>
 
     <UploadPanel
-      :loading="uploadLoading"
-      :result="lastBatchUploadResult"
-      :error-message="uploadErrorMessage"
-      @submit="handleUpload"
-      @remove="handleUploadRemove"
+      :loading="documentsState.uploadLoading.value"
+      :result="documentsState.lastBatchUploadResult.value"
+      :error-message="documentsState.uploadErrorMessage.value"
+      @submit="documentsState.uploadBatch"
+      @remove="documentsState.removeUploadedSource"
     />
 
     <el-alert
-      v-if="lastBatchUploadResult"
+      v-if="documentsState.lastBatchUploadResult.value"
       class="result-alert"
       type="success"
       show-icon
       :closable="false"
-      :title="`最近一次批量上传：成功 ${lastBatchUploadResult.successCount} 个，失败 ${lastBatchUploadResult.failureCount} 个`"
-      :description="lastBatchUploadResult.items.filter((item) => item.success).map((item) => item.source?.sourceId || item.fileName).join('、') || '暂无成功项'"
+      :title="`最近一次批量上传：成功 ${documentsState.lastBatchUploadResult.value.successCount} 个，失败 ${documentsState.lastBatchUploadResult.value.failureCount} 个`"
+      :description="successUploadDescription"
     />
 
     <section class="grid-layout">
-      <div class="grid-left">
-        <DocumentTable
-          :documents="documents"
-          :loading="documentsLoading"
-          :keyword="keyword"
-          :page="pagination.page"
-          :size="pagination.size"
-          :total="pagination.total"
-          :deleting-source-id="deletingSourceId"
-          :can-delete="true"
-          @search="handleSearch"
-          @page-change="loadDocuments"
-          @row-click="handleOpenDetail"
-          @refresh="loadDocuments(0)"
-          @delete="handleDelete"
-        />
-      </div>
+      <DocumentTable
+        :documents="documentsState.documents.value"
+        :loading="documentsState.documentsLoading.value"
+        :keyword="documentsState.keyword.value"
+        :page="documentsState.pagination.page"
+        :size="documentsState.pagination.size"
+        :total="documentsState.pagination.total"
+        :deleting-source-id="documentsState.deletingSourceId.value"
+        :can-delete="true"
+        @search="documentsState.search"
+        @page-change="documentsState.loadDocuments"
+        @row-click="documentsState.openDetail"
+        @refresh="documentsState.loadDocuments(0)"
+        @delete="documentsState.removeDocument"
+      />
 
-      <div class="grid-right">
-        <RagChatPanel
-          :loading="ragLoading"
-          :conversations="conversations"
-          :messages="conversationMessages"
-          :active-conversation-id="activeConversationId"
-          :conversations-loading="conversationsLoading"
-          :messages-loading="messagesLoading"
-          @submit="handleAsk"
-          @create-conversation="handleCreateConversation"
-          @select-conversation="handleSelectConversation"
-          @delete-conversation="handleDeleteConversation"
-        />
-      </div>
+      <RagChatPanel
+        :loading="ragState.ragLoading.value"
+        :conversations="conversationsState.conversations.value"
+        :messages="conversationsState.conversationMessages.value"
+        :active-conversation-id="conversationsState.activeConversationId.value"
+        :conversations-loading="conversationsState.conversationsLoading.value"
+        :messages-loading="conversationsState.messagesLoading.value"
+        :cleaning-conversations="conversationsState.cleaningConversations.value"
+        @submit="ragState.ask"
+        @create-conversation="conversationsState.createNewConversation"
+        @clean-empty-conversations="conversationsState.cleanEmptyConversations"
+        @select-conversation="conversationsState.selectConversation"
+        @delete-conversation="conversationsState.removeConversation"
+      />
     </section>
 
     <DocumentDetailDrawer
-      v-model="detailVisible"
-      :detail="detail"
-      :chunks="chunks"
-      :loading="detailLoading"
-      :chunk-loading="chunkLoading"
-      :chunk-page="chunkPagination.page"
-      :chunk-size="chunkPagination.size"
-      :chunk-total="chunkPagination.total"
-      @chunk-page-change="handleChunkPageChange"
-      @chunk-size-change="handleChunkSizeChange"
+      v-model="documentsState.detailVisible.value"
+      :detail="documentsState.detail.value"
+      :chunks="documentsState.chunks.value"
+      :loading="documentsState.detailLoading.value"
+      :chunk-loading="documentsState.chunkLoading.value"
+      :chunk-page="documentsState.chunkPagination.page"
+      :chunk-size="documentsState.chunkPagination.size"
+      :chunk-total="documentsState.chunkPagination.total"
+      @chunk-page-change="documentsState.changeChunkPage"
+      @chunk-size-change="documentsState.changeChunkSize"
     />
-  </div>
+  </MainLayout>
 </template>
 
 <style scoped>
-.page-shell {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 28px;
+.workspace-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.hero-card {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 28px 32px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 45%, #60a5fa 100%);
-  color: #fff;
-  box-shadow: 0 20px 45px rgba(37, 99, 235, 0.22);
+.metric-card {
+  padding: 18px;
+  border: 1px solid rgba(37, 99, 235, 0.12);
+  border-radius: 20px;
+  background: linear-gradient(135deg, #eff6ff, #fff);
 }
 
-.eyebrow {
-  margin: 0 0 8px;
+.metric-card.soft {
+  background: linear-gradient(135deg, #f8fafc, #fff);
+}
+
+.metric-card span {
+  display: block;
+  color: var(--app-text-muted);
   font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.8);
 }
 
-.hero-card h1 {
-  margin: 0;
-  font-size: 32px;
-}
-
-.hero-desc {
-  max-width: 720px;
-  margin: 12px 0 0;
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.hero-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 10px;
+.metric-card strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 8px;
+  color: var(--app-text);
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .result-alert {
@@ -448,27 +191,26 @@ onMounted(async () => {
 
 .grid-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(460px, 0.95fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(420px, 0.95fr);
   gap: 20px;
   align-items: start;
 }
 
-.grid-left,
-.grid-right {
-  min-width: 0;
-}
-
-@media (max-width: 1400px) {
+@media (max-width: 1180px) {
   .grid-layout {
     grid-template-columns: 1fr;
   }
+}
 
-  .hero-card {
-    flex-direction: column;
+@media (max-width: 780px) {
+  .workspace-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .hero-meta {
-    align-items: flex-start;
+@media (max-width: 520px) {
+  .workspace-summary {
+    grid-template-columns: 1fr;
   }
 }
 </style>

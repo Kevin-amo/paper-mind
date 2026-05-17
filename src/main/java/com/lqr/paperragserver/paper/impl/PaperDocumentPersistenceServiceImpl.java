@@ -408,6 +408,7 @@ public class PaperDocumentPersistenceServiceImpl implements PaperDocumentPersist
     private PaperDocumentChunk toChunkEntity(UUID ownerUserId, DocumentChunk chunk) {
         Map<String, Object> metadata = ownerMetadata(ownerUserId, chunk.metadata());
         PaperDocumentChunk entity = new PaperDocumentChunk();
+        entity.setId(UUID.randomUUID());
         entity.setOwnerUserId(ownerUserId);
         entity.setChunkId(chunk.chunkId());
         entity.setSourceId(chunk.sourceId());
@@ -427,6 +428,7 @@ public class PaperDocumentPersistenceServiceImpl implements PaperDocumentPersist
      */
     private PaperDocumentAsset toAssetEntity(UUID ownerUserId, DocumentAsset asset) {
         PaperDocumentAsset entity = new PaperDocumentAsset();
+        entity.setId(UUID.randomUUID());
         entity.setOwnerUserId(ownerUserId);
         entity.setAssetId(asset.assetId());
         entity.setSourceId(asset.sourceId());
