@@ -35,3 +35,6 @@ frontend/node_modules/
 frontend/dist/
 frontend/.env.local
 storage/
+
+### VS Code ###
+.vscode/
