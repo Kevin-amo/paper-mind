@@ -13,6 +13,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 本地文档上传存储服务的文件名净化和落盘路径测试。
+ */
 class LocalDocumentUploadStorageServiceTest {
 
     @TempDir

@@ -14,6 +14,9 @@ import java.util.UUID;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+/**
+ * 文档管理服务的恢复和重建索引编排测试。
+ */
 class DocumentManagementServiceTest {
 
     private final DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);

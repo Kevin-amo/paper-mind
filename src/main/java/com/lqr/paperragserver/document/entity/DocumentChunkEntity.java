@@ -12,6 +12,9 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 文档切片实体，对应可检索的文档分块记录。
+ */
 @Data
 @TableName(value = "public.paper_document_chunk", autoResultMap = true)
 public class DocumentChunkEntity {

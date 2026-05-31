@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 文档管理服务实现，负责编排文档恢复和重建索引流程。
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor

@@ -35,6 +35,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * 文档接口控制器的请求编排、权限归属和响应转换测试。
+ */
 class DocumentControllerTest {
 
     private final DocumentIngestionService documentIngestionService = mock(DocumentIngestionService.class);

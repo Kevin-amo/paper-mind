@@ -9,6 +9,9 @@ import org.apache.ibatis.annotations.Update;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 文档切片数据访问接口，提供检索候选查询和向量记录回写能力。
+ */
 public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
 
     /**

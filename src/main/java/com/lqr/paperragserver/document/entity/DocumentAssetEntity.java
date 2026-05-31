@@ -11,6 +11,9 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 文档派生资源实体，对应论文图片、附件或抽取文本等资源记录。
+ */
 @Data
 @TableName(value = "public.paper_document_asset", autoResultMap = true)
 public class DocumentAssetEntity {
