@@ -29,6 +29,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * 文档入库编排服务的解析、切分、向量写入和状态流转测试。
+ */
 class DocumentIngestionServiceImplTest {
 
     private final DocumentParsingService documentParsingService = mock(DocumentParsingService.class);

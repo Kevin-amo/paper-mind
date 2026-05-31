@@ -4,6 +4,9 @@ import com.lqr.paperragserver.document.entity.DocumentIngestionJob;
 
 import java.util.UUID;
 
+/**
+ * 文档上传受理响应，返回异步入库任务的基础状态。
+ */
 public record DocumentUploadAcceptedResponse(
         UUID jobId,
         String sourceId,
