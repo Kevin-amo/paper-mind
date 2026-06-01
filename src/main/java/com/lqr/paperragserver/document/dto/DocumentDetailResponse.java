@@ -6,6 +6,9 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 文档详情的接口响应视图。
+ */
 public record DocumentDetailResponse(
         String sourceId,
         UUID ownerUserId,

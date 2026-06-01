@@ -8,6 +8,9 @@ import lombok.Data;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * 文档异步入库任务实体，记录上传文件从排队到索引完成的处理状态。
+ */
 @Data
 @TableName("public.document_ingestion_job")
 public class DocumentIngestionJob {

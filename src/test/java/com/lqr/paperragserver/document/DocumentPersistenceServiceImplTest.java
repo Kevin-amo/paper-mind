@@ -26,6 +26,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * 文档持久化服务的数据查询、转换和状态更新测试。
+ */
 class DocumentPersistenceServiceImplTest {
 
     private final DocumentMapper documentMapper = mock(DocumentMapper.class);

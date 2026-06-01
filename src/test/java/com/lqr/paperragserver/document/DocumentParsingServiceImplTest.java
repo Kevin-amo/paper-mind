@@ -24,6 +24,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * 文档解析服务的文本、Office、PDF 和多模态降级路径测试。
+ */
 class DocumentParsingServiceImplTest {
 
     private final Tika tika = mock(Tika.class);

@@ -5,6 +5,9 @@ import com.lqr.paperragserver.document.entity.DocumentIngestionJob;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * 文档异步入库任务的接口响应视图。
+ */
 public record DocumentJobResponse(
         UUID jobId,
         UUID ownerUserId,

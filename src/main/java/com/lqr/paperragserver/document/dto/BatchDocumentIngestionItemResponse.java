@@ -5,6 +5,9 @@ import com.lqr.paperragserver.document.service.DocumentIngestionJobService;
 
 import java.util.UUID;
 
+/**
+ * 批量文档入库的单个文件处理结果。
+ */
 public record BatchDocumentIngestionItemResponse(
         int index,
         String fileName,

@@ -5,6 +5,9 @@ import com.lqr.paperragserver.document.service.DocumentPersistenceService;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+/**
+ * 文档列表摘要的接口响应视图。
+ */
 public record DocumentSummaryResponse(
         String sourceId,
         UUID ownerUserId,

@@ -11,6 +11,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 文档切分服务的目录识别、章节边界和稳定切片 ID 测试。
+ */
 class DocumentSplittingServiceImplTest {
 
     @Test

@@ -7,6 +7,9 @@ import org.apache.ibatis.annotations.Update;
 
 import java.util.UUID;
 
+/**
+ * 文档异步入库任务数据访问接口，负责任务状态流转更新。
+ */
 public interface DocumentIngestionJobMapper extends BaseMapper<DocumentIngestionJob> {
 
     @Update("""

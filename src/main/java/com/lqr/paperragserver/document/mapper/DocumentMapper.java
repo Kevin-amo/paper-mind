@@ -8,6 +8,9 @@ import org.apache.ibatis.annotations.Update;
 
 import java.util.UUID;
 
+/**
+ * 文档主表数据访问接口，负责文档基础信息、元数据和状态更新。
+ */
 public interface DocumentMapper extends BaseMapper<DocumentEntity> {
 
     /**
