@@ -13,6 +13,13 @@ import java.util.UUID;
  */
 public interface ConversationMessageMapper extends BaseMapper<ConversationMessage> {
 
+    /**
+     * 计算指定会话下一条消息的顺序号。
+     *
+     * @param conversationId 会话 ID
+     * @param ownerUserId 会话所属用户 ID
+     * @return 下一条消息顺序号
+     */
     @Select("""
             select coalesce(max(message_order), 0) + 1
             from public.conversation_message
@@ -21,6 +28,14 @@ public interface ConversationMessageMapper extends BaseMapper<ConversationMessag
             """)
     int nextMessageOrder(@Param("conversationId") UUID conversationId, @Param("ownerUserId") UUID ownerUserId);
 
+    /**
+     * 查询指定会话最近的消息，并按消息顺序升序返回。
+     *
+     * @param conversationId 会话 ID
+     * @param ownerUserId 会话所属用户 ID
+     * @param limit 最大返回数量
+     * @return 最近消息列表
+     */
     @Select("""
             select *
             from (

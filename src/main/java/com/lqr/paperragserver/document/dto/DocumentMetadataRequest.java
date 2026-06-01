@@ -4,6 +4,9 @@ import com.lqr.paperragserver.document.service.DocumentPersistenceService;
 
 import java.util.Map;
 
+/**
+ * 文档元数据更新请求。
+ */
 public record DocumentMetadataRequest(
         String title,
         Object authors,

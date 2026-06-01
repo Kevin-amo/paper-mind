@@ -4,6 +4,9 @@ import com.lqr.paperragserver.common.model.DocumentSource;
 
 import java.util.Map;
 
+/**
+ * 文档来源信息的接口响应视图。
+ */
 public record DocumentSourceResponse(
         String sourceId,
         String title,

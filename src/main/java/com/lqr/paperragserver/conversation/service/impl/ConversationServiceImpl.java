@@ -38,6 +38,13 @@ public class ConversationServiceImpl implements ConversationService {
     private final ConversationMessageMapper messageMapper;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 为指定用户创建会话，并对标题做默认值和长度归一化。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param title 原始会话标题
+     * @return 创建后的会话视图
+     */
     @Override
     public ConversationView createConversation(UUID ownerUserId, String title) {
         Conversation entity = new Conversation();
@@ -51,6 +58,14 @@ public class ConversationServiceImpl implements ConversationService {
         return toConversationView(entity);
     }
 
+    /**
+     * 修改指定用户会话标题，并返回最新会话状态。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     * @param title 新标题
+     * @return 修改后的会话视图
+     */
     @Override
     @Transactional
     public ConversationView renameConversation(UUID ownerUserId, UUID conversationId, String title) {
@@ -59,6 +74,13 @@ public class ConversationServiceImpl implements ConversationService {
         return requireConversation(ownerUserId, conversationId);
     }
 
+    /**
+     * 校验会话 ID 是否有效，以及会话是否属于当前用户且未删除。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     * @return 命中的会话视图
+     */
     @Override
     public ConversationView requireConversation(UUID ownerUserId, UUID conversationId) {
         if (conversationId == null) {
@@ -74,6 +96,14 @@ public class ConversationServiceImpl implements ConversationService {
         return toConversationView(entity);
     }
 
+    /**
+     * 复用已有会话；未传会话 ID 时使用首个问题创建新会话。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 可选会话 ID
+     * @param firstQuestion 首个问题内容
+     * @return 已存在或新创建的会话视图
+     */
     @Override
     @Transactional
     public ConversationView getOrCreateConversation(UUID ownerUserId, UUID conversationId, String firstQuestion) {
@@ -83,6 +113,12 @@ public class ConversationServiceImpl implements ConversationService {
         return createConversation(ownerUserId, firstQuestion);
     }
 
+    /**
+     * 查询指定用户未删除的会话列表。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @return 按更新时间倒序排列的会话视图列表
+     */
     @Override
     public List<ConversationView> listConversations(UUID ownerUserId) {
         return conversationMapper.selectList(new LambdaQueryWrapper<Conversation>()
@@ -94,6 +130,13 @@ public class ConversationServiceImpl implements ConversationService {
                 .toList();
     }
 
+    /**
+     * 查询指定会话的完整消息列表。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     * @return 按消息顺序升序排列的消息视图列表
+     */
     @Override
     public List<MessageView> listMessages(UUID ownerUserId, UUID conversationId) {
         requireConversation(ownerUserId, conversationId);
@@ -106,6 +149,14 @@ public class ConversationServiceImpl implements ConversationService {
                 .toList();
     }
 
+    /**
+     * 查询指定会话最近的消息窗口，并限制最大窗口大小。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     * @param limit 期望返回数量
+     * @return 最近消息视图列表
+     */
     @Override
     public List<MessageView> recentMessages(UUID ownerUserId, UUID conversationId, int limit) {
         requireConversation(ownerUserId, conversationId);
@@ -115,6 +166,14 @@ public class ConversationServiceImpl implements ConversationService {
                 .toList();
     }
 
+    /**
+     * 追加用户消息，并刷新会话活跃时间。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     * @param content 用户消息内容
+     * @return 持久化后的消息视图
+     */
     @Override
     @Transactional
     public MessageView appendUserMessage(UUID ownerUserId, UUID conversationId, String content) {
@@ -123,12 +182,31 @@ public class ConversationServiceImpl implements ConversationService {
         return message;
     }
 
+    /**
+     * 追加助手消息，并使用空元数据。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     * @param content 助手消息内容
+     * @param citations 回答引用来源
+     * @return 持久化后的消息视图
+     */
     @Override
     @Transactional
     public MessageView appendAssistantMessage(UUID ownerUserId, UUID conversationId, String content, List<AnswerCitation> citations) {
         return appendAssistantMessage(ownerUserId, conversationId, content, citations, null);
     }
 
+    /**
+     * 追加助手消息、回答引用和扩展元数据，并刷新会话活跃时间。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     * @param content 助手消息内容
+     * @param citations 回答引用来源
+     * @param metadata 扩展元数据
+     * @return 持久化后的消息视图
+     */
     @Override
     @Transactional
     public MessageView appendAssistantMessage(UUID ownerUserId, UUID conversationId, String content, List<AnswerCitation> citations, Object metadata) {
@@ -137,12 +215,29 @@ public class ConversationServiceImpl implements ConversationService {
         return message;
     }
 
+    /**
+     * 软删除指定用户的会话。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     */
     @Override
     public void deleteConversation(UUID ownerUserId, UUID conversationId) {
         requireConversation(ownerUserId, conversationId);
         conversationMapper.softDelete(conversationId, ownerUserId);
     }
 
+    /**
+     * 统一追加一条会话消息，并分配消息顺序号。
+     *
+     * @param ownerUserId 会话所属用户 ID
+     * @param conversationId 会话 ID
+     * @param role 消息角色
+     * @param content 消息内容
+     * @param citations 回答引用来源
+     * @param metadata 扩展元数据
+     * @return 持久化后的消息视图
+     */
     private MessageView appendMessage(UUID ownerUserId, UUID conversationId, String role, String content, List<AnswerCitation> citations, Object metadata) {
         requireConversation(ownerUserId, conversationId);
         String normalizedContent = requireContent(content);
@@ -160,11 +255,23 @@ public class ConversationServiceImpl implements ConversationService {
         return toMessageView(entity);
     }
 
+    /**
+     * 归一化会话标题，处理空标题、连续空白和最大长度。
+     *
+     * @param title 原始标题
+     * @return 可持久化的会话标题
+     */
     private String normalizeTitle(String title) {
         String normalized = title == null || title.isBlank() ? "新会话" : title.trim().replaceAll("\\s+", " ");
         return normalized.length() <= MAX_TITLE_LENGTH ? normalized : normalized.substring(0, MAX_TITLE_LENGTH);
     }
 
+    /**
+     * 校验并归一化消息内容。
+     *
+     * @param content 原始消息内容
+     * @return 去除首尾空白后的消息内容
+     */
     private String requireContent(String content) {
         if (content == null || content.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "消息内容不能为空");
@@ -172,6 +279,12 @@ public class ConversationServiceImpl implements ConversationService {
         return content.trim();
     }
 
+    /**
+     * 将会话实体转换为对外只读视图。
+     *
+     * @param entity 会话实体
+     * @return 会话视图
+     */
     private ConversationView toConversationView(Conversation entity) {
         return new ConversationView(
                 entity.getId(),
@@ -182,6 +295,12 @@ public class ConversationServiceImpl implements ConversationService {
         );
     }
 
+    /**
+     * 将消息实体转换为对外只读视图。
+     *
+     * @param entity 消息实体
+     * @return 消息视图
+     */
     private MessageView toMessageView(ConversationMessage entity) {
         return new MessageView(
                 entity.getId(),
@@ -195,6 +314,12 @@ public class ConversationServiceImpl implements ConversationService {
         );
     }
 
+    /**
+     * 将数据库中的引用 JSON 对象转换为回答引用列表。
+     *
+     * @param value 数据库读取出的引用对象
+     * @return 回答引用列表
+     */
     private List<AnswerCitation> parseCitations(Object value) {
         if (value == null) {
             return List.of();
@@ -202,6 +327,12 @@ public class ConversationServiceImpl implements ConversationService {
         return objectMapper.convertValue(value, CITATION_LIST_TYPE);
     }
 
+    /**
+     * 将数据库中的元数据 JSON 对象转换为键值结构。
+     *
+     * @param value 数据库读取出的元数据对象
+     * @return 元数据键值结构
+     */
     private Map<String, Object> parseMetadata(Object value) {
         if (value == null) {
             return null;

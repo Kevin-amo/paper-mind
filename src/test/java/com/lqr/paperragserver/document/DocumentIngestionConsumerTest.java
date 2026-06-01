@@ -19,6 +19,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * 文档异步入库消费者的任务状态和重试逻辑测试。
+ */
 class DocumentIngestionConsumerTest {
 
     private final DocumentIngestionJobService jobService = mock(DocumentIngestionJobService.class);

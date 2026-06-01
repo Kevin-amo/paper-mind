@@ -13,6 +13,9 @@ import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 文档上传临时文件清理调度器测试。
+ */
 class DocumentUploadCleanupSchedulerTest {
 
     @TempDir

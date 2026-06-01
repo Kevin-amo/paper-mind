@@ -25,6 +25,9 @@ class ConversationControllerTest {
     private UUID ownerUserId;
     private SecurityUserPrincipal principal;
 
+    /**
+     * 初始化控制器、当前用户 ID 和登录主体。
+     */
     @BeforeEach
     void setUp() {
         controller = new ConversationController(conversationService);
@@ -32,6 +35,9 @@ class ConversationControllerTest {
         principal = principal(ownerUserId);
     }
 
+    /**
+     * 验证会话列表查询会携带当前用户 ID。
+     */
     @Test
     void listShouldDelegateWithCurrentUserId() {
         ConversationService.ConversationView conversation = conversationView("论文问答");
@@ -43,6 +49,9 @@ class ConversationControllerTest {
         verify(conversationService).listConversations(ownerUserId);
     }
 
+    /**
+     * 验证创建会话会携带当前用户 ID 和请求标题。
+     */
     @Test
     void createShouldDelegateWithCurrentUserIdAndTitle() {
         ConversationService.ConversationView conversation = conversationView("新会话");
@@ -57,6 +66,9 @@ class ConversationControllerTest {
         verify(conversationService).createConversation(ownerUserId, "新会话");
     }
 
+    /**
+     * 验证更新会话标题会携带当前用户 ID、会话 ID 和请求标题。
+     */
     @Test
     void updateShouldDelegateWithCurrentUserIdConversationIdAndTitle() {
         UUID conversationId = UUID.randomUUID();
@@ -73,6 +85,9 @@ class ConversationControllerTest {
         verify(conversationService).renameConversation(ownerUserId, conversationId, "重命名会话");
     }
 
+    /**
+     * 验证消息列表查询会携带当前用户 ID 和会话 ID。
+     */
     @Test
     void messagesShouldDelegateWithCurrentUserIdAndConversationId() {
         UUID conversationId = UUID.randomUUID();
@@ -94,6 +109,9 @@ class ConversationControllerTest {
         verify(conversationService).listMessages(ownerUserId, conversationId);
     }
 
+    /**
+     * 验证删除会话会携带当前用户 ID 和会话 ID。
+     */
     @Test
     void deleteShouldDelegateWithCurrentUserIdAndConversationId() {
         UUID conversationId = UUID.randomUUID();
@@ -103,11 +121,23 @@ class ConversationControllerTest {
         verify(conversationService).deleteConversation(ownerUserId, conversationId);
     }
 
+    /**
+     * 构造会话视图测试数据。
+     *
+     * @param title 会话标题
+     * @return 会话视图
+     */
     private ConversationService.ConversationView conversationView(String title) {
         OffsetDateTime now = OffsetDateTime.now();
         return new ConversationService.ConversationView(UUID.randomUUID(), ownerUserId, title, now, now);
     }
 
+    /**
+     * 构造指定用户 ID 的认证主体。
+     *
+     * @param userId 用户 ID
+     * @return 认证主体
+     */
     private SecurityUserPrincipal principal(UUID userId) {
         SysUser user = new SysUser();
         user.setId(userId);
