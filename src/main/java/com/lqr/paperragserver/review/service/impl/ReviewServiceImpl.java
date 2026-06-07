@@ -69,12 +69,10 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewOutputParser reviewOutputParser;
     private final ReferenceFormatChecker referenceFormatChecker;
     private final ObjectMapper objectMapper;
+    private final ReviewAuditService reviewAuditService;
 
     @Autowired
     private ReviewRiskService reviewRiskService;
-
-    @Autowired
-    private ReviewAuditService reviewAuditService;
 
     @Override
     public PageResponse<ReviewTaskResponse> listTasks(UUID currentUserId, boolean admin, String keyword, String status, int page, int size) {
@@ -237,14 +235,15 @@ public class ReviewServiceImpl implements ReviewService {
         report.setStatus(nextStatus);
         report.setAdjustedAt(OffsetDateTime.now());
         report.setUpdatedAt(OffsetDateTime.now());
-        report.setManualDelta(manualDelta(beforeSnapshot, reportSnapshot(report)));
+        Map<String, Object> afterSnapshot = reportSnapshot(report);
+        report.setManualDelta(manualDelta(beforeSnapshot, afterSnapshot));
         reportMapper.updateById(report);
         if ("CONFIRMED".equals(nextStatus) || "COMPLETED".equals(nextStatus)) {
             taskMapper.updateStatus(task.getId(), currentUserId, "COMPLETED");
         } else {
             taskMapper.updateStatus(task.getId(), currentUserId, "REVIEWING");
         }
-        reviewAuditService.append(task.getId(), currentUserId, "ADJUST_REPORT", "人工调整评审报告", beforeSnapshot, reportSnapshot(report), Map.of());
+        reviewAuditService.append(task.getId(), currentUserId, "ADJUST_REPORT", "人工调整评审报告", beforeSnapshot, afterSnapshot, Map.of());
         return ReviewReportResponse.from(reportMapper.selectById(reportId));
     }
 
@@ -427,6 +426,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     private Map<String, Object> reportSnapshot(ReviewReportEntity report) {
         Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("reportId", report.getId() == null ? null : report.getId().toString());
         snapshot.put("paperSections", report.getPaperSections());
         snapshot.put("scores", report.getScores());
         snapshot.put("comments", report.getComments());
