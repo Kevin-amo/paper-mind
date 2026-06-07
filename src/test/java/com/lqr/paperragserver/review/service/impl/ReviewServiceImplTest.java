@@ -5,6 +5,8 @@ import com.lqr.paperragserver.ai.service.LlmService;
 import com.lqr.paperragserver.document.service.DocumentPersistenceService;
 import com.lqr.paperragserver.document.structured.service.PaperStructuredParseService;
 import com.lqr.paperragserver.review.assessment.ReviewOutputParser;
+import com.lqr.paperragserver.review.audit.ReviewAuditService;
+import com.lqr.paperragserver.review.dto.ReviewReportUpdateRequest;
 import com.lqr.paperragserver.review.dto.ReviewRiskItemResponse;
 import com.lqr.paperragserver.review.dto.ReviewRiskUpdateRequest;
 import com.lqr.paperragserver.review.entity.ReviewCriterionEntity;
@@ -18,6 +20,8 @@ import com.lqr.paperragserver.review.mapper.ReviewTaskMapper;
 import com.lqr.paperragserver.review.risk.ReferenceFormatChecker;
 import com.lqr.paperragserver.review.risk.ReviewRiskService;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -32,6 +36,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -101,7 +107,8 @@ class ReviewServiceImplTest {
                 null,
                 new ReviewOutputParser(objectMapper),
                 new ReferenceFormatChecker(),
-                objectMapper
+                objectMapper,
+                mock(ReviewAuditService.class)
         );
 
         assertThat(service).isNotNull();
@@ -180,7 +187,8 @@ class ReviewServiceImplTest {
                 llmService,
                 reviewOutputParser,
                 new ReferenceFormatChecker(),
-                objectMapper
+                objectMapper,
+                mock(ReviewAuditService.class)
         );
 
         assertThatThrownBy(() -> service.generateAiReview(userId, false, taskId))
@@ -191,6 +199,78 @@ class ReviewServiceImplTest {
                     assertThat(response.getReason()).contains("\u7f3a\u5c11 JSON \u5bf9\u8c61");
                     assertThat(response.getCause()).isInstanceOf(IllegalArgumentException.class);
                 });
+    }
+
+    @Test
+    void updateReportShouldSetManualDeltaAndAppendAuditDiff() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID reportId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
+        ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
+        ReviewAuditLogMapper auditLogMapper = mock(ReviewAuditLogMapper.class);
+        ReviewAuditService reviewAuditService = mock(ReviewAuditService.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        ReviewServiceImpl service = new ReviewServiceImpl(
+                taskMapper,
+                reportMapper,
+                null,
+                auditLogMapper,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new ReferenceFormatChecker(),
+                objectMapper,
+                reviewAuditService
+        );
+        ReviewReportEntity report = report(reportId, taskId);
+        report.setScores(List.of(Map.of("code", "LOGIC", "score", 70)));
+        report.setComments(Map.of("summary", "old"));
+        report.setRisks(List.of(Map.of("type", "old")));
+        report.setTotalScore(70);
+        report.setFinalRecommendation("REVIEW");
+        report.setStatus("AI_GENERATED");
+        when(reportMapper.selectById(reportId)).thenReturn(report);
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, null));
+        ReviewReportUpdateRequest request = new ReviewReportUpdateRequest(
+                null,
+                List.of(Map.of("code", "LOGIC", "score", 85)),
+                Map.of("summary", "updated"),
+                null,
+                85,
+                "PASS",
+                "confirmed"
+        );
+
+        service.updateReport(currentUserId, false, reportId, request);
+
+        ArgumentCaptor<ReviewReportEntity> reportCaptor = ArgumentCaptor.forClass(ReviewReportEntity.class);
+        ArgumentCaptor<Map<String, Object>> beforeCaptor = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<String, Object>> afterCaptor = ArgumentCaptor.forClass(Map.class);
+        InOrder inOrder = inOrder(reportMapper, reviewAuditService);
+        inOrder.verify(reportMapper).updateById(reportCaptor.capture());
+        inOrder.verify(reviewAuditService).append(
+                org.mockito.ArgumentMatchers.eq(taskId),
+                org.mockito.ArgumentMatchers.eq(currentUserId),
+                org.mockito.ArgumentMatchers.eq("ADJUST_REPORT"),
+                anyString(),
+                beforeCaptor.capture(),
+                afterCaptor.capture(),
+                org.mockito.ArgumentMatchers.eq(Map.of())
+        );
+        assertThat(reportCaptor.getValue().getManualDelta())
+                .containsEntry("scoreChanged", true)
+                .containsEntry("commentEdited", true)
+                .containsEntry("riskOverridden", false)
+                .containsEntry("finalRecommendationChanged", true);
+        assertThat(beforeCaptor.getValue())
+                .containsEntry("reportId", reportId.toString())
+                .containsEntry("status", "AI_GENERATED");
+        assertThat(afterCaptor.getValue())
+                .containsEntry("reportId", reportId.toString())
+                .containsEntry("status", "CONFIRMED");
     }
 
     @Test
@@ -269,7 +349,8 @@ class ReviewServiceImplTest {
                 null,
                 null,
                 new ReferenceFormatChecker(),
-                new ObjectMapper()
+                new ObjectMapper(),
+                mock(ReviewAuditService.class)
         );
         ReflectionTestUtils.setField(service, "reviewRiskService", riskService);
         return service;
