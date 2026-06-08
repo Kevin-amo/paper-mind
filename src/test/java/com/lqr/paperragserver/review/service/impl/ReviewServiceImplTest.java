@@ -2,11 +2,13 @@ package com.lqr.paperragserver.review.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lqr.paperragserver.ai.service.LlmService;
+import com.lqr.paperragserver.ai.service.PromptConstructionService;
 import com.lqr.paperragserver.document.service.DocumentPersistenceService;
 import com.lqr.paperragserver.document.structured.entity.PaperStructuredParseEntity;
 import com.lqr.paperragserver.document.structured.service.PaperStructuredParseService;
 import com.lqr.paperragserver.review.assessment.ReviewOutputParser;
 import com.lqr.paperragserver.review.audit.ReviewAuditService;
+import com.lqr.paperragserver.review.dto.ReviewCriterionResponse;
 import com.lqr.paperragserver.review.dto.ReviewReportUpdateRequest;
 import com.lqr.paperragserver.review.dto.ReviewRiskItemResponse;
 import com.lqr.paperragserver.review.dto.ReviewRiskUpdateRequest;
@@ -30,6 +32,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Method;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -119,6 +123,56 @@ class ReviewServiceImplTest {
         );
 
         assertThat(service).isNotNull();
+    }
+
+    @Test
+    void buildReviewPromptShouldIncludeShanghaiReviewDateAndReferenceDateRule() throws Exception {
+        UUID ownerUserId = UUID.randomUUID();
+        PaperStructuredParseService paperStructuredParseService = mock(PaperStructuredParseService.class);
+        when(paperStructuredParseService.find(ownerUserId, "source-1")).thenReturn(Optional.empty());
+        ReviewServiceImpl service = serviceWithDependencies(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                paperStructuredParseService,
+                null,
+                null,
+                new ReferenceFormatChecker(),
+                mock(ReviewRiskService.class),
+                mock(ReviewAuditService.class)
+        );
+
+        PromptConstructionService.Prompt prompt = buildReviewPrompt(
+                service,
+                document(ownerUserId, "source-1"),
+                List.of(new ReviewCriterionResponse(
+                        UUID.randomUUID(),
+                        "REFERENCE",
+                        "参考文献规范",
+                        "检查参考文献日期",
+                        100,
+                        10,
+                        1,
+                        "REFERENCE",
+                        true,
+                        Map.of(),
+                        true,
+                        1,
+                        OffsetDateTime.now(),
+                        OffsetDateTime.now()
+                ))
+        );
+
+        String today = LocalDate.now(ZoneId.of("Asia/Shanghai")).toString();
+        assertThat(prompt.userMessage())
+                .contains("当前评审日期:" + today)
+                .contains("Asia/Shanghai")
+                .contains("不晚于当前评审日期")
+                .contains("不得判定为未来日期")
+                .contains("YYYY-MM-DD");
     }
 
     @Test
@@ -528,6 +582,14 @@ class ReviewServiceImplTest {
         assertThat(service.updateRisk(currentUserId, false, riskId, request)).isEqualTo(response);
 
         verify(riskService).updateStatus(riskId, "CONFIRMED", "ok");
+    }
+
+    private PromptConstructionService.Prompt buildReviewPrompt(ReviewServiceImpl service,
+                                                                  DocumentPersistenceService.DocumentDetail document,
+                                                                  List<ReviewCriterionResponse> criteria) throws Exception {
+        Method method = ReviewServiceImpl.class.getDeclaredMethod("buildReviewPrompt", DocumentPersistenceService.DocumentDetail.class, List.class);
+        method.setAccessible(true);
+        return (PromptConstructionService.Prompt) method.invoke(service, document, criteria);
     }
 
     private ReviewServiceImpl serviceWithRiskAccess(ReviewTaskMapper taskMapper,

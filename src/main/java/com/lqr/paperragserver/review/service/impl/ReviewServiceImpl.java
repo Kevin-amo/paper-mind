@@ -52,7 +52,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Array;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -66,6 +68,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     private static final int MAX_PAGE_SIZE = 100;
     private static final int PAPER_TEXT_LIMIT = 10000;
+    private static final ZoneId REVIEW_ZONE = ZoneId.of("Asia/Shanghai");
 
     private final ReviewTaskMapper taskMapper;
     private final ReviewReportMapper reportMapper;
@@ -486,8 +489,11 @@ public class ReviewServiceImpl implements ReviewService {
                 .orElse("");
         String paperText = truncate(document.contentText(), PAPER_TEXT_LIMIT);
         String structuredText = structuredParseText(document);
+        String reviewDate = LocalDate.now(REVIEW_ZONE).toString();
         String systemMessage = "你是论文辅助评审平台的评审助手。只输出一个严格 JSON 对象；第一个字符必须是 {，最后一个字符必须是 }。禁止 Markdown、代码围栏、解释文字、前后缀。";
         String userMessage = "请对以下论文进行辅助评审。\n"
+                + "当前评审日期:" + reviewDate + "（时区:Asia/Shanghai）。\n"
+                + "参考文献中的访问日期/引用日期若不晚于当前评审日期，不得判定为未来日期；YYYY-MM-DD 格式是合法日期格式。\n"
                 + "论文标题：" + nullToEmpty(document.title()) + "\n"
                 + "摘要：" + nullToEmpty(document.abstractText()) + "\n"
                 + "关键词：" + toJsonText(document.keywords()) + "\n\n"
