@@ -387,7 +387,10 @@ export interface ResetPasswordPayload {
   password: string;
 }
 
-export type ReviewTaskStatus = 'PENDING' | 'REVIEWING' | 'COMPLETED' | 'NEEDS_REVIEW' | string;
+export type ReviewTaskStatus = 'PENDING' | 'PENDING_ASSIGNMENT' | 'ASSIGNED' | 'REVIEWING' | 'IN_REVIEW' | 'SUBMITTED' | 'COMPLETED' | 'CONSENSUS_CONFIRMED' | string;
+export type ReviewAssignmentRole = 'LEAD' | 'REVIEWER' | 'ARBITER';
+export type ReviewAssignmentStatus = 'ASSIGNED' | 'REVIEWING' | 'SUBMITTED' | 'RETURNED' | 'CANCELLED';
+export type ReviewConsensusStatus = 'DRAFT' | 'IN_DISCUSSION' | 'CONFIRMED' | 'ARCHIVED' | string;
 export type ReviewReportStatus = 'AI_GENERATED' | 'ADJUSTED' | 'CONFIRMED' | 'COMPLETED' | string;
 
 export interface UploadReviewPaperPayload {
@@ -434,11 +437,90 @@ export interface ReviewComments {
   [key: string]: unknown;
 }
 
+export interface ReviewAssignment {
+  id: string;
+  taskId: string;
+  reviewerUserId: string;
+  role: ReviewAssignmentRole;
+  status: ReviewAssignmentStatus;
+  assignedAt: string | null;
+  dueAt: string | null;
+  submittedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewConsensus {
+  id: string;
+  taskId: string;
+  leadReviewerUserId: string | null;
+  scoreSummary: Record<string, unknown> | null;
+  commentSummary: Record<string, unknown> | null;
+  disagreementItems: Array<Record<string, unknown>> | null;
+  finalScore: number | null;
+  finalRecommendation: string | null;
+  status: ReviewConsensusStatus;
+  confirmedByUserId: string | null;
+  confirmedAt: string | null;
+  submittedReports: Array<Record<string, unknown>> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssignReviewersPayload {
+  reviewerUserIds: string[];
+  leadReviewerUserId?: string | null;
+  arbiterUserId?: string | null;
+  dueAt?: string | null;
+}
+
+export interface UpdateReviewConsensusPayload {
+  scoreSummary?: Record<string, unknown> | null;
+  commentSummary?: Record<string, unknown> | null;
+  disagreementItems?: Array<Record<string, unknown>> | null;
+  finalScore?: number | null;
+  finalRecommendation?: string | null;
+  status?: ReviewConsensusStatus;
+}
+
+export interface ReviewerLoad {
+  reviewerUserId: string;
+  reviewerName: string | null;
+  activeAssignments: number;
+  pendingAssignments: number;
+  submittedAssignments: number;
+  completedAssignments: number;
+  updatedAt: string | null;
+}
+
+export interface AdminReviewTaskSummary {
+  id: string;
+  documentId: string;
+  submitterUserId: string;
+  sourceId: string;
+  title: string;
+  status: ReviewTaskStatus;
+  currentAssignment: ReviewAssignment | null;
+  assignments: ReviewAssignment[];
+  assignedAt: string | null;
+  dueAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminReviewTaskDetail extends AdminReviewTaskSummary {
+  document: DocumentDetail | null;
+  report: ReviewReport | null;
+  consensus: ReviewConsensus | null;
+}
+
 export interface ReviewReport {
   id: string;
   taskId: string;
   documentId: string;
   reviewerUserId: string | null;
+  assignmentId: string | null;
   paperSections: Record<string, unknown>;
   scores: ReviewScoreItem[] | unknown;
   comments: ReviewComments | Record<string, unknown>;
@@ -460,6 +542,8 @@ export interface ReviewTask {
   sourceId: string;
   title: string;
   status: ReviewTaskStatus;
+  currentAssignment: ReviewAssignment | null;
+  assignments: ReviewAssignment[];
   assignedAt: string | null;
   dueAt: string | null;
   completedAt: string | null;

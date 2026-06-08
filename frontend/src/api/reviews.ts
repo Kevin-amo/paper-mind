@@ -4,6 +4,8 @@ import type {
   ListReviewTasksParams,
   PageResponse,
   ReviewCriterion,
+  ReviewAssignment,
+  ReviewConsensus,
   ReviewReport,
   ReviewTask,
   UpdateReviewReportPayload,
@@ -68,5 +70,15 @@ export async function listReviewCriteria(includeDisabled = false) {
   const { data } = await http.get<ReviewCriterion[]>('/reviews/criteria', {
     params: compactParams({ includeDisabled }),
   });
+  return data;
+}
+
+export async function submitReviewAssignment(assignmentId: string) {
+  const { data } = await http.post<ReviewAssignment>(`/reviews/assignments/${assignmentId}/submit`);
+  return data;
+}
+
+export async function getReviewConsensus(taskId: string) {
+  const { data } = await http.get<ReviewConsensus>(`/reviews/tasks/${taskId}/consensus`);
   return data;
 }

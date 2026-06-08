@@ -38,3 +38,11 @@ frontend/.env.local
 
 ### VS Code ###
 .vscode/
+
+### AI skills ###
+.codex/
+.cursor/
+.claude/
+.agent/
+.superpowers/
+docs/
