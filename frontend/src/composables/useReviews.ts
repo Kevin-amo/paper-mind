@@ -5,6 +5,7 @@ import {
   getReviewTask,
   listReviewCriteria,
   listReviewTasks,
+  submitReviewAssignment,
   uploadReviewPaper,
   updateReviewReport,
 } from '../api/reviews';
@@ -30,6 +31,7 @@ export function useReviews() {
   const detailLoading = ref(false);
   const generating = ref(false);
   const saving = ref(false);
+  const submittingAssignment = ref(false);
   const uploading = ref(false);
   const structuredParseLoading = ref(false);
   const regeneratingStructuredParse = ref(false);
@@ -181,6 +183,34 @@ export function useReviews() {
     }
   }
 
+  async function submitCurrentAssignment() {
+    if (submittingAssignment.value) {
+      return;
+    }
+
+    const taskId = selectedTask.value?.id;
+    const assignmentId = selectedTask.value?.currentAssignment?.id;
+
+    if (!taskId || !assignmentId) {
+      ElMessage.warning('当前任务没有可提交的评审分配');
+      return;
+    }
+
+    submittingAssignment.value = true;
+    try {
+      await submitReviewAssignment(assignmentId);
+      await loadTasks();
+      if (selectedTask.value?.id === taskId) {
+        await selectTask(taskId);
+      }
+      ElMessage.success('评审分配已提交');
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error));
+    } finally {
+      submittingAssignment.value = false;
+    }
+  }
+
   async function uploadPaper(payload: UploadReviewPaperPayload) {
     uploading.value = true;
     try {
@@ -233,6 +263,7 @@ export function useReviews() {
     detailLoading,
     generating,
     saving,
+    submittingAssignment,
     uploading,
     structuredParseLoading,
     regeneratingStructuredParse,
@@ -253,6 +284,7 @@ export function useReviews() {
     selectTask,
     runAiReview,
     saveReport,
+    submitCurrentAssignment,
     uploadPaper,
     loadStructuredParse,
     rerunStructuredParse,

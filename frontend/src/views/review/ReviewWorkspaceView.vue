@@ -232,6 +232,14 @@ onMounted(async () => {
               <el-button type="primary" :loading="reviews.generating.value" @click="reviews.runAiReview">
                 {{ selectedReport ? '重新生成辅助评审' : '生成辅助评审' }}
               </el-button>
+              <el-button
+                v-if="selectedTask.currentAssignment"
+                :disabled="reviews.submittingAssignment.value"
+                :loading="reviews.submittingAssignment.value"
+                @click="reviews.submitCurrentAssignment"
+              >
+                提交评审分配
+              </el-button>
             </div>
           </div>
 
