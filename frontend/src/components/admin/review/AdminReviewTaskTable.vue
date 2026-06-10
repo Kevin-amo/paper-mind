@@ -81,14 +81,14 @@ function reviewerName(task: AdminReviewTaskSummary) {
   border-radius: 10px;
 }
 
-.review-task-table :deep(.el-table__header-wrapper th) {
+.review-task-table :deep([class~="el-table__header-wrapper"] th) {
   background: #f8fafc;
   color: #475467;
   font-size: 12px;
   font-weight: 750;
 }
 
-.review-task-table :deep(.el-table__row:hover > td) {
+.review-task-table :deep([class~="el-table__row"]:hover > td) {
   background: #f5f8ff;
 }
 

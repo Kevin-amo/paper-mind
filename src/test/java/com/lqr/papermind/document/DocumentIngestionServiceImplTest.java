@@ -7,7 +7,6 @@ import com.lqr.papermind.common.model.DocumentIngestionResult;
 import com.lqr.papermind.common.model.DocumentSource;
 import com.lqr.papermind.common.model.ParsedDocument;
 import com.lqr.papermind.document.config.DocumentIngestionProperties;
-import com.lqr.papermind.document.event.DocumentIndexedEvent;
 import com.lqr.papermind.document.service.impl.DocumentIngestionServiceImpl;
 import com.lqr.papermind.document.service.DocumentParsingService;
 import com.lqr.papermind.document.service.DocumentSplittingService;

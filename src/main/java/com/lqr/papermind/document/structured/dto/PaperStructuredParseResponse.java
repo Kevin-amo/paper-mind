@@ -4,7 +4,6 @@ import com.lqr.papermind.document.structured.entity.PaperStructuredParseEntity;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**

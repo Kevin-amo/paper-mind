@@ -328,45 +328,18 @@ onMounted(async () => {
   width: 180px;
 }
 
-.toolbar :deep(.el-input__wrapper),
-.toolbar :deep(.el-select__wrapper) {
+.toolbar :deep([class~="el-input__wrapper"]),
+.toolbar :deep([class~="el-select__wrapper"]) {
   min-height: 38px;
   border-radius: 9px;
   box-shadow: 0 0 0 1px #d0d7e2 inset;
 }
 
-.pagination-wrap,
-.load-toolbar {
+.pagination-wrap {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 16px;
-}
-
-.load-toolbar {
-  margin: 0 0 16px;
-}
-
-.load-table {
-  overflow: hidden;
-  border: 1px solid #dde3ee;
-  border-radius: 10px;
-}
-
-.reviewer-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.reviewer-cell strong {
-  color: #101828;
-  font-weight: 750;
-}
-
-.reviewer-cell span {
-  color: #667085;
-  font-size: 12px;
 }
 
 .archive-helper {

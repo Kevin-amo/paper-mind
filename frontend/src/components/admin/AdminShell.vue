@@ -306,34 +306,34 @@ onMounted(() => {
   line-height: 1.2;
 }
 
-.topbar-search :deep(.el-input__wrapper) {
+.topbar-search :deep([class~="el-input__wrapper"]) {
   min-height: 40px;
   border-radius: 10px;
   box-shadow: 0 0 0 1px #d0d7e2 inset;
 }
 
-.admin-layout :deep(.el-button) {
+.admin-layout :deep([class~="el-button"]) {
   border-radius: 8px;
   font-weight: 700;
 }
 
-.admin-layout :deep(.el-button--primary) {
+.admin-layout :deep([class~="el-button--primary"]) {
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
 }
 
-.admin-layout :deep(.el-tag) {
+.admin-layout :deep([class~="el-tag"]) {
   border-radius: 7px;
   font-weight: 700;
 }
 
-.admin-layout :deep(.el-table__header-wrapper th) {
+.admin-layout :deep([class~="el-table__header-wrapper"] th) {
   background: #f8fafc;
   color: #475467;
   font-size: 12px;
   font-weight: 750;
 }
 
-.admin-layout :deep(.el-table__row:hover > td) {
+.admin-layout :deep([class~="el-table__row"]:hover > td) {
   background: #f5f8ff;
 }
 

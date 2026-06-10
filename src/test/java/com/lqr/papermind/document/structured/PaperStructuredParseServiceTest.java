@@ -16,7 +16,6 @@ import com.lqr.papermind.document.structured.service.PaperStructuredModelComplet
 import com.lqr.papermind.document.structured.service.impl.PaperStructuredParseServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 

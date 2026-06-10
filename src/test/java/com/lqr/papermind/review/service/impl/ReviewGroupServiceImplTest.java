@@ -6,9 +6,7 @@ import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.auth.security.RoleCodes;
 import com.lqr.papermind.review.dto.ReviewGroupMemberUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewGroupRequest;
-import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
 import com.lqr.papermind.review.entity.ReviewBatchEntity;
-import com.lqr.papermind.review.entity.ReviewConsensusEntity;
 import com.lqr.papermind.review.entity.ReviewGroupEntity;
 import com.lqr.papermind.review.entity.ReviewGroupMemberEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
@@ -28,7 +26,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
