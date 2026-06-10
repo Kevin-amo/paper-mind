@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -205,6 +207,19 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
      * 同步入库完成后触发结构化解析，失败时不影响文档入库结果。
      */
     private void generateStructuredParseQuietly(UUID ownerUserId, String sourceId) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    runStructuredParseQuietly(ownerUserId, sourceId);
+                }
+            });
+            return;
+        }
+        runStructuredParseQuietly(ownerUserId, sourceId);
+    }
+
+    private void runStructuredParseQuietly(UUID ownerUserId, String sourceId) {
         try {
             paperStructuredParseService.generate(ownerUserId, sourceId);
         } catch (RuntimeException ex) {

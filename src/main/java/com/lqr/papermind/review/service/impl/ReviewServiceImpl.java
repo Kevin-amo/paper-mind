@@ -90,13 +90,14 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public PageResponse<ReviewTaskResponse> listTasks(UUID currentUserId, boolean admin, String keyword, String status, int page, int size) {
+        taskMapper.syncFromDocuments();
         int safePage = Math.max(page, 0);
         int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
         if (!admin) {
             List<ReviewTaskEntity> reviewerTasks = taskMapper.selectReviewerTasks(
                     currentUserId,
                     blankToNull(keyword),
-                    status == null || status.isBlank() ? null : status.trim().toUpperCase()
+                    normalizeReviewerAssignmentStatus(status)
             );
             long offset = (long) safePage * safeSize;
             if (offset >= reviewerTasks.size()) {
@@ -194,7 +195,7 @@ public class ReviewServiceImpl implements ReviewService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先配置评审标准");
         }
 
-        ReviewAssignmentEntity assignment = assignmentMapper.selectByTaskAndReviewer(taskId, currentUserId);
+        ReviewAssignmentEntity assignment = assignmentMapper.selectActiveByTaskAndReviewer(taskId, currentUserId);
         boolean hasAssignments = false;
         if (assignment == null) {
             hasAssignments = !assignmentMapper.selectByTaskId(taskId).isEmpty();
@@ -304,6 +305,15 @@ public class ReviewServiceImpl implements ReviewService {
             if (!admin && !assignment.getReviewerUserId().equals(currentUserId)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能修改自己的评审报告");
             }
+            if (ReviewAssignmentStatuses.CANCELLED.equals(assignment.getStatus())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "评审分配已取消，不能修改报告");
+            }
+            if (!admin) {
+                ReviewAssignmentEntity activeAssignment = assignmentMapper.selectActiveByTaskAndReviewer(task.getId(), currentUserId);
+                if (activeAssignment == null || !activeAssignment.getId().equals(assignment.getId())) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能修改自己的评审报告");
+                }
+            }
             if (ReviewAssignmentStatuses.SUBMITTED.equals(assignment.getStatus())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "评审已提交，不能修改报告");
             }
@@ -311,12 +321,7 @@ public class ReviewServiceImpl implements ReviewService {
                 assignmentMapper.updateStatus(assignment.getId(), ReviewAssignmentStatuses.REVIEWING);
             }
         } else if (!admin) {
-            if (report.getReviewerUserId() != null && !currentUserId.equals(report.getReviewerUserId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能修改自己的评审报告");
-            }
-            if ("CONFIRMED".equals(report.getStatus()) || "COMPLETED".equals(report.getStatus())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "评审报告已确认，不能修改");
-            }
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能修改自己的评审报告");
         }
         report.setReviewerUserId(currentUserId);
         if (request.paperSections() != null) {
@@ -380,8 +385,18 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public ReviewAssignmentResponse submitAssignment(UUID currentUserId, UUID assignmentId) {
+        ReviewAssignmentEntity assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审分配不存在");
+        }
+        if (!assignment.getReviewerUserId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能提交自己的评审任务");
+        }
+        if (ReviewAssignmentStatuses.CANCELLED.equals(assignment.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "评审分配已取消，不能提交");
+        }
         ReviewReportEntity report = reportMapper.selectByAssignmentId(assignmentId);
-        if (report == null) {
+        if (report == null && !ReviewAssignmentStatuses.SUBMITTED.equals(assignment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先生成或保存评审报告再提交");
         }
         return assignmentService.submitAssignment(currentUserId, assignmentId);
@@ -400,7 +415,7 @@ public class ReviewServiceImpl implements ReviewService {
         if (!consensusService.canAccessConsensus(currentUserId, admin, taskId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只有组长或管理员可以修改共识汇总");
         }
-        return consensusService.update(taskId, request);
+        return consensusService.update(taskId, currentUserId, request);
     }
 
     @Override
@@ -452,9 +467,13 @@ public class ReviewServiceImpl implements ReviewService {
 
     private ReviewTaskResponse toTaskResponse(ReviewTaskEntity task, boolean includeDocument, UUID currentUserId, boolean admin) {
         if (!admin) {
-            ReviewAssignmentEntity currentAssignment = assignmentMapper.selectByTaskAndReviewer(task.getId(), currentUserId);
+            ReviewAssignmentEntity currentAssignment = assignmentMapper.selectActiveByTaskAndReviewer(task.getId(), currentUserId);
             if (currentAssignment == null) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能访问分配给自己的评审任务");
+                if (!isOwnUnassignedPendingTask(task, currentUserId)) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能访问分配给自己的评审任务");
+                }
+                DocumentDetailResponse document = includeDocument ? DocumentDetailResponse.from(requireDocument(task)) : null;
+                return ReviewTaskResponse.from(task, document, null, null, List.of());
             }
             DocumentDetailResponse document = includeDocument ? DocumentDetailResponse.from(requireDocument(task)) : null;
             ReviewReportResponse report = ReviewReportResponse.from(reportMapper.selectByAssignmentId(currentAssignment.getId()));
@@ -488,16 +507,19 @@ public class ReviewServiceImpl implements ReviewService {
         }
         if (report.getAssignmentId() != null) {
             ReviewAssignmentEntity assignment = assignmentMapper.selectById(report.getAssignmentId());
-            if (assignment != null && currentUserId.equals(assignment.getReviewerUserId())) {
+            ReviewAssignmentEntity activeAssignment = assignment == null
+                    ? null
+                    : assignmentMapper.selectActiveByTaskAndReviewer(assignment.getTaskId(), currentUserId);
+            if (assignment != null
+                    && !ReviewAssignmentStatuses.CANCELLED.equals(assignment.getStatus())
+                    && currentUserId.equals(assignment.getReviewerUserId())
+                    && activeAssignment != null
+                    && activeAssignment.getId().equals(assignment.getId())) {
                 return;
             }
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能访问自己的评审风险项");
         }
-        ReviewTaskEntity task = requireTask(report.getTaskId());
-        if (task.getReviewerUserId() == null || task.getReviewerUserId().equals(currentUserId)) {
-            return;
-        }
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权访问该评审任务");
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能访问自己的评审风险项");
     }
 
     private PromptConstructionService.Prompt buildReviewPrompt(DocumentPersistenceService.DocumentDetail document, List<ReviewCriterionResponse> criteria) {
@@ -626,10 +648,21 @@ public class ReviewServiceImpl implements ReviewService {
 
     private ReviewTaskEntity requireAccessibleTask(UUID currentUserId, boolean admin, UUID taskId) {
         ReviewTaskEntity task = requireTask(taskId);
-        if (!admin && assignmentMapper.selectByTaskAndReviewer(taskId, currentUserId) == null) {
+        if (!admin
+                && assignmentMapper.selectActiveByTaskAndReviewer(taskId, currentUserId) == null
+                && !isOwnUnassignedPendingTask(task, currentUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能访问分配给自己的评审任务");
         }
         return task;
+    }
+
+    private boolean isOwnUnassignedPendingTask(ReviewTaskEntity task, UUID currentUserId) {
+        return task != null
+                && currentUserId != null
+                && currentUserId.equals(task.getSubmitterUserId())
+                && ReviewTaskStatuses.PENDING_ASSIGNMENT.equals(task.getStatus())
+                && assignmentMapper.selectByTaskId(task.getId()).stream()
+                .noneMatch(assignment -> !ReviewAssignmentStatuses.CANCELLED.equals(assignment.getStatus()));
     }
 
     private DocumentPersistenceService.DocumentDetail requireDocument(ReviewTaskEntity task) {
@@ -846,6 +879,20 @@ public class ReviewServiceImpl implements ReviewService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeReviewerAssignmentStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        String normalized = status.trim().toUpperCase();
+        return switch (normalized) {
+            case ReviewTaskStatuses.PENDING, ReviewTaskStatuses.ASSIGNED -> ReviewAssignmentStatuses.ASSIGNED;
+            case ReviewTaskStatuses.REVIEWING, ReviewTaskStatuses.IN_REVIEW -> ReviewAssignmentStatuses.REVIEWING;
+            case ReviewTaskStatuses.SUBMITTED, ReviewTaskStatuses.COMPLETED -> ReviewAssignmentStatuses.SUBMITTED;
+            case ReviewAssignmentStatuses.RETURNED -> ReviewAssignmentStatuses.RETURNED;
+            default -> normalized;
+        };
     }
 
     private String nullToEmpty(Object value) {

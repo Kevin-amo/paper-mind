@@ -82,13 +82,13 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     }
 
     @Override
-    public ReviewConsensusResponse recalculateConsensus(UUID taskId) {
-        return consensusService.recalculate(taskId);
+    public ReviewConsensusResponse recalculateConsensus(UUID taskId, UUID operatorUserId) {
+        return consensusService.recalculate(taskId, operatorUserId);
     }
 
     @Override
-    public ReviewConsensusResponse updateConsensus(UUID taskId, ReviewConsensusUpdateRequest request) {
-        return consensusService.update(taskId, request);
+    public ReviewConsensusResponse updateConsensus(UUID taskId, UUID operatorUserId, ReviewConsensusUpdateRequest request) {
+        return consensusService.update(taskId, operatorUserId, request);
     }
 
     @Override
@@ -99,12 +99,16 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     private AdminReviewTaskSummaryResponse toSummaryResponse(ReviewTaskEntity task) {
         List<ReviewAssignmentEntity> assignments = assignmentMapper.selectByTaskId(task.getId());
         ReviewConsensusEntity consensus = consensusMapper.selectByTaskId(task.getId());
-        UUID leadReviewerUserId = assignments.stream()
-                .filter(assignment -> ReviewAssignmentRoles.LEAD.equals(assignment.getRole()))
-                .map(ReviewAssignmentEntity::getReviewerUserId)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+        UUID leadReviewerUserId = task.getLeaderUserId();
+        if (leadReviewerUserId == null) {
+            leadReviewerUserId = assignments.stream()
+                    .filter(assignment -> !ReviewAssignmentStatuses.CANCELLED.equals(assignment.getStatus()))
+                    .filter(assignment -> ReviewAssignmentRoles.LEAD.equals(assignment.getRole()))
+                    .map(ReviewAssignmentEntity::getReviewerUserId)
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(null);
+        }
         SysUser leadReviewer = leadReviewerUserId == null ? null : userMapper.selectById(leadReviewerUserId);
         OffsetDateTime dueAt = assignmentMapper.maxDueAtByTaskId(task.getId());
         return new AdminReviewTaskSummaryResponse(

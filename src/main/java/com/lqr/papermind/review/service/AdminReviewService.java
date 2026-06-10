@@ -22,9 +22,9 @@ public interface AdminReviewService {
 
     List<ReviewerLoadResponse> listReviewerLoads();
 
-    ReviewConsensusResponse recalculateConsensus(UUID taskId);
+    ReviewConsensusResponse recalculateConsensus(UUID taskId, UUID operatorUserId);
 
-    ReviewConsensusResponse updateConsensus(UUID taskId, ReviewConsensusUpdateRequest request);
+    ReviewConsensusResponse updateConsensus(UUID taskId, UUID operatorUserId, ReviewConsensusUpdateRequest request);
 
     ReviewConsensusResponse confirmConsensus(UUID taskId, UUID operatorUserId);
 }

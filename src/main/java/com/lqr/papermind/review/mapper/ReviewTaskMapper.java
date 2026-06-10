@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,8 +26,8 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
             select d.id, d.owner_user_id, d.source_id, d.title, 'PENDING_ASSIGNMENT'
             from public.paper_document d
             where d.deleted_at is null
-              and d.status <> 'DELETED'
-              and d.metadata ->> 'sourceType' = 'REVIEW'
+              and d.status = 'INDEXED'
+              and upper(coalesce(d.metadata ->> 'sourceType', '')) = 'REVIEW'
               and not exists (
                   select 1 from public.review_task t where t.document_id = d.id
               )
@@ -60,6 +61,25 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
             """)
     int updateTaskStatus(@Param("id") UUID id, @Param("status") String status);
 
+    @Update("""
+            update public.review_task
+            set status = 'ASSIGNED',
+                group_id = #{groupId},
+                reviewer_user_id = #{reviewerUserId},
+                assigned_by_user_id = #{assignedByUserId},
+                leader_user_id = #{leaderUserId},
+                assigned_at = coalesce(assigned_at, now()),
+                due_at = #{dueAt},
+                updated_at = now()
+            where id = #{id}
+            """)
+    int markAssignedByLeader(@Param("id") UUID id,
+                             @Param("groupId") UUID groupId,
+                             @Param("assignedByUserId") UUID assignedByUserId,
+                             @Param("leaderUserId") UUID leaderUserId,
+                             @Param("reviewerUserId") UUID reviewerUserId,
+                             @Param("dueAt") OffsetDateTime dueAt);
+
     @Select("""
             <script>
             select *
@@ -83,17 +103,36 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
             <script>
             select t.*
             from public.review_task t
-            join public.review_assignment a on a.task_id = t.id
-            where a.reviewer_user_id = #{reviewerUserId}
-              and a.status &lt;&gt; 'CANCELLED'
+            where (
+                exists (
+                    select 1
+                    from public.review_assignment a
+                    where a.task_id = t.id
+                      and a.reviewer_user_id = #{reviewerUserId}
+                      and a.status &lt;&gt; 'CANCELLED'
+                <if test="status != null and status != ''">
+                      and a.status = #{status}
+                </if>
+                )
+                or (
+                    t.submitter_user_id = #{reviewerUserId}
+                    and t.status = 'PENDING_ASSIGNMENT'
+                    and not exists (
+                        select 1
+                        from public.review_assignment a
+                        where a.task_id = t.id
+                          and a.status &lt;&gt; 'CANCELLED'
+                    )
+                <if test="status != null and status != ''">
+                    and #{status} = 'ASSIGNED'
+                </if>
+                )
+            )
             <if test="keyword != null and keyword != ''">
               and (
                 t.source_id ilike concat('%', #{keyword}, '%')
                 or t.title ilike concat('%', #{keyword}, '%')
               )
-            </if>
-            <if test="status != null and status != ''">
-              and t.status = #{status}
             </if>
             order by t.updated_at desc, t.created_at desc
             </script>
@@ -101,4 +140,27 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
     List<ReviewTaskEntity> selectReviewerTasks(@Param("reviewerUserId") UUID reviewerUserId,
                                                @Param("keyword") String keyword,
                                                @Param("status") String status);
+
+    @Select("""
+            select t.*
+            from public.review_task t
+            where t.group_id = #{groupId}
+            order by t.updated_at desc, t.created_at desc
+            """)
+    List<ReviewTaskEntity> selectByGroupId(@Param("groupId") UUID groupId);
+
+    @Select("""
+            select t.*
+            from public.review_task t
+            where t.group_id = #{groupId}
+              and t.status in ('PENDING_ASSIGNMENT', 'PENDING')
+              and not exists (
+                  select 1
+                  from public.review_assignment a
+                  where a.task_id = t.id
+                    and a.status <> 'CANCELLED'
+              )
+            order by t.updated_at desc, t.created_at desc
+            """)
+    List<ReviewTaskEntity> selectUnassignedByGroupId(@Param("groupId") UUID groupId);
 }

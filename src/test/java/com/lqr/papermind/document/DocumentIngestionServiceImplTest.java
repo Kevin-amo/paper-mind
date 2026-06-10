@@ -19,6 +19,8 @@ import com.lqr.papermind.document.structured.service.PaperStructuredParseService
 import com.lqr.papermind.vector.service.VectorWriteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -81,6 +84,32 @@ class DocumentIngestionServiceImplTest {
         verify(documentPersistenceService).markIndexed(ownerUserId, "source-1", 1);
         verify(vectorWriteService).deleteBySourceId(ownerUserId, "source-1");
         verify(vectorWriteService).upsert(eq(ownerUserId), any());
+    }
+
+    @Test
+    void ingestShouldRunStructuredParseAfterTransactionCommit() {
+        byte[] content = "scan-bytes".getBytes();
+        Map<String, Object> metadata = Map.of("title", "Scan Paper");
+        Fixture fixture = fixture();
+        when(documentParsingService.parse("scan.png", content, metadata)).thenReturn(fixture.parsedDocument());
+        when(documentSplittingService.split(fixture.source(), "页面文本")).thenReturn(List.of(fixture.chunk()));
+        when(embeddingService.embed(List.of(fixture.chunk()))).thenReturn(List.of());
+
+        UUID ownerUserId = UUID.randomUUID();
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.ingest(ownerUserId, "scan.png", content, metadata);
+
+            verify(paperStructuredParseService, never()).generate(ownerUserId, "source-1");
+            List<TransactionSynchronization> synchronizations = TransactionSynchronizationManager.getSynchronizations();
+            assertThat(synchronizations).hasSize(1);
+
+            synchronizations.forEach(TransactionSynchronization::afterCommit);
+
+            verify(paperStructuredParseService).generate(ownerUserId, "source-1");
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test

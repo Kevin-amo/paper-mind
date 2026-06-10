@@ -17,6 +17,8 @@ import com.lqr.papermind.document.structured.service.impl.PaperStructuredParseSe
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -58,6 +60,39 @@ class PaperStructuredParseServiceTest {
                 new ObjectMapper()
         );
         ownerUserId = UUID.randomUUID();
+    }
+
+    @Test
+    void generateAndRegenerateShouldRunOutsideCallerTransaction() throws Exception {
+        assertNotSupportedTransaction("generate");
+        assertNotSupportedTransaction("regenerate");
+    }
+
+    @Test
+    void generateShouldPersistFailureWhenResultUpsertFails() {
+        DocumentPersistenceService.DocumentDetail document = document("论文标题", "摘要文本", "全文");
+        DocumentEntity entity = documentEntity(document);
+        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of(), List.of());
+        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of(), List.of());
+        PaperStructuredParseEntity failed = new PaperStructuredParseEntity();
+        failed.setId(UUID.randomUUID());
+        failed.setOwnerUserId(ownerUserId);
+        failed.setSourceId("source-1");
+        failed.setStatus("FAILED");
+
+        when(documentPersistenceService.findAnyDocument(ownerUserId, "source-1")).thenReturn(Optional.of(document));
+        when(documentMapper.selectOne(any(Wrapper.class))).thenReturn(entity);
+        when(ruleParser.parse(document)).thenReturn(ruleResult);
+        when(modelCompleter.complete(document, ruleResult)).thenReturn(new ModelCompletionResult(modelResult, "{}", null));
+        when(mergePolicy.merge(ruleResult, modelResult)).thenReturn(ruleResult);
+        when(structuredParseMapper.upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null)))
+                .thenThrow(new IllegalStateException("结果保存失败"));
+        when(structuredParseMapper.selectOne(any(Wrapper.class))).thenReturn(failed);
+
+        PaperStructuredParseEntity result = service.generate(ownerUserId, "source-1");
+
+        assertThat(result.getStatus()).isEqualTo("FAILED");
+        verify(structuredParseMapper).upsertFailed(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), eq("结果保存失败"));
     }
 
     @Test
@@ -106,6 +141,14 @@ class PaperStructuredParseServiceTest {
 
         assertThat(result.getStatus()).isEqualTo("FAILED");
         verify(structuredParseMapper).upsertFailed(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), eq("解析失败"));
+    }
+
+    private void assertNotSupportedTransaction(String methodName) throws NoSuchMethodException {
+        Transactional transactional = PaperStructuredParseServiceImpl.class
+                .getMethod(methodName, UUID.class, String.class)
+                .getAnnotation(Transactional.class);
+        assertThat(transactional).isNotNull();
+        assertThat(transactional.propagation()).isEqualTo(Propagation.NOT_SUPPORTED);
     }
 
     private DocumentPersistenceService.DocumentDetail document(String title, String abstractText, String contentText) {

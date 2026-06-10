@@ -9,6 +9,7 @@ public final class ReviewTaskStatuses {
     public static final String SUBMITTED = "SUBMITTED";
     public static final String COMPLETED = "COMPLETED";
     public static final String CONSENSUS_CONFIRMED = "CONSENSUS_CONFIRMED";
+    public static final String NEEDS_REVIEW = "NEEDS_REVIEW";
 
     private ReviewTaskStatuses() {
     }

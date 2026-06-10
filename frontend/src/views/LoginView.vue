@@ -184,7 +184,7 @@ onUnmounted(() => {
       <el-card class="form-card" shadow="never">
         <div class="form-heading">
           <p>{{ activeMode === 'login' ? '账号登录' : '邮箱注册' }}</p>
-          <h2>{{ activeMode === 'login' ? '欢迎回来' : '创建普通用户账号' }}</h2>
+          <h2>{{ activeMode === 'login' ? '欢迎回来' : '创建账号' }}</h2>
           <span>{{ activeMode === 'login' ? '登录后将根据角色进入对应工作台。' : '验证码将发送到你的邮箱，用于完成注册。' }}</span>
         </div>
 

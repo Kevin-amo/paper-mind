@@ -25,9 +25,11 @@ public interface ReviewAssignmentMapper extends BaseMapper<ReviewAssignmentEntit
             from public.review_assignment
             where task_id = #{taskId}
               and reviewer_user_id = #{reviewerUserId}
+              and status <> 'CANCELLED'
+            order by assigned_at desc, created_at desc
             limit 1
             """)
-    ReviewAssignmentEntity selectByTaskAndReviewer(@Param("taskId") UUID taskId,
+    ReviewAssignmentEntity selectActiveByTaskAndReviewer(@Param("taskId") UUID taskId,
                                                     @Param("reviewerUserId") UUID reviewerUserId);
 
     @Select("""

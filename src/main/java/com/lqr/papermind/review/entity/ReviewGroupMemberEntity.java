@@ -9,25 +9,18 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Data
-@TableName("public.review_task")
-public class ReviewTaskEntity {
+@TableName("public.review_group_member")
+public class ReviewGroupMemberEntity {
 
     @TableId(value = "id", type = IdType.INPUT)
     private UUID id;
 
-    private UUID documentId;
-    private UUID submitterUserId;
-    private UUID reviewerUserId;
-    private UUID batchId;
     private UUID groupId;
-    private UUID assignedByUserId;
-    private UUID leaderUserId;
-    private String sourceId;
-    private String title;
+    private UUID userId;
+    private String memberRole;
     private String status;
-    private OffsetDateTime assignedAt;
-    private OffsetDateTime dueAt;
-    private OffsetDateTime completedAt;
+    private OffsetDateTime joinedAt;
+    private OffsetDateTime removedAt;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 }

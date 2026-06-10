@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -52,13 +53,13 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public PaperStructuredParseEntity generate(UUID ownerUserId, String sourceId) {
         return run(ownerUserId, sourceId);
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public PaperStructuredParseEntity regenerate(UUID ownerUserId, String sourceId) {
         return run(ownerUserId, sourceId);
     }

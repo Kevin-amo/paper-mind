@@ -55,4 +55,26 @@ public interface ReviewReportMapper extends BaseMapper<ReviewReportEntity> {
             """)
     @ResultMap("reviewReportResultMap")
     List<ReviewReportEntity> selectSubmittedByTaskId(@Param("taskId") UUID taskId);
+
+    @Select("""
+            select r.*
+            from public.review_report r
+            join public.review_assignment a on a.id = r.assignment_id
+            where r.task_id = #{taskId}
+              and a.status <> 'CANCELLED'
+            order by r.updated_at desc
+            """)
+    @ResultMap("reviewReportResultMap")
+    List<ReviewReportEntity> selectActiveAssignmentReportsByTaskId(@Param("taskId") UUID taskId);
+
+    @Select("""
+            select r.*
+            from public.review_report r
+            join public.review_assignment a on a.id = r.assignment_id
+            where r.task_id = #{taskId}
+              and a.status = 'SUBMITTED'
+            order by r.updated_at desc
+            """)
+    @ResultMap("reviewReportResultMap")
+    List<ReviewReportEntity> selectSubmittedActiveAssignmentReportsByTaskId(@Param("taskId") UUID taskId);
 }

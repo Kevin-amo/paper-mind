@@ -66,7 +66,7 @@ public class AdminReviewController {
     public ReviewConsensusResponse recalculateConsensus(@AuthenticationPrincipal SecurityUserPrincipal principal,
                                                          @PathVariable UUID taskId) {
         requireAdmin(principal);
-        return adminReviewService.recalculateConsensus(taskId);
+        return adminReviewService.recalculateConsensus(taskId, principal.getId());
     }
 
     @PatchMapping("/tasks/{taskId}/consensus")
@@ -74,7 +74,7 @@ public class AdminReviewController {
                                                     @PathVariable UUID taskId,
                                                     @Valid @RequestBody ReviewConsensusUpdateRequest request) {
         requireAdmin(principal);
-        return adminReviewService.updateConsensus(taskId, request);
+        return adminReviewService.updateConsensus(taskId, principal.getId(), request);
     }
 
     @PostMapping("/tasks/{taskId}/consensus/confirm")

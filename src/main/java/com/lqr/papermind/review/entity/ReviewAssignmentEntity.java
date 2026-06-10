@@ -17,6 +17,8 @@ public class ReviewAssignmentEntity {
 
     private UUID taskId;
     private UUID reviewerUserId;
+    private UUID groupId;
+    private UUID assignedByUserId;
     private String role;
     private String status;
     private OffsetDateTime assignedAt;
