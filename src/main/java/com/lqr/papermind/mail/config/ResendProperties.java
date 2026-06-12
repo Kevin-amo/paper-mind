@@ -12,25 +12,17 @@ import java.time.Duration;
  */
 @ConfigurationProperties(prefix = "app.mail.resend")
 public record ResendProperties(
-        /**
-         * 是否启用 Resend 邮件服务。
-         */
+
+        /* 是否启用 Resend 邮件服务 */
         Boolean enabled,
-        /**
-         * Resend API 密钥。
-         */
+
+        /* Resend API 密钥 */
         String apiKey,
-        /**
-         * 发件人邮箱地址。
-         */
+        /* 发件人邮箱地址 */
         String from,
-        /**
-         * Resend API 端点地址。
-         */
+        /* Resend API 端点地址 */
         String endpoint,
-        /**
-         * HTTP 请求超时时间。
-         */
+        /* HTTP 请求超时时间 */
         Duration timeout
 ) {
     public ResendProperties {

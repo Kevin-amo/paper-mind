@@ -1,6 +1,7 @@
 package com.lqr.papermind.review.service;
 
 import com.lqr.papermind.document.dto.PageResponse;
+import com.lqr.papermind.review.dto.AdminTaskDispatchRequest;
 import com.lqr.papermind.review.dto.AdminReviewTaskDetailResponse;
 import com.lqr.papermind.review.dto.AdminReviewTaskSummaryResponse;
 import com.lqr.papermind.review.dto.ReviewAssignmentRequest;
@@ -30,8 +31,10 @@ public interface AdminReviewService {
      *
      * @param taskId 任务ID
      * @return 评审任务详情
-     */
+    */
     AdminReviewTaskDetailResponse getTask(UUID taskId);
+
+    AdminReviewTaskSummaryResponse dispatchTaskToGroup(UUID taskId, UUID operatorUserId, AdminTaskDispatchRequest request);
 
     /**
      * 分配评审人

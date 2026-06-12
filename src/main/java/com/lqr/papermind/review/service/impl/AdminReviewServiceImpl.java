@@ -3,6 +3,8 @@ package com.lqr.papermind.review.service.impl;
 import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.document.dto.PageResponse;
+import com.lqr.papermind.review.audit.ReviewAuditService;
+import com.lqr.papermind.review.dto.AdminTaskDispatchRequest;
 import com.lqr.papermind.review.dto.AdminReviewTaskDetailResponse;
 import com.lqr.papermind.review.dto.AdminReviewTaskSummaryResponse;
 import com.lqr.papermind.review.dto.ReviewAssignmentRequest;
@@ -12,21 +14,29 @@ import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewerLoadResponse;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
 import com.lqr.papermind.review.entity.ReviewConsensusEntity;
+import com.lqr.papermind.review.entity.ReviewGroupEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
 import com.lqr.papermind.review.mapper.ReviewConsensusMapper;
+import com.lqr.papermind.review.mapper.ReviewGroupMapper;
 import com.lqr.papermind.review.mapper.ReviewTaskMapper;
 import com.lqr.papermind.review.model.ReviewAssignmentRoles;
 import com.lqr.papermind.review.model.ReviewAssignmentStatuses;
+import com.lqr.papermind.review.model.ReviewTaskStatuses;
 import com.lqr.papermind.review.service.AdminReviewService;
 import com.lqr.papermind.review.service.ReviewAssignmentService;
 import com.lqr.papermind.review.service.ReviewConsensusService;
 import com.lqr.papermind.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -39,10 +49,12 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     private final ReviewTaskMapper taskMapper;
     private final ReviewAssignmentMapper assignmentMapper;
     private final ReviewConsensusMapper consensusMapper;
+    private final ReviewGroupMapper groupMapper;
     private final ReviewService reviewService;
     private final ReviewAssignmentService assignmentService;
     private final ReviewConsensusService consensusService;
     private final SysUserMapper userMapper;
+    private final ReviewAuditService reviewAuditService;
 
     /**
      * 分页查询评审任务列表
@@ -84,6 +96,39 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 consensus == null ? List.of() : consensus.submittedReports(),
                 consensus
         );
+    }
+
+    @Override
+    @Transactional
+    public AdminReviewTaskSummaryResponse dispatchTaskToGroup(UUID taskId, UUID operatorUserId, AdminTaskDispatchRequest request) {
+        ReviewTaskEntity task = requireTask(taskId);
+        ReviewGroupEntity group = requireActiveGroup(request == null ? null : request.groupId());
+        if (!ReviewTaskStatuses.PENDING_ASSIGNMENT.equals(task.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "只有待分配任务可以派发到小组");
+        }
+        if (assignmentMapper.countActiveByTaskId(taskId) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "评审任务已存在有效分配，不能派发到小组");
+        }
+        OffsetDateTime dueAt = request == null ? null : request.dueAt();
+        Map<String, Object> beforeSnapshot = taskScopeSnapshot(task);
+        taskMapper.dispatchToGroup(taskId, group.getBatchId(), group.getId(), operatorUserId, group.getLeaderUserId(), dueAt);
+        task.setBatchId(group.getBatchId());
+        task.setGroupId(group.getId());
+        task.setAssignedByUserId(operatorUserId);
+        task.setLeaderUserId(group.getLeaderUserId());
+        task.setDueAt(dueAt);
+        task.setAssignedAt(task.getAssignedAt() == null ? OffsetDateTime.now() : task.getAssignedAt());
+        task.setUpdatedAt(OffsetDateTime.now());
+        reviewAuditService.append(
+                taskId,
+                operatorUserId,
+                "DISPATCH_TO_GROUP",
+                "管理员派发评审任务到小组",
+                beforeSnapshot,
+                taskScopeSnapshot(task),
+                Map.of("scope", "admin-dispatch")
+        );
+        return toSummaryResponse(task);
     }
 
     /**
@@ -146,6 +191,39 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         return consensusService.confirm(taskId, operatorUserId);
     }
 
+    private ReviewTaskEntity requireTask(UUID taskId) {
+        ReviewTaskEntity task = taskMapper.selectByIdIncludingDeleted(taskId);
+        if (task == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审任务不存在");
+        }
+        return task;
+    }
+
+    private ReviewGroupEntity requireActiveGroup(UUID groupId) {
+        if (groupId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请选择评审小组");
+        }
+        ReviewGroupEntity group = groupMapper.selectById(groupId);
+        if (group == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审小组不存在");
+        }
+        if (!"ACTIVE".equals(group.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "评审小组不可用");
+        }
+        return group;
+    }
+
+    private Map<String, Object> taskScopeSnapshot(ReviewTaskEntity task) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("taskStatus", task.getStatus());
+        snapshot.put("batchId", task.getBatchId());
+        snapshot.put("groupId", task.getGroupId());
+        snapshot.put("assignedByUserId", task.getAssignedByUserId());
+        snapshot.put("leaderUserId", task.getLeaderUserId());
+        snapshot.put("dueAt", task.getDueAt());
+        return snapshot;
+    }
+
     /**
      * 将评审任务实体转换为管理员评审任务摘要响应对象
      *
@@ -167,6 +245,9 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         }
         SysUser leadReviewer = leadReviewerUserId == null ? null : userMapper.selectById(leadReviewerUserId);
         OffsetDateTime dueAt = assignmentMapper.maxDueAtByTaskId(task.getId());
+        if (dueAt == null) {
+            dueAt = task.getDueAt();
+        }
         return new AdminReviewTaskSummaryResponse(
                 task.getId(),
                 task.getDocumentId(),

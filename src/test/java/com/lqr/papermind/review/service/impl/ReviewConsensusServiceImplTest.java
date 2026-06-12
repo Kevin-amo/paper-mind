@@ -408,6 +408,24 @@ class ReviewConsensusServiceImplTest {
     }
 
     @Test
+    void listReportsForLeaderAllowsLegacyLeadAssignmentWithoutTaskGroupSnapshot() {
+        UUID taskId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID leaderUserId = UUID.randomUUID();
+        UUID reviewerId = UUID.randomUUID();
+        ReviewReportEntity report = report(taskId, reviewerId, 86, "legacy ok");
+        when(taskMapper.selectById(taskId)).thenReturn(task(taskId, null, null));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, leaderUserId, "ACTIVE"));
+        when(assignmentMapper.selectLeadByTaskId(taskId)).thenReturn(assignment(taskId, leaderUserId));
+        when(reportMapper.selectActiveAssignmentReportsByTaskId(taskId)).thenReturn(List.of(report));
+
+        var reports = service.listReportsForLeader(leaderUserId, groupId, taskId);
+
+        assertThat(reports).hasSize(1);
+        verify(reportMapper).selectActiveAssignmentReportsByTaskId(taskId);
+    }
+
+    @Test
     void recalculateForLeaderShouldRejectDisabledGroup() {
         UUID taskId = UUID.randomUUID();
         UUID groupId = UUID.randomUUID();

@@ -8,9 +8,10 @@ import ReviewAssignmentDrawer from '../../components/admin/review/ReviewAssignme
 import ReviewBatchGroupPanel from '../../components/admin/review/ReviewBatchGroupPanel.vue';
 import ReviewConsensusDrawer from '../../components/admin/review/ReviewConsensusDrawer.vue';
 import ReviewCriteriaPanel from '../../components/admin/review/ReviewCriteriaPanel.vue';
+import ReviewDispatchDrawer from '../../components/admin/review/ReviewDispatchDrawer.vue';
 import ReviewTaskDetailDrawer from '../../components/admin/review/ReviewTaskDetailDrawer.vue';
 import { useAdminReviews } from '../../composables/useAdminReviews';
-import type { AdminReviewTaskSummary, AssignReviewersPayload, UpdateReviewConsensusPayload } from '../../types';
+import type { AdminReviewTaskSummary, AssignReviewersPayload, DispatchReviewTaskPayload, UpdateReviewConsensusPayload } from '../../types';
 
 const adminReviews = useAdminReviews();
 const route = useRoute();
@@ -20,6 +21,7 @@ type ReviewAdminTab = (typeof validTabs)[number];
 
 const activeTab = ref<ReviewAdminTab>(normalizeTab(route.query.tab));
 const detailVisible = ref(false);
+const dispatchVisible = ref(false);
 const assignmentVisible = ref(false);
 const consensusVisible = ref(false);
 
@@ -55,8 +57,13 @@ async function openTask(task: AdminReviewTaskSummary) {
   detailVisible.value = Boolean(detail);
 }
 
+async function openDispatch(task: AdminReviewTaskSummary) {
+  const [detail] = await Promise.all([adminReviews.openTask(task.id), adminReviews.loadGroups()]);
+  dispatchVisible.value = Boolean(detail);
+}
+
 async function openAssignment(task: AdminReviewTaskSummary) {
-  const [detail] = await Promise.all([adminReviews.openTask(task.id), adminReviews.loadReviewerLoads()]);
+  const [detail] = await Promise.all([adminReviews.openTask(task.id), adminReviews.loadReviewerLoads(), adminReviews.loadGroups()]);
   assignmentVisible.value = Boolean(detail);
 }
 
@@ -68,6 +75,11 @@ async function openConsensus(task: AdminReviewTaskSummary) {
 async function saveAssignments(taskId: string, payload: AssignReviewersPayload) {
   await adminReviews.saveAssignments(taskId, payload);
   assignmentVisible.value = false;
+}
+
+async function saveDispatch(taskId: string, payload: DispatchReviewTaskPayload) {
+  await adminReviews.dispatchTask(taskId, payload);
+  dispatchVisible.value = false;
 }
 
 async function saveConsensus(taskId: string, payload: UpdateReviewConsensusPayload) {
@@ -88,7 +100,7 @@ function handlePageChange(nextPage: number) {
 }
 
 onMounted(async () => {
-  await Promise.all([adminReviews.loadTasks(0), adminReviews.loadReviewerLoads()]);
+  await Promise.all([adminReviews.loadTasks(0), adminReviews.loadReviewerLoads(), adminReviews.loadGroups()]);
 });
 </script>
 
@@ -170,6 +182,7 @@ onMounted(async () => {
             :tasks="adminReviews.tasks.value"
             :loading="adminReviews.loading.value"
             @open="openTask"
+            @dispatch="openDispatch"
             @assign="openAssignment"
             @consensus="openConsensus"
           />
@@ -202,7 +215,14 @@ onMounted(async () => {
       v-model="assignmentVisible"
       :task="adminReviews.selectedTask.value"
       :reviewer-loads="adminReviews.reviewerLoads.value"
+      :groups="adminReviews.reviewGroups.value"
       @submit="saveAssignments"
+    />
+    <ReviewDispatchDrawer
+      v-model="dispatchVisible"
+      :task="adminReviews.selectedTask.value"
+      :groups="adminReviews.reviewGroups.value"
+      @submit="saveDispatch"
     />
     <ReviewTaskDetailDrawer
       v-model="detailVisible"

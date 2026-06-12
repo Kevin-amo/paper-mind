@@ -1,11 +1,15 @@
 package com.lqr.papermind.review.service.impl;
 
 import com.lqr.papermind.auth.entity.SysUser;
+import com.lqr.papermind.review.audit.ReviewAuditService;
+import com.lqr.papermind.review.dto.AdminTaskDispatchRequest;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
 import com.lqr.papermind.review.entity.ReviewConsensusEntity;
+import com.lqr.papermind.review.entity.ReviewGroupEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
 import com.lqr.papermind.review.mapper.ReviewConsensusMapper;
+import com.lqr.papermind.review.mapper.ReviewGroupMapper;
 import com.lqr.papermind.review.mapper.ReviewTaskMapper;
 import com.lqr.papermind.review.model.ReviewAssignmentRoles;
 import com.lqr.papermind.review.model.ReviewAssignmentStatuses;
@@ -20,9 +24,13 @@ import org.junit.jupiter.api.Test;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -33,10 +41,12 @@ class AdminReviewServiceImplTest {
     private ReviewTaskMapper taskMapper;
     private ReviewAssignmentMapper assignmentMapper;
     private ReviewConsensusMapper consensusMapper;
+    private ReviewGroupMapper groupMapper;
     private ReviewService reviewService;
     private ReviewAssignmentService assignmentService;
     private ReviewConsensusService consensusService;
     private SysUserMapper userMapper;
+    private ReviewAuditService reviewAuditService;
     private AdminReviewServiceImpl service;
 
     @BeforeEach
@@ -44,19 +54,74 @@ class AdminReviewServiceImplTest {
         taskMapper = mock(ReviewTaskMapper.class);
         assignmentMapper = mock(ReviewAssignmentMapper.class);
         consensusMapper = mock(ReviewConsensusMapper.class);
+        groupMapper = mock(ReviewGroupMapper.class);
         reviewService = mock(ReviewService.class);
         assignmentService = mock(ReviewAssignmentService.class);
         consensusService = mock(ReviewConsensusService.class);
         userMapper = mock(SysUserMapper.class);
+        reviewAuditService = mock(ReviewAuditService.class);
         service = new AdminReviewServiceImpl(
                 taskMapper,
                 assignmentMapper,
                 consensusMapper,
+                groupMapper,
                 reviewService,
                 assignmentService,
                 consensusService,
-                userMapper
+                userMapper,
+                reviewAuditService
         );
+    }
+
+    @Test
+    void dispatchTaskToGroupKeepsPendingAssignmentAndAssignsVisibleLeaderScope() {
+        UUID adminId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID batchId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID leaderId = UUID.randomUUID();
+        OffsetDateTime dueAt = OffsetDateTime.now().plusDays(4);
+        ReviewTaskEntity task = task(taskId, ReviewTaskStatuses.PENDING_ASSIGNMENT);
+        ReviewGroupEntity group = group(groupId, batchId, leaderId, "ACTIVE");
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task);
+        when(groupMapper.selectById(groupId)).thenReturn(group);
+        when(assignmentMapper.countActiveByTaskId(taskId)).thenReturn(0L);
+        when(userMapper.selectById(leaderId)).thenReturn(user(leaderId, "leader-a", "Leader A"));
+
+        var response = service.dispatchTaskToGroup(taskId, adminId, new AdminTaskDispatchRequest(groupId, dueAt));
+
+        verify(taskMapper).dispatchToGroup(taskId, batchId, groupId, adminId, leaderId, dueAt);
+        verify(reviewAuditService).append(
+                eq(taskId),
+                eq(adminId),
+                eq("DISPATCH_TO_GROUP"),
+                eq("管理员派发评审任务到小组"),
+                any(Map.class),
+                any(Map.class),
+                eq(Map.of("scope", "admin-dispatch"))
+        );
+        assertThat(response.id()).isEqualTo(taskId);
+        assertThat(response.status()).isEqualTo(ReviewTaskStatuses.PENDING_ASSIGNMENT);
+        assertThat(response.assignmentCount()).isZero();
+        assertThat(response.leadReviewerUserId()).isEqualTo(leaderId);
+        assertThat(response.leadReviewerUsername()).isEqualTo("leader-a");
+        assertThat(response.dueAt()).isEqualTo(dueAt);
+    }
+
+    @Test
+    void dispatchTaskToGroupRejectsTaskWithActiveAssignments() {
+        UUID taskId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        ReviewTaskEntity task = task(taskId, ReviewTaskStatuses.PENDING_ASSIGNMENT);
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task);
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), UUID.randomUUID(), "ACTIVE"));
+        when(assignmentMapper.countActiveByTaskId(taskId)).thenReturn(1L);
+
+        assertThatThrownBy(() -> service.dispatchTaskToGroup(taskId, UUID.randomUUID(), new AdminTaskDispatchRequest(groupId, null)))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+
+        verify(taskMapper, never()).dispatchToGroup(any(), any(), any(), any(), any(), any());
+        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -148,6 +213,15 @@ class AdminReviewServiceImplTest {
         consensus.setTaskId(taskId);
         consensus.setStatus(status);
         return consensus;
+    }
+
+    private ReviewGroupEntity group(UUID groupId, UUID batchId, UUID leaderId, String status) {
+        ReviewGroupEntity group = new ReviewGroupEntity();
+        group.setId(groupId);
+        group.setBatchId(batchId);
+        group.setLeaderUserId(leaderId);
+        group.setStatus(status);
+        return group;
     }
 
     private SysUser user(UUID userId, String username, String displayName) {

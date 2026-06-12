@@ -350,7 +350,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
         if (task == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审任务不存在");
         }
-        if (task.getGroupId() == null || !task.getGroupId().equals(groupId)) {
+        if (!isTaskInGroupOrLegacyLead(task, groupId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能处理本组评审任务");
         }
         ReviewGroupEntity group = groupMapper.selectById(groupId);
@@ -372,6 +372,18 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      * @param taskId 评审任务ID
      * @return 主评审人用户ID，若不存在则返回null
      */
+    private boolean isTaskInGroupOrLegacyLead(ReviewTaskEntity task, UUID groupId) {
+        if (task.getGroupId() != null) {
+            return task.getGroupId().equals(groupId);
+        }
+        ReviewGroupEntity group = groupMapper.selectById(groupId);
+        ReviewAssignmentEntity legacyLead = assignmentMapper.selectLeadByTaskId(task.getId());
+        return group != null
+                && legacyLead != null
+                && group.getLeaderUserId() != null
+                && group.getLeaderUserId().equals(legacyLead.getReviewerUserId());
+    }
+
     private UUID resolveConsensusLeadUserId(UUID taskId) {
         ReviewTaskEntity task = taskMapper.selectById(taskId);
         if (task != null && task.getLeaderUserId() != null) {

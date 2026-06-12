@@ -182,7 +182,7 @@ class ReviewGroupServiceImplTest {
         ReviewTaskEntity task = task(taskId, groupId, leaderId);
         task.setStatus("SUBMITTED");
         when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), leaderId, "ACTIVE"));
-        when(taskMapper.selectByGroupId(groupId)).thenReturn(List.of(task));
+        when(taskMapper.selectVisibleByGroupId(groupId)).thenReturn(List.of(task));
         when(assignmentMapper.selectByTaskId(taskId)).thenReturn(List.of());
 
         var tasks = service.listGroupTasksForLeader(leaderId, groupId);
@@ -190,7 +190,7 @@ class ReviewGroupServiceImplTest {
         assertThat(tasks).hasSize(1);
         assertThat(tasks.getFirst().id()).isEqualTo(taskId);
         assertThat(tasks.getFirst().status()).isEqualTo("SUBMITTED");
-        verify(taskMapper).selectByGroupId(groupId);
+        verify(taskMapper).selectVisibleByGroupId(groupId);
     }
 
     @Test

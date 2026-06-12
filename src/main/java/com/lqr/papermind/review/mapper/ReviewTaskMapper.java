@@ -124,6 +124,52 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
                              @Param("dueAt") OffsetDateTime dueAt);
 
     /**
+     * 管理员将待分配任务派发给评审小组，由组长继续做组内分配。
+     */
+    @Update("""
+            update public.review_task
+            set status = 'PENDING_ASSIGNMENT',
+                batch_id = #{batchId},
+                group_id = #{groupId},
+                assigned_by_user_id = #{assignedByUserId},
+                leader_user_id = #{leaderUserId},
+                assigned_at = coalesce(assigned_at, now()),
+                due_at = #{dueAt},
+                updated_at = now()
+            where id = #{id}
+            """)
+    int dispatchToGroup(@Param("id") UUID id,
+                        @Param("batchId") UUID batchId,
+                        @Param("groupId") UUID groupId,
+                        @Param("assignedByUserId") UUID assignedByUserId,
+                        @Param("leaderUserId") UUID leaderUserId,
+                        @Param("dueAt") OffsetDateTime dueAt);
+
+    /**
+     * 管理员兜底直接分配评审员，并同步任务所属小组与组长可见性字段。
+     */
+    @Update("""
+            update public.review_task
+            set status = 'ASSIGNED',
+                batch_id = #{batchId},
+                group_id = #{groupId},
+                reviewer_user_id = #{reviewerUserId},
+                assigned_by_user_id = #{assignedByUserId},
+                leader_user_id = #{leaderUserId},
+                assigned_at = coalesce(assigned_at, now()),
+                due_at = #{dueAt},
+                updated_at = now()
+            where id = #{id}
+            """)
+    int markAssignedByAdminOverride(@Param("id") UUID id,
+                                    @Param("batchId") UUID batchId,
+                                    @Param("groupId") UUID groupId,
+                                    @Param("assignedByUserId") UUID assignedByUserId,
+                                    @Param("leaderUserId") UUID leaderUserId,
+                                    @Param("reviewerUserId") UUID reviewerUserId,
+                                    @Param("dueAt") OffsetDateTime dueAt);
+
+    /**
      * 管理员查询评审任务列表，支持按关键词和状态过滤
      *
      * @param keyword 关键词，匹配source_id和title
@@ -212,6 +258,30 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
             order by t.updated_at desc, t.created_at desc
             """)
     List<ReviewTaskEntity> selectByGroupId(@Param("groupId") UUID groupId);
+
+    /**
+     * 查询评审组长可见的任务，包括历史上仅写入 LEAD assignment、未回填 task.group_id 的兜底任务。
+     */
+    @Select("""
+            select t.*
+            from public.review_task t
+            where t.group_id = #{groupId}
+               or (
+                  t.group_id is null
+                  and exists (
+                      select 1
+                      from public.review_assignment a
+                      join public.review_group g on g.id = #{groupId}
+                      where a.task_id = t.id
+                        and a.role = 'LEAD'
+                        and a.status <> 'CANCELLED'
+                        and g.status = 'ACTIVE'
+                        and g.leader_user_id = a.reviewer_user_id
+                  )
+               )
+            order by t.updated_at desc, t.created_at desc
+            """)
+    List<ReviewTaskEntity> selectVisibleByGroupId(@Param("groupId") UUID groupId);
 
     /**
      * 查询评审组下未分配的评审任务（状态为待分配或待处理，且无有效分配记录）

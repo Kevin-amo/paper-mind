@@ -78,7 +78,9 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
         if (!new HashSet<>(reviewerIds).contains(leadReviewerUserId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "组长必须在评审人列表中");
         }
+        ReviewGroupEntity group = requireAdminOverrideGroup(task, request == null ? null : request.groupId());
         for (UUID reviewerId : reviewerIds) {
+            requireActiveGroupReviewer(group.getId(), reviewerId);
             if (assignmentMapper.selectActiveByTaskAndReviewer(taskId, reviewerId) != null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "评审任务已分配给该评审人");
             }
@@ -86,17 +88,17 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
 
         OffsetDateTime now = OffsetDateTime.now();
         List<ReviewAssignmentEntity> assignments = reviewerIds.stream()
-                .map(reviewerId -> newAssignment(taskId, task.getGroupId(), operatorUserId, reviewerId, leadReviewerUserId, request.dueAt(), now))
+                .map(reviewerId -> newAssignment(taskId, group.getId(), operatorUserId, reviewerId, leadReviewerUserId, request.dueAt(), now))
                 .toList();
         assignments.forEach(assignmentMapper::insert);
-        taskMapper.updateTaskStatus(taskId, ReviewTaskStatuses.ASSIGNED);
+        taskMapper.markAssignedByAdminOverride(taskId, group.getBatchId(), group.getId(), operatorUserId, group.getLeaderUserId(), reviewerIds.getFirst(), request.dueAt());
         reviewAuditService.append(
                 taskId,
                 operatorUserId,
                 "ASSIGN_BY_ADMIN_OVERRIDE",
                 "管理员兜底分配评审任务",
                 assignmentBeforeSnapshot(task),
-                assignmentAfterSnapshot(task, task.getGroupId(), operatorUserId, leadReviewerUserId, reviewerIds, assignments, request.dueAt()),
+                assignmentAfterSnapshot(task, group.getId(), operatorUserId, group.getLeaderUserId(), reviewerIds, assignments, request.dueAt()),
                 Map.of("scope", "admin-override")
         );
         return assignments.stream()
@@ -264,6 +266,24 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
      * @param groupId    评审小组ID
      * @param reviewerId 评审员用户ID
      */
+    private ReviewGroupEntity requireAdminOverrideGroup(ReviewTaskEntity task, UUID requestedGroupId) {
+        UUID effectiveGroupId = task.getGroupId() == null ? requestedGroupId : task.getGroupId();
+        if (effectiveGroupId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请选择评审小组");
+        }
+        if (task.getGroupId() != null && requestedGroupId != null && !task.getGroupId().equals(requestedGroupId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "只能在任务所属小组内进行兜底分配");
+        }
+        ReviewGroupEntity group = groupMapper.selectById(effectiveGroupId);
+        if (group == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审小组不存在");
+        }
+        if (!STATUS_ACTIVE.equals(group.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "评审小组不可用");
+        }
+        return group;
+    }
+
     private void requireActiveGroupReviewer(UUID groupId, UUID reviewerId) {
         ReviewGroupMemberEntity member = memberMapper.selectActiveByGroupAndUser(groupId, reviewerId);
         if (member == null || !MEMBER_ROLE_REVIEWER.equals(member.getMemberRole())) {

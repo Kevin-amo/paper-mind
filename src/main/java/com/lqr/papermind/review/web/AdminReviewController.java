@@ -3,6 +3,7 @@ package com.lqr.papermind.review.web;
 import com.lqr.papermind.auth.security.RoleCodes;
 import com.lqr.papermind.auth.security.SecurityUserPrincipal;
 import com.lqr.papermind.document.dto.PageResponse;
+import com.lqr.papermind.review.dto.AdminTaskDispatchRequest;
 import com.lqr.papermind.review.dto.AdminReviewTaskDetailResponse;
 import com.lqr.papermind.review.dto.AdminReviewTaskSummaryResponse;
 import com.lqr.papermind.review.dto.ReviewAssignmentRequest;
@@ -73,6 +74,14 @@ public class AdminReviewController {
                                                  @PathVariable UUID taskId) {
         requireAdmin(principal);
         return adminReviewService.getTask(taskId);
+    }
+
+    @PostMapping("/tasks/{taskId}/dispatch")
+    public AdminReviewTaskSummaryResponse dispatchTaskToGroup(@AuthenticationPrincipal SecurityUserPrincipal principal,
+                                                              @PathVariable UUID taskId,
+                                                              @Valid @RequestBody AdminTaskDispatchRequest request) {
+        requireAdmin(principal);
+        return adminReviewService.dispatchTaskToGroup(taskId, principal.getId(), request);
     }
 
     /**

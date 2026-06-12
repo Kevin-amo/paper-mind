@@ -4,6 +4,7 @@ import type {
   AdminReviewTaskDetail,
   AdminReviewTaskSummary,
   AssignReviewersPayload,
+  DispatchReviewTaskPayload,
   PageResponse,
   ReviewAssignment,
   ReviewBatch,
@@ -88,6 +89,11 @@ export async function getAdminReviewTask(taskId: string) {
 
 export async function assignReviewers(taskId: string, payload: AssignReviewersPayload) {
   const { data } = await http.post<ReviewAssignment[]>(`/admin/reviews/tasks/${taskId}/assignments`, payload);
+  return data;
+}
+
+export async function dispatchReviewTask(taskId: string, payload: DispatchReviewTaskPayload) {
+  const { data } = await http.post<AdminReviewTaskSummary>(`/admin/reviews/tasks/${taskId}/dispatch`, payload);
   return data;
 }
 

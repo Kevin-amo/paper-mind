@@ -47,8 +47,21 @@ public interface ReviewGroupMapper extends BaseMapper<ReviewGroupEntity> {
      */
     @Select("""
             select count(*)
-            from public.review_task
-            where group_id = #{groupId}
+            from public.review_task t
+            where t.group_id = #{groupId}
+               or (
+                  t.group_id is null
+                  and exists (
+                      select 1
+                      from public.review_assignment a
+                      join public.review_group g on g.id = #{groupId}
+                      where a.task_id = t.id
+                        and a.role = 'LEAD'
+                        and a.status <> 'CANCELLED'
+                        and g.status = 'ACTIVE'
+                        and g.leader_user_id = a.reviewer_user_id
+                  )
+               )
             """)
     long countTasksByGroupId(@Param("groupId") UUID groupId);
 }

@@ -2,7 +2,7 @@
 import { MoreFilled } from '@element-plus/icons-vue';
 import type { AdminReviewTaskSummary } from '../../../types';
 
-type TaskActionCommand = 'assign' | 'consensus';
+type TaskActionCommand = 'dispatch' | 'assign' | 'consensus';
 
 defineProps<{
   tasks: AdminReviewTaskSummary[];
@@ -11,6 +11,7 @@ defineProps<{
 
 const emit = defineEmits<{
   open: [task: AdminReviewTaskSummary];
+  dispatch: [task: AdminReviewTaskSummary];
   assign: [task: AdminReviewTaskSummary];
   consensus: [task: AdminReviewTaskSummary];
 }>();
@@ -38,11 +39,23 @@ function reviewerName(task: AdminReviewTaskSummary) {
 }
 
 function handleTaskAction(command: TaskActionCommand, task: AdminReviewTaskSummary) {
+  if (command === 'dispatch') {
+    emit('dispatch', task);
+    return;
+  }
   if (command === 'assign') {
     emit('assign', task);
     return;
   }
   emit('consensus', task);
+}
+
+function canDispatch(task: AdminReviewTaskSummary) {
+  return task.status === 'PENDING_ASSIGNMENT' && task.assignmentCount === 0;
+}
+
+function canOverride(task: AdminReviewTaskSummary) {
+  return !['SUBMITTED', 'CONSENSUS_CONFIRMED'].includes(task.status) && task.assignmentCount === 0;
 }
 </script>
 
@@ -90,7 +103,8 @@ function handleTaskAction(command: TaskActionCommand, task: AdminReviewTaskSumma
             </button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="assign">兜底处理</el-dropdown-item>
+                <el-dropdown-item command="dispatch" :disabled="!canDispatch(row)">派发小组</el-dropdown-item>
+                <el-dropdown-item command="assign" :disabled="!canOverride(row)">兜底处理</el-dropdown-item>
                 <el-dropdown-item command="consensus">综评</el-dropdown-item>
               </el-dropdown-menu>
             </template>

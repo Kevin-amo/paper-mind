@@ -288,7 +288,7 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
     @Override
     public List<AdminReviewTaskSummaryResponse> listGroupTasksForLeader(UUID currentUserId, UUID groupId) {
         requireManagedGroup(currentUserId, groupId);
-        return taskMapper.selectByGroupId(groupId).stream()
+        return taskMapper.selectVisibleByGroupId(groupId).stream()
                 .map(this::toTaskSummaryResponse)
                 .toList();
     }
@@ -498,11 +498,16 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
                 leadReviewerUserId,
                 leadReviewer == null ? null : leadReviewer.getUsername(),
                 leadReviewer == null ? null : leadReviewer.getDisplayName(),
-                assignmentMapper.maxDueAtByTaskId(task.getId()),
+                dueAtForTask(task),
                 consensus == null ? null : consensus.getStatus(),
                 task.getCreatedAt(),
                 task.getUpdatedAt()
         );
+    }
+
+    private OffsetDateTime dueAtForTask(ReviewTaskEntity task) {
+        OffsetDateTime dueAt = assignmentMapper.maxDueAtByTaskId(task.getId());
+        return dueAt == null ? task.getDueAt() : dueAt;
     }
 
     /**

@@ -3,8 +3,10 @@ import { ElMessage } from 'element-plus';
 import {
   assignReviewers,
   confirmConsensus,
+  dispatchReviewTask,
   getAdminReviewTask,
   listAdminReviewTasks,
+  listReviewGroups,
   listReviewerLoads,
   recalculateConsensus,
   updateConsensus,
@@ -14,6 +16,8 @@ import type {
   AdminReviewTaskDetail,
   AdminReviewTaskSummary,
   AssignReviewersPayload,
+  DispatchReviewTaskPayload,
+  ReviewGroup,
   ReviewerLoad,
   UpdateReviewConsensusPayload,
 } from '../types';
@@ -28,6 +32,7 @@ export function useAdminReviews() {
   const status = ref('');
   const selectedTask = ref<AdminReviewTaskDetail | null>(null);
   const reviewerLoads = ref<ReviewerLoad[]>([]);
+  const reviewGroups = ref<ReviewGroup[]>([]);
 
   async function loadTasks(nextPage = page.value) {
     loading.value = true;
@@ -67,6 +72,28 @@ export function useAdminReviews() {
       reviewerLoads.value = await listReviewerLoads();
     } catch (error) {
       ElMessage.error(getErrorMessage(error));
+    }
+  }
+
+  async function loadGroups() {
+    try {
+      reviewGroups.value = await listReviewGroups();
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error));
+    }
+  }
+
+  async function dispatchTask(taskId: string, payload: DispatchReviewTaskPayload) {
+    loading.value = true;
+    try {
+      await dispatchReviewTask(taskId, payload);
+      ElMessage.success('评审任务已派发到小组');
+      await Promise.all([loadTasks(page.value), openTask(taskId), loadGroups()]);
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error));
+      throw error;
+    } finally {
+      loading.value = false;
     }
   }
 
@@ -148,9 +175,12 @@ export function useAdminReviews() {
     status,
     selectedTask,
     reviewerLoads,
+    reviewGroups,
     loadTasks,
     openTask,
     loadReviewerLoads,
+    loadGroups,
+    dispatchTask,
     saveAssignments,
     recalc,
     saveConsensus,

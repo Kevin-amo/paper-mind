@@ -68,7 +68,7 @@ class ReviewAssignmentServiceImplTest {
         UUID leadId = UUID.randomUUID();
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId));
 
-        ReviewAssignmentRequest request = new ReviewAssignmentRequest(List.of(reviewerId), leadId, null);
+        ReviewAssignmentRequest request = new ReviewAssignmentRequest(List.of(reviewerId), leadId, UUID.randomUUID(), null);
 
         assertThatThrownBy(() -> service.assignReviewers(taskId, UUID.randomUUID(), request))
                 .isInstanceOf(ResponseStatusException.class)
@@ -82,7 +82,7 @@ class ReviewAssignmentServiceImplTest {
         UUID reviewerId = UUID.randomUUID();
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId));
 
-        ReviewAssignmentRequest request = new ReviewAssignmentRequest(List.of(reviewerId, reviewerId), reviewerId, null);
+        ReviewAssignmentRequest request = new ReviewAssignmentRequest(List.of(reviewerId, reviewerId), reviewerId, UUID.randomUUID(), null);
 
         assertThatThrownBy(() -> service.assignReviewers(taskId, UUID.randomUUID(), request))
                 .isInstanceOf(ResponseStatusException.class)
@@ -96,7 +96,7 @@ class ReviewAssignmentServiceImplTest {
         UUID reviewerId = UUID.randomUUID();
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, ReviewTaskStatuses.SUBMITTED));
 
-        ReviewAssignmentRequest request = new ReviewAssignmentRequest(List.of(reviewerId), reviewerId, null);
+        ReviewAssignmentRequest request = new ReviewAssignmentRequest(List.of(reviewerId), reviewerId, UUID.randomUUID(), null);
 
         assertThatThrownBy(() -> service.assignReviewers(taskId, UUID.randomUUID(), request))
                 .isInstanceOf(ResponseStatusException.class)
@@ -111,7 +111,7 @@ class ReviewAssignmentServiceImplTest {
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId));
         when(assignmentMapper.countActiveByTaskId(taskId)).thenReturn(1L);
 
-        ReviewAssignmentRequest request = new ReviewAssignmentRequest(List.of(reviewerId), reviewerId, null);
+        ReviewAssignmentRequest request = new ReviewAssignmentRequest(List.of(reviewerId), reviewerId, UUID.randomUUID(), null);
 
         assertThatThrownBy(() -> service.assignReviewers(taskId, UUID.randomUUID(), request))
                 .isInstanceOf(ResponseStatusException.class)
@@ -122,14 +122,23 @@ class ReviewAssignmentServiceImplTest {
     @Test
     void assignReviewersCreatesAdminOverrideAssignmentsAndAuditLog() {
         UUID adminId = UUID.randomUUID();
+        UUID batchId = UUID.randomUUID();
         UUID groupId = UUID.randomUUID();
+        UUID groupLeaderId = UUID.randomUUID();
         UUID taskId = UUID.randomUUID();
         UUID reviewerAId = UUID.randomUUID();
         UUID reviewerBId = UUID.randomUUID();
         OffsetDateTime dueAt = OffsetDateTime.now().plusDays(5);
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, groupId, ReviewTaskStatuses.PENDING_ASSIGNMENT));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, batchId, groupLeaderId, "ACTIVE"));
+        when(memberMapper.selectActiveByGroupAndUser(groupId, reviewerAId)).thenReturn(member(groupId, reviewerAId, "REVIEWER"));
+        when(memberMapper.selectActiveByGroupAndUser(groupId, reviewerBId)).thenReturn(member(groupId, reviewerBId, "REVIEWER"));
+        when(userMapper.selectById(reviewerAId)).thenReturn(user(reviewerAId, "reviewer-a", "璇勫鍛楢", "ACTIVE"));
+        when(userMapper.selectById(reviewerBId)).thenReturn(user(reviewerBId, "reviewer-b", "璇勫鍛楤", "ACTIVE"));
+        when(roleMapper.selectRoleCodesByUserId(reviewerAId)).thenReturn(List.of(RoleCodes.REVIEWER));
+        when(roleMapper.selectRoleCodesByUserId(reviewerBId)).thenReturn(List.of(RoleCodes.REVIEWER));
 
-        var assignments = service.assignReviewers(taskId, adminId, new ReviewAssignmentRequest(List.of(reviewerAId, reviewerBId), reviewerBId, dueAt));
+        var assignments = service.assignReviewers(taskId, adminId, new ReviewAssignmentRequest(List.of(reviewerAId, reviewerBId), reviewerBId, groupId, dueAt));
 
         ArgumentCaptor<ReviewAssignmentEntity> assignmentCaptor = ArgumentCaptor.forClass(ReviewAssignmentEntity.class);
         verify(assignmentMapper, times(2)).insert(assignmentCaptor.capture());
@@ -139,7 +148,7 @@ class ReviewAssignmentServiceImplTest {
         assertThat(assignmentCaptor.getAllValues()).extracting(ReviewAssignmentEntity::getReviewerUserId).containsExactly(reviewerAId, reviewerBId);
         assertThat(assignmentCaptor.getAllValues()).extracting(ReviewAssignmentEntity::getRole).containsExactly(ReviewAssignmentRoles.REVIEWER, ReviewAssignmentRoles.LEAD);
         assertThat(assignments).hasSize(2);
-        verify(taskMapper).updateTaskStatus(taskId, ReviewTaskStatuses.ASSIGNED);
+        verify(taskMapper).markAssignedByAdminOverride(taskId, batchId, groupId, adminId, groupLeaderId, reviewerAId, dueAt);
         ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
         ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
         ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
@@ -149,13 +158,30 @@ class ReviewAssignmentServiceImplTest {
                 .containsEntry("taskStatus", ReviewTaskStatuses.ASSIGNED)
                 .containsEntry("groupId", groupId)
                 .containsEntry("assignedByUserId", adminId)
-                .containsEntry("leaderUserId", reviewerBId)
+                .containsEntry("leaderUserId", groupLeaderId)
                 .containsEntry("reviewerUserId", reviewerAId)
                 .containsEntry("reviewerUserIds", List.of(reviewerAId, reviewerBId))
                 .containsEntry("dueAt", dueAt)
                 .containsEntry("previousTaskStatus", ReviewTaskStatuses.PENDING_ASSIGNMENT);
         assertThat((List<?>) afterSnapshotCaptor.getValue().get("assignmentIds")).hasSize(2);
         assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "admin-override");
+    }
+
+    @Test
+    void assignReviewersRejectsReviewerOutsideOverrideGroup() {
+        UUID taskId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID groupLeaderId = UUID.randomUUID();
+        UUID reviewerId = UUID.randomUUID();
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, null, ReviewTaskStatuses.PENDING_ASSIGNMENT));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), groupLeaderId, "ACTIVE"));
+
+        assertThatThrownBy(() -> service.assignReviewers(taskId, UUID.randomUUID(), new ReviewAssignmentRequest(List.of(reviewerId), reviewerId, groupId, null)))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("只能分配给本组有效评审员");
+
+        verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
+        verify(taskMapper, never()).markAssignedByAdminOverride(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -461,8 +487,13 @@ class ReviewAssignmentServiceImplTest {
     }
 
     private ReviewGroupEntity group(UUID groupId, UUID leaderId, String status) {
+        return group(groupId, UUID.randomUUID(), leaderId, status);
+    }
+
+    private ReviewGroupEntity group(UUID groupId, UUID batchId, UUID leaderId, String status) {
         ReviewGroupEntity group = new ReviewGroupEntity();
         group.setId(groupId);
+        group.setBatchId(batchId);
         group.setLeaderUserId(leaderId);
         group.setStatus(status);
         return group;
