@@ -1,25 +1,19 @@
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import {
-  assignReviewers,
-  confirmConsensus,
   dispatchReviewTask,
   getAdminReviewTask,
   listAdminReviewTasks,
   listReviewGroups,
   listReviewerLoads,
-  recalculateConsensus,
-  updateConsensus,
 } from '../api/adminReviews';
 import { getErrorMessage } from '../api/http';
 import type {
   AdminReviewTaskDetail,
   AdminReviewTaskSummary,
-  AssignReviewersPayload,
   DispatchReviewTaskPayload,
   ReviewGroup,
   ReviewerLoad,
-  UpdateReviewConsensusPayload,
 } from '../types';
 
 export function useAdminReviews() {
@@ -97,74 +91,6 @@ export function useAdminReviews() {
     }
   }
 
-  async function saveAssignments(taskId: string, payload: AssignReviewersPayload) {
-    loading.value = true;
-    try {
-      await assignReviewers(taskId, payload);
-      ElMessage.success('评审人分配已保存');
-      await Promise.all([loadTasks(page.value), openTask(taskId), loadReviewerLoads()]);
-    } catch (error) {
-      ElMessage.error(getErrorMessage(error));
-      throw error;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function recalc(taskId: string) {
-    loading.value = true;
-    try {
-      const consensus = await recalculateConsensus(taskId);
-      if (selectedTask.value?.task.id === taskId) {
-        selectedTask.value = { ...selectedTask.value, consensus };
-      }
-      ElMessage.success('共识结果已重新计算');
-      await loadTasks(page.value);
-      return consensus;
-    } catch (error) {
-      ElMessage.error(getErrorMessage(error));
-      throw error;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function saveConsensus(taskId: string, payload: UpdateReviewConsensusPayload) {
-    loading.value = true;
-    try {
-      const consensus = await updateConsensus(taskId, payload);
-      if (selectedTask.value?.task.id === taskId) {
-        selectedTask.value = { ...selectedTask.value, consensus };
-      }
-      ElMessage.success('最终意见已保存');
-      await loadTasks(page.value);
-      return consensus;
-    } catch (error) {
-      ElMessage.error(getErrorMessage(error));
-      throw error;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function confirm(taskId: string) {
-    loading.value = true;
-    try {
-      const consensus = await confirmConsensus(taskId);
-      if (selectedTask.value?.task.id === taskId) {
-        selectedTask.value = { ...selectedTask.value, consensus };
-      }
-      ElMessage.success('评审共识已确认');
-      await loadTasks(page.value);
-      return consensus;
-    } catch (error) {
-      ElMessage.error(getErrorMessage(error));
-      throw error;
-    } finally {
-      loading.value = false;
-    }
-  }
-
   return {
     loading,
     tasks,
@@ -181,9 +107,5 @@ export function useAdminReviews() {
     loadReviewerLoads,
     loadGroups,
     dispatchTask,
-    saveAssignments,
-    recalc,
-    saveConsensus,
-    confirm,
   };
 }

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  Bell,
   DataAnalysis,
   Files,
   Setting,
@@ -10,7 +9,6 @@ import {
   User,
 } from '@element-plus/icons-vue';
 import { useAuth } from '../../composables/useAuth';
-import { useReviewLeaderAccess } from '../../composables/useReviewLeaderAccess';
 
 type AdminSection = 'users' | 'config' | 'tasks' | 'criteria';
 
@@ -23,7 +21,6 @@ const props = defineProps<{
 const router = useRouter();
 const route = useRoute();
 const auth = useAuth();
-const { canAccessLeaderWorkspace, refreshLeaderWorkspaceAccess } = useReviewLeaderAccess();
 
 const navItems: Array<{
   key: AdminSection;
@@ -51,7 +48,7 @@ const navItems: Array<{
   {
     key: 'tasks',
     title: '全局进度',
-    description: '任务、进度、兜底',
+    description: '任务、进度',
     path: '/admin/reviews',
     query: { tab: 'tasks' },
     icon: Files,
@@ -84,10 +81,6 @@ async function handleLogout() {
   await auth.logout();
   await router.replace('/login');
 }
-
-onMounted(() => {
-  refreshLeaderWorkspaceAccess();
-});
 </script>
 
 <template>
@@ -141,12 +134,8 @@ onMounted(() => {
           <h1>{{ pageTitle }}</h1>
         </div>
         <div class="topbar-right">
-          <el-button circle :icon="Bell" aria-label="通知" />
-          <el-divider direction="vertical" />
-          <el-button v-if="canAccessLeaderWorkspace" size="small" @click="router.push('/review-leader')">组长工作台</el-button>
-          <el-button size="small" @click="router.push('/review')">评审工作台</el-button>
           <el-button v-if="auth.hasRole('USER')" size="small" @click="router.push('/user')">用户端</el-button>
-          <el-divider direction="vertical" />
+          <el-divider v-if="auth.hasRole('USER')" direction="vertical" />
           <el-button :icon="SwitchButton" text @click="handleLogout">退出</el-button>
         </div>
       </header>

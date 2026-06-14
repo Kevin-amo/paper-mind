@@ -192,19 +192,12 @@ export interface ReviewConsensus {
   updatedAt: string;
 }
 
-export interface AssignReviewersPayload {
-  reviewerUserIds: string[];
-  leadReviewerUserId: string;
-  groupId?: string | null;
-  dueAt?: string | null;
-}
-
 export interface DispatchReviewTaskPayload {
   groupId: string;
   dueAt?: string | null;
 }
 
-export interface LeaderAssignReviewersPayload {
+export interface LeaderTaskAssignmentPayload {
   reviewerUserIds: string[];
   dueAt?: string | null;
 }

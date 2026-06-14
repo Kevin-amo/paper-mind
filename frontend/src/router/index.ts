@@ -33,13 +33,13 @@ const router = createRouter({
       path: '/review',
       name: 'review-workspace',
       component: () => import('../views/review/ReviewWorkspaceView.vue'),
-      meta: { roles: ['REVIEWER', 'ADMIN'] },
+      meta: { roles: ['REVIEWER'] },
     },
     {
       path: '/review-leader',
       name: 'review-leader-workspace',
       component: () => import('../views/review-leader/ReviewLeaderWorkspaceView.vue'),
-      meta: { roles: ['REVIEWER', 'ADMIN'] },
+      meta: { roles: ['REVIEWER'] },
     },
     {
       path: '/admin',

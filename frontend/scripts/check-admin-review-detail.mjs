@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 
 const dashboard = readFileSync(new URL('../src/views/admin/AdminReviewDashboardView.vue', import.meta.url), 'utf8');
 const detailDrawer = readFileSync(new URL('../src/components/admin/review/ReviewTaskDetailDrawer.vue', import.meta.url), 'utf8');
-const assignmentDrawer = readFileSync(new URL('../src/components/admin/review/ReviewAssignmentDrawer.vue', import.meta.url), 'utf8');
 
 const missing = [];
 if (!dashboard.includes('ReviewTaskDetailDrawer')) {
@@ -18,8 +17,18 @@ if (detailDrawer.includes('论文信息') || detailDrawer.includes('摘要') || 
   missing.push('Admin review task detail drawer must not render paper info or abstract sections');
 }
 
-if (assignmentDrawer.includes('abstractText')) {
-  missing.push('Admin review assignment drawer must not render paper info or abstract sections');
+const removedDrawerTokens = ['Review' + 'AssignmentDrawer', 'Review' + 'ConsensusDrawer'];
+if (removedDrawerTokens.some((token) => dashboard.includes(token))) {
+  missing.push('Admin review dashboard must not mount admin fallback assignment or consensus drawers');
+}
+
+const removedEventTokens = ['@' + 'assign=', '@' + 'consensus='];
+if (removedEventTokens.some((token) => dashboard.includes(token))) {
+  missing.push('Admin review task table must not wire fallback assignment or consensus events');
+}
+
+if (dashboard.includes('adminReviews.' + 'recalc')) {
+  missing.push('Admin review dashboard must not expose admin consensus recalculation');
 }
 
 if (dashboard.includes('旧状态：')) {

@@ -3,19 +3,15 @@ import { compactParams } from '../utils/params';
 import type {
   AdminReviewTaskDetail,
   AdminReviewTaskSummary,
-  AssignReviewersPayload,
   DispatchReviewTaskPayload,
   PageResponse,
-  ReviewAssignment,
   ReviewBatch,
   ReviewBatchPayload,
-  ReviewConsensus,
   ReviewGroup,
   ReviewGroupMember,
   ReviewGroupMemberUpdatePayload,
   ReviewGroupPayload,
   ReviewerLoad,
-  UpdateReviewConsensusPayload,
 } from '../types';
 
 export async function listReviewBatches(params: { page?: number; size?: number } = {}) {
@@ -87,11 +83,6 @@ export async function getAdminReviewTask(taskId: string) {
   return data;
 }
 
-export async function assignReviewers(taskId: string, payload: AssignReviewersPayload) {
-  const { data } = await http.post<ReviewAssignment[]>(`/admin/reviews/tasks/${taskId}/assignments`, payload);
-  return data;
-}
-
 export async function dispatchReviewTask(taskId: string, payload: DispatchReviewTaskPayload) {
   const { data } = await http.post<AdminReviewTaskSummary>(`/admin/reviews/tasks/${taskId}/dispatch`, payload);
   return data;
@@ -99,20 +90,5 @@ export async function dispatchReviewTask(taskId: string, payload: DispatchReview
 
 export async function listReviewerLoads() {
   const { data } = await http.get<ReviewerLoad[]>('/admin/reviews/reviewer-loads');
-  return data;
-}
-
-export async function recalculateConsensus(taskId: string) {
-  const { data } = await http.post<ReviewConsensus>(`/admin/reviews/tasks/${taskId}/consensus/recalculate`);
-  return data;
-}
-
-export async function updateConsensus(taskId: string, payload: UpdateReviewConsensusPayload) {
-  const { data } = await http.patch<ReviewConsensus>(`/admin/reviews/tasks/${taskId}/consensus`, payload);
-  return data;
-}
-
-export async function confirmConsensus(taskId: string) {
-  const { data } = await http.post<ReviewConsensus>(`/admin/reviews/tasks/${taskId}/consensus/confirm`);
   return data;
 }

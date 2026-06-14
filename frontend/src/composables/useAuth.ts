@@ -17,7 +17,7 @@ import { authState, clearAuthSession, getAccessToken, setAuthSession, updateCurr
 export function useAuth() {
   const isAuthenticated = computed(() => Boolean(authState.accessToken));
   const isAdmin = computed(() => hasRole('ADMIN'));
-  const isReviewer = computed(() => hasRole('REVIEWER') || hasRole('ADMIN'));
+  const isReviewer = computed(() => hasRole('REVIEWER'));
 
   async function login(username: string, password: string) {
     const result = await loginRequest({ username, password });

@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import { MoreFilled } from '@element-plus/icons-vue';
 import type { AdminReviewTaskSummary } from '../../../types';
-
-type TaskActionCommand = 'dispatch' | 'assign' | 'consensus';
 
 defineProps<{
   tasks: AdminReviewTaskSummary[];
@@ -12,8 +9,6 @@ defineProps<{
 const emit = defineEmits<{
   open: [task: AdminReviewTaskSummary];
   dispatch: [task: AdminReviewTaskSummary];
-  assign: [task: AdminReviewTaskSummary];
-  consensus: [task: AdminReviewTaskSummary];
 }>();
 
 function formatDate(value: string | null) {
@@ -38,24 +33,8 @@ function reviewerName(task: AdminReviewTaskSummary) {
   return task.leadReviewerDisplayName || task.leadReviewerUsername || task.leadReviewerUserId || '-';
 }
 
-function handleTaskAction(command: TaskActionCommand, task: AdminReviewTaskSummary) {
-  if (command === 'dispatch') {
-    emit('dispatch', task);
-    return;
-  }
-  if (command === 'assign') {
-    emit('assign', task);
-    return;
-  }
-  emit('consensus', task);
-}
-
 function canDispatch(task: AdminReviewTaskSummary) {
   return task.status === 'PENDING_ASSIGNMENT' && task.assignmentCount === 0;
-}
-
-function canOverride(task: AdminReviewTaskSummary) {
-  return !['SUBMITTED', 'CONSENSUS_CONFIRMED'].includes(task.status) && task.assignmentCount === 0;
 }
 </script>
 
@@ -92,23 +71,7 @@ function canOverride(task: AdminReviewTaskSummary) {
       <template #default="{ row }">
         <div class="task-actions">
           <el-button text type="primary" size="small" @click="emit('open', row)">详情</el-button>
-          <el-dropdown
-            trigger="click"
-            placement="bottom-end"
-            popper-class="review-task-actions-menu"
-            @command="(command: TaskActionCommand) => handleTaskAction(command, row)"
-          >
-            <button class="action-menu-trigger" type="button" aria-label="更多操作" title="更多操作">
-              <el-icon><MoreFilled /></el-icon>
-            </button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="dispatch" :disabled="!canDispatch(row)">派发小组</el-dropdown-item>
-                <el-dropdown-item command="assign" :disabled="!canOverride(row)">兜底处理</el-dropdown-item>
-                <el-dropdown-item command="consensus">综评</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
+          <el-button v-if="canDispatch(row)" text type="primary" size="small" @click="emit('dispatch', row)">派发小组</el-button>
         </div>
       </template>
     </el-table-column>
@@ -139,36 +102,7 @@ function canOverride(task: AdminReviewTaskSummary) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 6px;
   width: 100%;
-}
-
-.action-menu-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: var(--app-text-subtle);
-  cursor: pointer;
-  border-radius: var(--app-radius-xs);
-  transition: all 0.15s ease;
-}
-
-.action-menu-trigger:hover {
-  background: var(--app-surface-soft);
-  color: var(--app-primary);
-}
-
-.action-menu-trigger:focus-visible {
-  outline: 2px solid var(--app-primary);
-  outline-offset: 2px;
-}
-
-:global([class~="review-task-actions-menu"]) {
-  min-width: 120px;
 }
 </style>

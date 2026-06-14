@@ -1,7 +1,7 @@
 import { http } from './http';
 import type {
   AdminReviewTaskSummary,
-  LeaderAssignReviewersPayload,
+  LeaderTaskAssignmentPayload,
   ReviewAssignment,
   ReviewConsensus,
   ReviewGroup,
@@ -30,7 +30,7 @@ export async function listLeaderUnassignedTasks(groupId: string) {
   return data;
 }
 
-export async function assignLeaderTask(groupId: string, taskId: string, payload: LeaderAssignReviewersPayload) {
+export async function assignLeaderTask(groupId: string, taskId: string, payload: LeaderTaskAssignmentPayload) {
   const { data } = await http.post<ReviewAssignment[]>(`/review-leader/groups/${groupId}/tasks/${taskId}/assignments`, payload);
   return data;
 }

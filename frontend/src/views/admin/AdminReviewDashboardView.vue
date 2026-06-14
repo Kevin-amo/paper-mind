@@ -4,14 +4,12 @@ import { useRoute, useRouter } from 'vue-router';
 import { Document, List, UserFilled, TrendCharts } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import AdminReviewTaskTable from '../../components/admin/review/AdminReviewTaskTable.vue';
-import ReviewAssignmentDrawer from '../../components/admin/review/ReviewAssignmentDrawer.vue';
 import ReviewBatchGroupPanel from '../../components/admin/review/ReviewBatchGroupPanel.vue';
-import ReviewConsensusDrawer from '../../components/admin/review/ReviewConsensusDrawer.vue';
 import ReviewCriteriaPanel from '../../components/admin/review/ReviewCriteriaPanel.vue';
 import ReviewDispatchDrawer from '../../components/admin/review/ReviewDispatchDrawer.vue';
 import ReviewTaskDetailDrawer from '../../components/admin/review/ReviewTaskDetailDrawer.vue';
 import { useAdminReviews } from '../../composables/useAdminReviews';
-import type { AdminReviewTaskSummary, AssignReviewersPayload, DispatchReviewTaskPayload, UpdateReviewConsensusPayload } from '../../types';
+import type { AdminReviewTaskSummary, DispatchReviewTaskPayload } from '../../types';
 
 const adminReviews = useAdminReviews();
 const route = useRoute();
@@ -22,8 +20,6 @@ type ReviewAdminTab = (typeof validTabs)[number];
 const activeTab = ref<ReviewAdminTab>(normalizeTab(route.query.tab));
 const detailVisible = ref(false);
 const dispatchVisible = ref(false);
-const assignmentVisible = ref(false);
-const consensusVisible = ref(false);
 
 const submittedTotal = computed(() => adminReviews.tasks.value.reduce((sum, task) => sum + task.submittedCount, 0));
 const assignmentTotal = computed(() => adminReviews.tasks.value.reduce((sum, task) => sum + task.assignmentCount, 0));
@@ -62,32 +58,9 @@ async function openDispatch(task: AdminReviewTaskSummary) {
   dispatchVisible.value = Boolean(detail);
 }
 
-async function openAssignment(task: AdminReviewTaskSummary) {
-  const [detail] = await Promise.all([adminReviews.openTask(task.id), adminReviews.loadReviewerLoads(), adminReviews.loadGroups()]);
-  assignmentVisible.value = Boolean(detail);
-}
-
-async function openConsensus(task: AdminReviewTaskSummary) {
-  const detail = await adminReviews.openTask(task.id);
-  consensusVisible.value = Boolean(detail);
-}
-
-async function saveAssignments(taskId: string, payload: AssignReviewersPayload) {
-  await adminReviews.saveAssignments(taskId, payload);
-  assignmentVisible.value = false;
-}
-
 async function saveDispatch(taskId: string, payload: DispatchReviewTaskPayload) {
   await adminReviews.dispatchTask(taskId, payload);
   dispatchVisible.value = false;
-}
-
-async function saveConsensus(taskId: string, payload: UpdateReviewConsensusPayload) {
-  await adminReviews.saveConsensus(taskId, payload);
-}
-
-async function confirmConsensus(taskId: string) {
-  await adminReviews.confirm(taskId);
 }
 
 function handlePageSizeChange(nextSize: number) {
@@ -158,7 +131,7 @@ onMounted(async () => {
         <el-tab-pane label="全局进度" name="tasks">
           <div class="section-header">
             <h3>全局进度</h3>
-            <p>查看所有评审任务进度；普通分配主流程由组长处理，admin 仅保留异常兜底改派入口。</p>
+            <p>查看所有评审任务进度；普通分配与共识确认由评审组长处理。</p>
           </div>
           <div class="toolbar">
             <el-input
@@ -183,8 +156,6 @@ onMounted(async () => {
             :loading="adminReviews.loading.value"
             @open="openTask"
             @dispatch="openDispatch"
-            @assign="openAssignment"
-            @consensus="openConsensus"
           />
 
           <div class="pagination-wrap">
@@ -211,13 +182,6 @@ onMounted(async () => {
       </el-tabs>
     </section>
 
-    <ReviewAssignmentDrawer
-      v-model="assignmentVisible"
-      :task="adminReviews.selectedTask.value"
-      :reviewer-loads="adminReviews.reviewerLoads.value"
-      :groups="adminReviews.reviewGroups.value"
-      @submit="saveAssignments"
-    />
     <ReviewDispatchDrawer
       v-model="dispatchVisible"
       :task="adminReviews.selectedTask.value"
@@ -228,14 +192,6 @@ onMounted(async () => {
       v-model="detailVisible"
       :task-detail="adminReviews.selectedTask.value"
       :loading="adminReviews.loading.value"
-    />
-    <ReviewConsensusDrawer
-      v-model="consensusVisible"
-      :task-detail="adminReviews.selectedTask.value"
-      :loading="adminReviews.loading.value"
-      @recalc="adminReviews.recalc"
-      @save="saveConsensus"
-      @confirm="confirmConsensus"
     />
   </AdminShell>
 </template>
