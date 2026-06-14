@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { listLeaderGroups } from '../api/reviewLeader';
 import { useAuth } from '../composables/useAuth';
 
 const router = useRouter();
@@ -20,6 +21,16 @@ onMounted(async () => {
     return;
   }
   if (auth.isReviewer.value) {
+    try {
+      const groups = await listLeaderGroups();
+      if (groups.length > 0) {
+        await router.replace('/review-leader');
+        return;
+      }
+    } catch {
+      await router.replace('/review');
+      return;
+    }
     await router.replace('/review');
     return;
   }
