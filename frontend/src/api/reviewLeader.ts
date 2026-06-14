@@ -35,6 +35,11 @@ export async function assignLeaderTask(groupId: string, taskId: string, payload:
   return data;
 }
 
+export async function joinLeaderTaskReview(groupId: string, taskId: string) {
+  const { data } = await http.post<ReviewAssignment>(`/review-leader/groups/${groupId}/tasks/${taskId}/join`);
+  return data;
+}
+
 export async function listLeaderTaskReports(groupId: string, taskId: string) {
   const { data } = await http.get<ReviewReport[]>(`/review-leader/groups/${groupId}/tasks/${taskId}/reports`);
   return data;

@@ -9,6 +9,7 @@ import {
   assignLeaderTask,
   confirmLeaderTaskConsensus,
   getLeaderTaskConsensus,
+  joinLeaderTaskReview,
   listLeaderGroupMembers,
   listLeaderGroups,
   listLeaderGroupTasks,
@@ -40,6 +41,7 @@ const loading = ref(false);
 const scopeLoading = ref(false);
 const detailLoading = ref(false);
 const assigning = ref(false);
+const joiningTaskIds = ref<string[]>([]);
 const consensusSaving = ref(false);
 const consensusRecalculating = ref(false);
 const consensusConfirming = ref(false);
@@ -126,6 +128,18 @@ function taskLeadName(task: AdminReviewTaskSummary) {
 
 function isUnassignedTask(task: AdminReviewTaskSummary) {
   return task.assignmentCount === 0 || task.status === 'PENDING_ASSIGNMENT' || task.status === 'PENDING';
+}
+
+function hasJoinedReview(task: AdminReviewTaskSummary) {
+  return Boolean(task.currentUserAssignmentId);
+}
+
+function canJoinReview(task: AdminReviewTaskSummary) {
+  return !hasJoinedReview(task) && task.status !== 'SUBMITTED' && task.status !== 'CONSENSUS_CONFIRMED';
+}
+
+function isJoiningTask(taskId: string) {
+  return joiningTaskIds.value.includes(taskId);
 }
 
 function scoreItems(report: ReviewReport) {
@@ -217,6 +231,21 @@ async function submitAssignment() {
     ElMessage.error(getErrorMessage(error));
   } finally {
     assigning.value = false;
+  }
+}
+
+async function joinReview(task: AdminReviewTaskSummary) {
+  if (!selectedGroupId.value || !canJoinReview(task) || isJoiningTask(task.id)) return;
+  joiningTaskIds.value = [...joiningTaskIds.value, task.id];
+  try {
+    await joinLeaderTaskReview(selectedGroupId.value, task.id);
+    ElMessage.success('已加入评审任务，可在评审工作台处理');
+    selectedTaskId.value = task.id;
+    await loadGroupScope();
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error));
+  } finally {
+    joiningTaskIds.value = joiningTaskIds.value.filter((id) => id !== task.id);
   }
 }
 
@@ -391,11 +420,29 @@ onMounted(async () => {
           <el-table-column label="截止时间" width="160">
             <template #default="{ row }">{{ formatDate(row.dueAt) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="180" fixed="right">
+          <el-table-column label="操作" width="260" fixed="right">
             <template #default="{ row }">
               <el-button size="small" @click.stop="loadTaskDetail(row.id)">详情</el-button>
               <el-button size="small" type="primary" :disabled="!isUnassignedTask(row)" @click.stop="openAssignDialog(row)">
                 分配
+              </el-button>
+              <el-button
+                v-if="hasJoinedReview(row)"
+                size="small"
+                type="success"
+                plain
+                @click.stop="router.push('/review')"
+              >
+                去评审
+              </el-button>
+              <el-button
+                v-else
+                size="small"
+                :loading="isJoiningTask(row.id)"
+                :disabled="!canJoinReview(row)"
+                @click.stop="joinReview(row)"
+              >
+                加入评审
               </el-button>
             </template>
           </el-table-column>

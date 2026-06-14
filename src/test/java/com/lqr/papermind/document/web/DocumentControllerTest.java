@@ -8,13 +8,11 @@ import com.lqr.papermind.document.dto.BatchDocumentIngestionResponse;
 import com.lqr.papermind.document.dto.DocumentJobResponse;
 import com.lqr.papermind.document.dto.DocumentUploadAcceptedResponse;
 import com.lqr.papermind.document.entity.DocumentIngestionJob;
-import com.lqr.papermind.document.model.DocumentIngestionMessage;
 import com.lqr.papermind.document.service.DocumentIngestionJobService;
-import com.lqr.papermind.document.service.DocumentIngestionProducer;
 import com.lqr.papermind.document.service.DocumentIngestionService;
 import com.lqr.papermind.document.service.DocumentManagementService;
 import com.lqr.papermind.document.service.DocumentPersistenceService;
-import com.lqr.papermind.document.service.DocumentUploadStorageService;
+import com.lqr.papermind.document.service.DocumentUploadWorkflowService;
 import com.lqr.papermind.document.structured.entity.PaperStructuredParseEntity;
 import com.lqr.papermind.document.structured.service.PaperStructuredParseService;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +32,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,8 +44,7 @@ class DocumentControllerTest {
     private final DocumentManagementService documentManagementService = mock(DocumentManagementService.class);
     private final DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
     private final DocumentIngestionJobService documentIngestionJobService = mock(DocumentIngestionJobService.class);
-    private final DocumentUploadStorageService documentUploadStorageService = mock(DocumentUploadStorageService.class);
-    private final DocumentIngestionProducer documentIngestionProducer = mock(DocumentIngestionProducer.class);
+    private final DocumentUploadWorkflowService documentUploadWorkflowService = mock(DocumentUploadWorkflowService.class);
     private final PaperStructuredParseService paperStructuredParseService = mock(PaperStructuredParseService.class);
     private DocumentController controller;
     private UUID ownerUserId;
@@ -61,8 +57,7 @@ class DocumentControllerTest {
                 documentManagementService,
                 documentPersistenceService,
                 documentIngestionJobService,
-                documentUploadStorageService,
-                documentIngestionProducer,
+                documentUploadWorkflowService,
                 paperStructuredParseService,
                 new ObjectMapper()
         );
@@ -76,11 +71,8 @@ class DocumentControllerTest {
                 "file", "paper-a.pdf", "application/pdf", "a".getBytes()
         );
         DocumentIngestionJob job = job("source-a", "paper-a.pdf", "Paper A", DocumentIngestionJobService.STATUS_QUEUED);
-        when(documentUploadStorageService.store(eq(ownerUserId), eq("source-a"), any(UUID.class), eq(file), eq("paper-a.pdf")))
-                .thenReturn(new DocumentUploadStorageService.StoredUpload("paper-a.pdf", "storage/paper-a.pdf"));
-        when(documentIngestionJobService.createJob(any(UUID.class), eq(ownerUserId), eq("source-a"), eq("paper-a.pdf"), eq("storage/paper-a.pdf"), eq("Paper A"), any()))
+        when(documentUploadWorkflowService.createAndPublishJob(eq(ownerUserId), eq(file), eq("source-a"), eq("Paper A"), eq(null), any()))
                 .thenReturn(job);
-        when(documentIngestionJobService.findJob(ownerUserId, job.getId())).thenReturn(Optional.of(job));
 
         ResponseEntity<DocumentUploadAcceptedResponse> response = controller.ingest(principal, file, "source-a", "Paper A");
 
@@ -89,7 +81,7 @@ class DocumentControllerTest {
         assertThat(response.getBody().jobId()).isEqualTo(job.getId());
         assertThat(response.getBody().sourceId()).isEqualTo("source-a");
         assertThat(response.getBody().status()).isEqualTo(DocumentIngestionJobService.STATUS_QUEUED);
-        verify(documentIngestionProducer).publish(new DocumentIngestionMessage(job.getId(), ownerUserId, "source-a"));
+        verify(documentUploadWorkflowService).createAndPublishJob(eq(ownerUserId), eq(file), eq("source-a"), eq("Paper A"), eq(null), any());
         verify(documentIngestionService, never()).ingest(any(), any(), any(), any());
     }
 
@@ -103,16 +95,10 @@ class DocumentControllerTest {
         );
         DocumentIngestionJob job1 = job("source-a", "paper-a.pdf", "Paper A", DocumentIngestionJobService.STATUS_QUEUED);
         DocumentIngestionJob job2 = job("source-b", "paper-b.pdf", "Paper B", DocumentIngestionJobService.STATUS_QUEUED);
-        when(documentUploadStorageService.store(eq(ownerUserId), eq("source-a"), any(UUID.class), eq(file1), eq("paper-a.pdf")))
-                .thenReturn(new DocumentUploadStorageService.StoredUpload("paper-a.pdf", "storage/paper-a.pdf"));
-        when(documentUploadStorageService.store(eq(ownerUserId), eq("source-b"), any(UUID.class), eq(file2), eq("paper-b.pdf")))
-                .thenReturn(new DocumentUploadStorageService.StoredUpload("paper-b.pdf", "storage/paper-b.pdf"));
-        when(documentIngestionJobService.createJob(any(UUID.class), eq(ownerUserId), eq("source-a"), eq("paper-a.pdf"), eq("storage/paper-a.pdf"), eq("Paper A"), any()))
+        when(documentUploadWorkflowService.createAndPublishJob(eq(ownerUserId), eq(file1), eq("source-a"), eq("Paper A"), eq("paper-a.pdf"), any()))
                 .thenReturn(job1);
-        when(documentIngestionJobService.createJob(any(UUID.class), eq(ownerUserId), eq("source-b"), eq("paper-b.pdf"), eq("storage/paper-b.pdf"), eq("Paper B"), any()))
+        when(documentUploadWorkflowService.createAndPublishJob(eq(ownerUserId), eq(file2), eq("source-b"), eq("Paper B"), eq("paper-b.pdf"), any()))
                 .thenReturn(job2);
-        when(documentIngestionJobService.findJob(ownerUserId, job1.getId())).thenReturn(Optional.of(job1));
-        when(documentIngestionJobService.findJob(ownerUserId, job2.getId())).thenReturn(Optional.of(job2));
 
         String itemsJson = """
                 [
@@ -133,7 +119,8 @@ class DocumentControllerTest {
         assertThat(response.getBody().failureCount()).isZero();
         assertThat(response.getBody().items()).extracting(BatchDocumentIngestionItemResponse::jobId)
                 .containsExactly(job1.getId(), job2.getId());
-        verify(documentIngestionProducer, times(2)).publish(any(DocumentIngestionMessage.class));
+        verify(documentUploadWorkflowService).createAndPublishJob(eq(ownerUserId), eq(file1), eq("source-a"), eq("Paper A"), eq("paper-a.pdf"), any());
+        verify(documentUploadWorkflowService).createAndPublishJob(eq(ownerUserId), eq(file2), eq("source-b"), eq("Paper B"), eq("paper-b.pdf"), any());
         verify(documentIngestionService, never()).ingest(any(), any(), any(), any());
     }
 

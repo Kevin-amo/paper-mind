@@ -228,6 +228,8 @@ export interface AdminReviewTaskSummary {
   leadReviewerUserId: string | null;
   leadReviewerUsername: string | null;
   leadReviewerDisplayName: string | null;
+  currentUserAssignmentId: string | null;
+  currentUserAssignmentStatus: ReviewAssignmentStatus | null;
   dueAt: string | null;
   consensusStatus: ReviewConsensusStatus;
   createdAt: string;

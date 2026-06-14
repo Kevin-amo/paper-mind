@@ -23,12 +23,12 @@ const auth = useAuth();
 const reviews = useReviews();
 const { canAccessLeaderWorkspace, refreshLeaderWorkspaceAccess } = useReviewLeaderAccess();
 const activeReviewTab = ref('parse');
-const reviewFileInputRef = ref<HTMLInputElement | null>(null);
 
 const currentUserName = computed(() => auth.state.user?.displayName || auth.state.user?.username || '评审员');
 const selectedTask = computed(() => reviews.selectedTask.value);
 const selectedReport = computed(() => reviews.selectedReport.value);
 const assignmentSubmitted = computed(() => selectedTask.value?.currentAssignment?.status === 'SUBMITTED');
+const showLeaderEmptyState = computed(() => canAccessLeaderWorkspace.value && !reviews.loading.value && reviews.tasks.value.length === 0);
 const structuredParse = computed(() => reviews.structuredParse.value);
 const structuredContent = computed(() => {
   const merged = structuredParse.value?.mergedResult;
@@ -51,20 +51,6 @@ function handlePageChange(page: number) {
 
 function handleScoreInput(code: string, value: number) {
   reviews.updateScore(code, value);
-}
-
-function handleSelectReviewPaper() {
-  reviewFileInputRef.value?.click();
-}
-
-async function handleReviewPaperChange(event: Event) {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (!file) {
-    return;
-  }
-  await reviews.uploadPaper(file);
-  target.value = '';
 }
 
 async function handleLogout() {
@@ -98,7 +84,6 @@ onMounted(async () => {
     >
       <template #actions>
         <el-tag type="primary" size="large">{{ currentUserName }}</el-tag>
-        <el-button type="primary" :loading="reviews.uploading.value" @click="handleSelectReviewPaper">上传待评审论文</el-button>
         <el-button v-if="canAccessLeaderWorkspace" @click="router.push('/review-leader')">组长工作台</el-button>
         <el-button v-if="auth.hasRole('USER')" @click="router.push('/user')">用户端</el-button>
         <el-button v-if="auth.isAdmin.value" @click="router.push('/admin')">管理后台</el-button>
@@ -217,16 +202,16 @@ onMounted(async () => {
           </el-tabs>
         </template>
 
-        <el-empty v-else description="请选择一篇论文进行评审" />
+        <el-empty
+          v-else
+          :description="showLeaderEmptyState ? '你当前没有被分配个人评审任务。作为组长，请前往组长工作台分配任务或主动加入评审。' : '请选择一篇论文进行评审'"
+        >
+          <el-button v-if="showLeaderEmptyState" type="primary" @click="router.push('/review-leader')">
+            前往组长工作台
+          </el-button>
+        </el-empty>
       </main>
     </section>
-    <input
-      ref="reviewFileInputRef"
-      type="file"
-      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      style="display: none"
-      @change="handleReviewPaperChange"
-    />
   </MainLayout>
 </template>
 

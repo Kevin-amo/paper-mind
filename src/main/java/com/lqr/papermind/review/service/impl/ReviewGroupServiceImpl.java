@@ -274,7 +274,7 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
     public List<AdminReviewTaskSummaryResponse> listUnassignedTasksForLeader(UUID currentUserId, UUID groupId) {
         requireManagedGroup(currentUserId, groupId);
         return taskMapper.selectUnassignedByGroupId(groupId).stream()
-                .map(this::toTaskSummaryResponse)
+                .map(task -> toTaskSummaryResponse(task, currentUserId))
                 .toList();
     }
 
@@ -289,7 +289,7 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
     public List<AdminReviewTaskSummaryResponse> listGroupTasksForLeader(UUID currentUserId, UUID groupId) {
         requireManagedGroup(currentUserId, groupId);
         return taskMapper.selectVisibleByGroupId(groupId).stream()
-                .map(this::toTaskSummaryResponse)
+                .map(task -> toTaskSummaryResponse(task, currentUserId))
                 .toList();
     }
 
@@ -473,7 +473,7 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
      * @param task 评审任务实体
      * @return 管理端评审任务摘要响应对象
      */
-    private AdminReviewTaskSummaryResponse toTaskSummaryResponse(ReviewTaskEntity task) {
+    private AdminReviewTaskSummaryResponse toTaskSummaryResponse(ReviewTaskEntity task, UUID currentUserId) {
         List<ReviewAssignmentEntity> assignments = assignmentMapper.selectByTaskId(task.getId());
         ReviewConsensusEntity consensus = consensusMapper.selectByTaskId(task.getId());
         UUID leadReviewerUserId = assignments.stream()
@@ -482,6 +482,11 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
                 .findFirst()
                 .orElse(task.getLeaderUserId());
         SysUser leadReviewer = leadReviewerUserId == null ? null : userMapper.selectById(leadReviewerUserId);
+        ReviewAssignmentEntity currentUserAssignment = assignments.stream()
+                .filter(assignment -> !ReviewAssignmentStatuses.CANCELLED.equals(assignment.getStatus()))
+                .filter(assignment -> currentUserId != null && currentUserId.equals(assignment.getReviewerUserId()))
+                .findFirst()
+                .orElse(null);
         return new AdminReviewTaskSummaryResponse(
                 task.getId(),
                 task.getDocumentId(),
@@ -498,6 +503,8 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
                 leadReviewerUserId,
                 leadReviewer == null ? null : leadReviewer.getUsername(),
                 leadReviewer == null ? null : leadReviewer.getDisplayName(),
+                currentUserAssignment == null ? null : currentUserAssignment.getId(),
+                currentUserAssignment == null ? null : currentUserAssignment.getStatus(),
                 dueAtForTask(task),
                 consensus == null ? null : consensus.getStatus(),
                 task.getCreatedAt(),

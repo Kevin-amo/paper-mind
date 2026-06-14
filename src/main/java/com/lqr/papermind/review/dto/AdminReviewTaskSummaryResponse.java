@@ -29,6 +29,10 @@ public record AdminReviewTaskSummaryResponse(
         String leadReviewerUsername,
         /** 主审阅者显示名称 */
         String leadReviewerDisplayName,
+        /** 当前用户在该任务中的评审分配ID */
+        UUID currentUserAssignmentId,
+        /** 当前用户在该任务中的评审分配状态 */
+        String currentUserAssignmentStatus,
         /** 截止时间 */
         OffsetDateTime dueAt,
         /** 共识状态，如PENDING、CONFIRMED等 */

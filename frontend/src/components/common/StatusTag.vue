@@ -6,25 +6,37 @@ const props = defineProps<{
   status: DocumentStatus | UserStatus | string;
 }>();
 
+const normalizedStatus = computed(() => props.status?.toUpperCase() ?? '');
+
 const tagType = computed(() => {
-  switch (props.status?.toUpperCase()) {
+  switch (normalizedStatus.value) {
     case 'ACTIVE':
     case 'INDEXED':
     case 'READY':
+    case 'COMPLETED':
+    case 'CONSENSUS_CONFIRMED':
       return 'success';
     case 'FAILED':
+      return 'danger';
     case 'DISABLED':
-      return props.status?.toUpperCase() === 'FAILED' ? 'danger' : 'info';
+      return 'info';
     case 'PROCESSING':
     case 'PENDING':
+    case 'QUEUED':
+    case 'PENDING_ASSIGNMENT':
+    case 'ASSIGNED':
       return 'warning';
+    case 'IN_REVIEW':
+    case 'REVIEWING':
+    case 'SUBMITTED':
+      return 'primary';
     default:
       return 'info';
   }
 });
 
 const label = computed(() => {
-  switch (props.status?.toUpperCase()) {
+  switch (normalizedStatus.value) {
     case 'ACTIVE':
       return '启用';
     case 'DISABLED':
@@ -39,6 +51,19 @@ const label = computed(() => {
     case 'PENDING':
     case 'QUEUED':
       return '排队中';
+    case 'PENDING_ASSIGNMENT':
+      return '待分配';
+    case 'ASSIGNED':
+      return '已分配';
+    case 'IN_REVIEW':
+    case 'REVIEWING':
+      return '评审中';
+    case 'SUBMITTED':
+      return '已提交';
+    case 'COMPLETED':
+      return '已完成';
+    case 'CONSENSUS_CONFIRMED':
+      return '共识已确认';
     default:
       return props.status || '-';
   }

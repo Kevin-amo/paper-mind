@@ -264,6 +264,8 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 leadReviewerUserId,
                 leadReviewer == null ? null : leadReviewer.getUsername(),
                 leadReviewer == null ? null : leadReviewer.getDisplayName(),
+                null,
+                null,
                 dueAt,
                 consensus == null ? null : consensus.getStatus(),
                 task.getCreatedAt(),

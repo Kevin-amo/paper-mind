@@ -161,6 +161,44 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
                 .toList();
     }
 
+    @Override
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public ReviewAssignmentResponse joinReviewAsLeader(UUID currentUserId, UUID groupId, UUID taskId) {
+        ReviewGroupEntity group = requireManagedGroup(currentUserId, groupId);
+        ReviewTaskEntity task = taskMapper.selectByIdIncludingDeleted(taskId);
+        if (task == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审任务不存在");
+        }
+        if (!group.getId().equals(task.getGroupId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能加入本组任务评审");
+        }
+        if (ReviewTaskStatuses.SUBMITTED.equals(task.getStatus())
+                || ReviewTaskStatuses.CONSENSUS_CONFIRMED.equals(task.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "当前任务状态不允许加入评审");
+        }
+
+        ReviewAssignmentEntity existing = assignmentMapper.selectActiveByTaskAndReviewer(taskId, currentUserId);
+        if (existing != null) {
+            return toResponse(existing);
+        }
+
+        requireActiveReviewerUser(currentUserId);
+        OffsetDateTime now = OffsetDateTime.now();
+        ReviewAssignmentEntity assignment = newReviewerAssignment(taskId, groupId, currentUserId, currentUserId, task.getDueAt(), now);
+        assignmentMapper.insert(assignment);
+        taskMapper.markAssignedByLeader(taskId, groupId, currentUserId, currentUserId, currentUserId, task.getDueAt());
+        reviewAuditService.append(
+                taskId,
+                currentUserId,
+                "JOIN_REVIEW_BY_LEADER",
+                "组长加入本组评审任务",
+                assignmentBeforeSnapshot(task),
+                assignmentAfterSnapshot(task, groupId, currentUserId, currentUserId, List.of(currentUserId), List.of(assignment), task.getDueAt()),
+                Map.of("scope", "review-leader")
+        );
+        return toResponse(assignment);
+    }
+
     /**
      * 查询评审任务的所有分配记录
      *
@@ -289,6 +327,10 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
         if (member == null || !MEMBER_ROLE_REVIEWER.equals(member.getMemberRole())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "只能分配给本组有效评审员");
         }
+        requireActiveReviewerUser(reviewerId);
+    }
+
+    private void requireActiveReviewerUser(UUID reviewerId) {
         SysUser user = userMapper.selectById(reviewerId);
         if (user == null || !STATUS_ACTIVE.equals(user.getStatus()) || !roleMapper.selectRoleCodesByUserId(reviewerId).contains(RoleCodes.REVIEWER)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "评审员用户不可用");

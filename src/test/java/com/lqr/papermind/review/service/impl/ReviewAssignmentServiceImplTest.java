@@ -133,8 +133,8 @@ class ReviewAssignmentServiceImplTest {
         when(groupMapper.selectById(groupId)).thenReturn(group(groupId, batchId, groupLeaderId, "ACTIVE"));
         when(memberMapper.selectActiveByGroupAndUser(groupId, reviewerAId)).thenReturn(member(groupId, reviewerAId, "REVIEWER"));
         when(memberMapper.selectActiveByGroupAndUser(groupId, reviewerBId)).thenReturn(member(groupId, reviewerBId, "REVIEWER"));
-        when(userMapper.selectById(reviewerAId)).thenReturn(user(reviewerAId, "reviewer-a", "璇勫鍛楢", "ACTIVE"));
-        when(userMapper.selectById(reviewerBId)).thenReturn(user(reviewerBId, "reviewer-b", "璇勫鍛楤", "ACTIVE"));
+        when(userMapper.selectById(reviewerAId)).thenReturn(user(reviewerAId, "reviewer-a", "评审员A", "ACTIVE"));
+        when(userMapper.selectById(reviewerBId)).thenReturn(user(reviewerBId, "reviewer-b", "评审员B", "ACTIVE"));
         when(roleMapper.selectRoleCodesByUserId(reviewerAId)).thenReturn(List.of(RoleCodes.REVIEWER));
         when(roleMapper.selectRoleCodesByUserId(reviewerBId)).thenReturn(List.of(RoleCodes.REVIEWER));
 
@@ -353,6 +353,86 @@ class ReviewAssignmentServiceImplTest {
                 .hasMessageContaining("评审员用户不可用");
         verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
         verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void leaderJoinReviewCreatesReviewerAssignmentAndAuditLog() {
+        UUID leaderId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, leaderId, "ACTIVE"));
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, groupId, ReviewTaskStatuses.PENDING_ASSIGNMENT));
+        when(userMapper.selectById(leaderId)).thenReturn(user(leaderId, "leader-a", "组长A", "ACTIVE"));
+        when(roleMapper.selectRoleCodesByUserId(leaderId)).thenReturn(List.of(RoleCodes.REVIEWER));
+
+        var assignment = service.joinReviewAsLeader(leaderId, groupId, taskId);
+
+        ArgumentCaptor<ReviewAssignmentEntity> assignmentCaptor = ArgumentCaptor.forClass(ReviewAssignmentEntity.class);
+        verify(assignmentMapper).insert(assignmentCaptor.capture());
+        ReviewAssignmentEntity saved = assignmentCaptor.getValue();
+        assertThat(saved.getTaskId()).isEqualTo(taskId);
+        assertThat(saved.getGroupId()).isEqualTo(groupId);
+        assertThat(saved.getReviewerUserId()).isEqualTo(leaderId);
+        assertThat(saved.getAssignedByUserId()).isEqualTo(leaderId);
+        assertThat(saved.getRole()).isEqualTo(ReviewAssignmentRoles.REVIEWER);
+        assertThat(saved.getStatus()).isEqualTo(ReviewAssignmentStatuses.ASSIGNED);
+        assertThat(assignment.reviewerUserId()).isEqualTo(leaderId);
+        assertThat(assignment.role()).isEqualTo(ReviewAssignmentRoles.REVIEWER);
+        verify(taskMapper).markAssignedByLeader(taskId, groupId, leaderId, leaderId, leaderId, null);
+        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
+        verify(reviewAuditService).append(eq(taskId), eq(leaderId), eq("JOIN_REVIEW_BY_LEADER"), eq("组长加入本组评审任务"), any(), any(), clientInfoCaptor.capture());
+        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "review-leader");
+    }
+
+    @Test
+    void leaderJoinReviewReturnsExistingActiveAssignment() {
+        UUID leaderId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        ReviewAssignmentEntity existing = assignment(assignmentId, taskId, leaderId, ReviewAssignmentStatuses.REVIEWING);
+        existing.setGroupId(groupId);
+        existing.setRole(ReviewAssignmentRoles.REVIEWER);
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, leaderId, "ACTIVE"));
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, groupId, ReviewTaskStatuses.ASSIGNED));
+        when(assignmentMapper.selectActiveByTaskAndReviewer(taskId, leaderId)).thenReturn(existing);
+        when(userMapper.selectById(leaderId)).thenReturn(user(leaderId, "leader-a", "组长A", "ACTIVE"));
+
+        var assignment = service.joinReviewAsLeader(leaderId, groupId, taskId);
+
+        assertThat(assignment.id()).isEqualTo(assignmentId);
+        assertThat(assignment.status()).isEqualTo(ReviewAssignmentStatuses.REVIEWING);
+        verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
+        verify(taskMapper, never()).markAssignedByLeader(any(), any(), any(), any(), any(), any());
+        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void leaderJoinReviewRejectsOtherGroupLeader() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID otherLeaderId = UUID.randomUUID();
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, otherLeaderId, "ACTIVE"));
+
+        assertThatThrownBy(() -> service.joinReviewAsLeader(currentUserId, groupId, UUID.randomUUID()))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode().value()).isEqualTo(403));
+        verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
+    }
+
+    @Test
+    void leaderJoinReviewRejectsTaskOutsideGroup() {
+        UUID leaderId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID otherGroupId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, leaderId, "ACTIVE"));
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, otherGroupId, ReviewTaskStatuses.ASSIGNED));
+
+        assertThatThrownBy(() -> service.joinReviewAsLeader(leaderId, groupId, taskId))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode().value()).isEqualTo(403));
+        verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
     }
 
     @Test

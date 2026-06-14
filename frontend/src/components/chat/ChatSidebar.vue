@@ -9,6 +9,7 @@ import { computed, nextTick, ref } from 'vue';
 import {
   ChatDotRound,
   Collection,
+  DocumentAdd,
   Delete,
   EditPen,
   MoreFilled,
@@ -39,6 +40,7 @@ const emit = defineEmits<{
   deleteConversation: [conversationId: string];
   renameConversation: [conversationId: string, title: string];
   openDocuments: [];
+  openReviewSubmissions: [];
   goAdmin: [];
   openAccountManagement: [];
   logout: [];
@@ -204,6 +206,10 @@ function conversationTitle(conversation: Conversation) {
       <button class="nav-item" type="button" @click="emit('openDocuments')">
         <el-icon><Collection /></el-icon>
         <span>文档库</span>
+      </button>
+      <button class="nav-item" type="button" @click="emit('openReviewSubmissions')">
+        <el-icon><DocumentAdd /></el-icon>
+        <span>我的投稿</span>
       </button>
       <button v-if="props.isAdmin" class="nav-item" type="button" @click="emit('goAdmin')">
         <el-icon><Setting /></el-icon>

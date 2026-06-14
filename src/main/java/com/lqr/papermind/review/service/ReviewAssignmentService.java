@@ -32,6 +32,16 @@ public interface ReviewAssignmentService {
     List<ReviewAssignmentResponse> assignReviewersByLeader(UUID currentUserId, UUID groupId, UUID taskId, LeaderReviewAssignmentRequest request);
 
     /**
+     * 组长主动加入本组评审任务。
+     *
+     * @param currentUserId 当前用户ID
+     * @param groupId       评审组ID
+     * @param taskId        任务ID
+     * @return 当前组长的评审分配
+     */
+    ReviewAssignmentResponse joinReviewAsLeader(UUID currentUserId, UUID groupId, UUID taskId);
+
+    /**
      * 查询任务的分配列表
      *
      * @param taskId 任务ID

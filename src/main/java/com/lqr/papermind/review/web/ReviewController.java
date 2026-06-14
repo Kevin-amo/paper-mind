@@ -6,10 +6,7 @@ import com.lqr.papermind.common.constant.MetadataKeys;
 import com.lqr.papermind.document.dto.DocumentUploadAcceptedResponse;
 import com.lqr.papermind.document.dto.PageResponse;
 import com.lqr.papermind.document.entity.DocumentIngestionJob;
-import com.lqr.papermind.document.model.DocumentIngestionMessage;
-import com.lqr.papermind.document.service.DocumentIngestionJobService;
-import com.lqr.papermind.document.service.DocumentIngestionProducer;
-import com.lqr.papermind.document.service.DocumentUploadStorageService;
+import com.lqr.papermind.document.service.DocumentUploadWorkflowService;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
@@ -45,7 +42,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -58,9 +54,7 @@ import java.util.UUID;
 public class ReviewController {
 
     private final ReviewService reviewService;
-    private final DocumentIngestionJobService documentIngestionJobService;
-    private final DocumentUploadStorageService documentUploadStorageService;
-    private final DocumentIngestionProducer documentIngestionProducer;
+    private final DocumentUploadWorkflowService documentUploadWorkflowService;
 
     /**
      * 上传评审论文
@@ -78,29 +72,16 @@ public class ReviewController {
                                                                             @RequestParam(value = "sourceId", required = false) String sourceId,
                                                                             @RequestParam(value = "title", required = false) String title) throws IOException {
         requireReviewer(principal);
-        UUID jobId = UUID.randomUUID();
-        String resolvedSourceId = sourceId == null || sourceId.isBlank() ? UUID.randomUUID().toString() : sourceId.trim();
-        String fileName = file.getOriginalFilename();
-        DocumentUploadStorageService.StoredUpload upload = documentUploadStorageService.store(
+        DocumentIngestionJob job = documentUploadWorkflowService.createAndPublishJob(
                 principal.getId(),
-                resolvedSourceId,
-                jobId,
                 file,
-                fileName
-        );
-        DocumentIngestionJob job = documentIngestionJobService.createJob(
-                jobId,
-                principal.getId(),
-                resolvedSourceId,
-                upload.fileName(),
-                upload.filePath(),
+                sourceId,
                 title,
-                Map.of(MetadataKeys.SOURCE_TYPE, MetadataKeys.SOURCE_TYPE_REVIEW)
+                null,
+                MetadataKeys.SOURCE_TYPE_REVIEW
         );
-        documentIngestionProducer.publish(new DocumentIngestionMessage(job.getId(), principal.getId(), resolvedSourceId));
-        DocumentIngestionJob currentJob = documentIngestionJobService.findJob(principal.getId(), job.getId()).orElse(job);
         return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(DocumentUploadAcceptedResponse.from(currentJob));
+                .body(DocumentUploadAcceptedResponse.from(job));
     }
 
     /**

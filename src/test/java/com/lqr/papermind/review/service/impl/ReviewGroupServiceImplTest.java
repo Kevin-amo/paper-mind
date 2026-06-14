@@ -6,6 +6,7 @@ import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.auth.security.RoleCodes;
 import com.lqr.papermind.review.dto.ReviewGroupMemberUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewGroupRequest;
+import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
 import com.lqr.papermind.review.entity.ReviewBatchEntity;
 import com.lqr.papermind.review.entity.ReviewGroupEntity;
 import com.lqr.papermind.review.entity.ReviewGroupMemberEntity;
@@ -191,6 +192,30 @@ class ReviewGroupServiceImplTest {
         assertThat(tasks.getFirst().id()).isEqualTo(taskId);
         assertThat(tasks.getFirst().status()).isEqualTo("SUBMITTED");
         verify(taskMapper).selectVisibleByGroupId(groupId);
+    }
+
+    @Test
+    void listGroupTasksForLeaderIncludesCurrentLeaderAssignmentSummary() {
+        UUID leaderId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        ReviewTaskEntity task = task(taskId, groupId, leaderId);
+        ReviewAssignmentEntity assignment = new ReviewAssignmentEntity();
+        assignment.setId(assignmentId);
+        assignment.setTaskId(taskId);
+        assignment.setGroupId(groupId);
+        assignment.setReviewerUserId(leaderId);
+        assignment.setStatus("REVIEWING");
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), leaderId, "ACTIVE"));
+        when(taskMapper.selectVisibleByGroupId(groupId)).thenReturn(List.of(task));
+        when(assignmentMapper.selectByTaskId(taskId)).thenReturn(List.of(assignment));
+
+        var tasks = service.listGroupTasksForLeader(leaderId, groupId);
+
+        assertThat(tasks).hasSize(1);
+        assertThat(tasks.getFirst().currentUserAssignmentId()).isEqualTo(assignmentId);
+        assertThat(tasks.getFirst().currentUserAssignmentStatus()).isEqualTo("REVIEWING");
     }
 
     @Test

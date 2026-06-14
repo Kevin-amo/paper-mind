@@ -17,13 +17,11 @@ import com.lqr.papermind.document.dto.DocumentUploadAcceptedResponse;
 import com.lqr.papermind.document.dto.PageResponse;
 import com.lqr.papermind.document.dto.ReindexResponse;
 import com.lqr.papermind.document.entity.DocumentIngestionJob;
-import com.lqr.papermind.document.model.DocumentIngestionMessage;
 import com.lqr.papermind.document.service.DocumentIngestionJobService;
-import com.lqr.papermind.document.service.DocumentIngestionProducer;
 import com.lqr.papermind.document.service.DocumentIngestionService;
 import com.lqr.papermind.document.service.DocumentManagementService;
 import com.lqr.papermind.document.service.DocumentPersistenceService;
-import com.lqr.papermind.document.service.DocumentUploadStorageService;
+import com.lqr.papermind.document.service.DocumentUploadWorkflowService;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseStatusResponse;
 import com.lqr.papermind.document.structured.service.PaperStructuredParseService;
@@ -52,7 +50,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -68,20 +65,19 @@ public class DocumentController {
     private final DocumentManagementService documentManagementService;
     private final DocumentPersistenceService documentPersistenceService;
     private final DocumentIngestionJobService documentIngestionJobService;
-    private final DocumentUploadStorageService documentUploadStorageService;
-    private final DocumentIngestionProducer documentIngestionProducer;
+    private final DocumentUploadWorkflowService documentUploadWorkflowService;
     private final PaperStructuredParseService paperStructuredParseService;
     private final ObjectMapper objectMapper;
 
     /**
-     * 上传单个文档并异步入库。
+     * 上传单个普通知识库文档，并异步入库。
      *
      * @param principal 当前登录用户
-     * @param file 上传的文件
-     * @param sourceId 文档来源标识（可选）
-     * @param title 文档标题（可选）
-     * @return 202 Accepted，包含入库任务信息
-     * @throws IOException 文件读取失败时抛出
+     * @param file 上传文件
+     * @param sourceId 文档来源标识，可选
+     * @param title 文档标题，可选
+     * @return 入库任务受理结果
+     * @throws IOException 文件存储失败时抛出
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentUploadAcceptedResponse> ingest(@AuthenticationPrincipal SecurityUserPrincipal principal,
@@ -94,7 +90,7 @@ public class DocumentController {
         log.info("document.upload.start ownerUserId={} sourceId={} fileName={} fileType={} fileSize={}",
                 ownerUserId, sourceId, fileName, file.getContentType(), file.getSize());
         try {
-            DocumentIngestionJob job = createAndPublishJob(ownerUserId, file, sourceId, title, null, MetadataKeys.SOURCE_TYPE_USER);
+            DocumentIngestionJob job = documentUploadWorkflowService.createAndPublishJob(ownerUserId, file, sourceId, title, null, MetadataKeys.SOURCE_TYPE_USER);
             log.info("document.upload.done ownerUserId={} jobId={} sourceId={} fileName={} fileType={} fileSize={} costMs={}",
                     ownerUserId, job.getId(), job.getSourceId(), job.getFileName(), file.getContentType(), file.getSize(), elapsedMs(startNanos));
             return ResponseEntity.status(HttpStatus.ACCEPTED)
@@ -107,12 +103,12 @@ public class DocumentController {
     }
 
     /**
-     * 批量上传文档并异步入库。
+     * 批量上传普通知识库文档，并为每个文件创建异步入库任务。
      *
      * @param principal 当前登录用户
-     * @param files 上传的文件数组
-     * @param items 批量上传项参数（JSON 格式，可选）
-     * @return 202 Accepted，包含每个文件的处理结果
+     * @param files 上传文件数组
+     * @param items 批量上传参数 JSON，可选
+     * @return 每个文件的受理结果
      */
     @PostMapping(path = "/batch", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<BatchDocumentIngestionResponse> ingestBatch(@AuthenticationPrincipal SecurityUserPrincipal principal,
@@ -134,7 +130,7 @@ public class DocumentController {
             log.info("document.upload.start ownerUserId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={}",
                     principal.getId(), item.sourceId(), fileName, file.getContentType(), file.getSize(), index, files.length);
             try {
-                DocumentIngestionJob job = createAndPublishJob(principal.getId(), file, item.sourceId(), item.title(), fileName, MetadataKeys.SOURCE_TYPE_USER);
+                DocumentIngestionJob job = documentUploadWorkflowService.createAndPublishJob(principal.getId(), file, item.sourceId(), item.title(), fileName, MetadataKeys.SOURCE_TYPE_USER);
                 log.info("document.upload.done ownerUserId={} jobId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={} costMs={}",
                         principal.getId(), job.getId(), job.getSourceId(), job.getFileName(), file.getContentType(), file.getSize(), index, files.length, elapsedMs(itemStartNanos));
                 results.add(BatchDocumentIngestionItemResponse.accepted(index, fileName, job));
@@ -154,14 +150,14 @@ public class DocumentController {
     }
 
     /**
-     * 分页查询当前用户的文档摘要列表。
+     * 分页查询当前用户的普通知识库文档摘要列表。
      *
      * @param principal 当前登录用户
-     * @param keyword 关键词过滤（可选）
-     * @param status 状态过滤（可选）
-     * @param page 页码（从 0 开始）
+     * @param keyword 关键字过滤，可选
+     * @param status 状态过滤，可选
+     * @param page 页码，从 0 开始
      * @param size 每页条数
-     * @return 分页文档摘要响应
+     * @return 文档摘要分页结果
      */
     @GetMapping
     public PageResponse<DocumentSummaryResponse> list(@AuthenticationPrincipal SecurityUserPrincipal principal,
@@ -180,11 +176,11 @@ public class DocumentController {
     }
 
     /**
-     * 查询指定入库任务的状态。
+     * 查询指定入库任务状态。
      *
      * @param principal 当前登录用户
-     * @param jobId 任务 ID
-     * @return 任务状态响应
+     * @param jobId 入库任务 ID
+     * @return 入库任务状态
      */
     @GetMapping("/jobs/{jobId}")
     public DocumentJobResponse job(@AuthenticationPrincipal SecurityUserPrincipal principal,
@@ -195,11 +191,11 @@ public class DocumentController {
     }
 
     /**
-     * 查询指定文档的详情。
+     * 查询指定普通知识库文档详情。
      *
      * @param principal 当前登录用户
      * @param sourceId 文档来源标识
-     * @return 文档详情响应
+     * @return 文档详情
      */
     @GetMapping("/{sourceId}")
     public DocumentDetailResponse detail(@AuthenticationPrincipal SecurityUserPrincipal principal,
@@ -248,9 +244,9 @@ public class DocumentController {
      *
      * @param principal 当前登录用户
      * @param sourceId 文档来源标识
-     * @param page 页码（从 0 开始）
+     * @param page 页码，从 0 开始
      * @param size 每页条数
-     * @return 分页分块响应
+     * @return 文档分块分页结果
      */
     @GetMapping("/{sourceId}/chunks")
     public PageResponse<DocumentChunkResponse> chunks(@AuthenticationPrincipal SecurityUserPrincipal principal,
@@ -272,8 +268,8 @@ public class DocumentController {
      *
      * @param principal 当前登录用户
      * @param sourceId 文档来源标识
-     * @param assetIds 逗号分隔的资产 ID（可选）
-     * @return 资产响应列表
+     * @param assetIds 逗号分隔的资产 ID，可选
+     * @return 文档资产列表
      */
     @GetMapping("/{sourceId}/assets")
     public List<DocumentAssetResponse> assets(@AuthenticationPrincipal SecurityUserPrincipal principal,
@@ -290,7 +286,7 @@ public class DocumentController {
      * @param principal 当前登录用户
      * @param sourceId 文档来源标识
      * @param assetId 资产 ID
-     * @return 资产二进制内容响应
+     * @return 资产二进制内容
      */
     @GetMapping("/{sourceId}/assets/{assetId}/content")
     public ResponseEntity<byte[]> assetContent(@AuthenticationPrincipal SecurityUserPrincipal principal,
@@ -325,7 +321,7 @@ public class DocumentController {
     }
 
     /**
-     * 删除当前用户的全部文档。
+     * 删除当前用户的全部普通知识库文档。
      *
      * @param principal 当前登录用户
      */
@@ -336,7 +332,7 @@ public class DocumentController {
     }
 
     /**
-     * 删除指定来源标识的文档。
+     * 删除指定来源标识的普通知识库文档。
      *
      * @param principal 当前登录用户
      * @param sourceId 文档来源标识
@@ -385,49 +381,9 @@ public class DocumentController {
     }
 
     /**
-     * 创建入库任务、存储上传文件并发布消息到队列。
+     * 解析逗号分隔的资产 ID 字符串。
      *
-     * @param ownerUserId 文档所属用户 ID
-     * @param file 上传的文件
-     * @param sourceId 文档来源标识
-     * @param title 文档标题
-     * @param fallbackFileName 备用文件名
-     * @return 创建的入库任务实体
-     * @throws IOException 文件存储失败时抛出
-     */
-    private DocumentIngestionJob createAndPublishJob(UUID ownerUserId,
-                                                     MultipartFile file,
-                                                     String sourceId,
-                                                     String title,
-                                                     String fallbackFileName,
-                                                     String sourceType) throws IOException {
-        UUID jobId = UUID.randomUUID();
-        String resolvedSourceId = sourceId == null || sourceId.isBlank() ? UUID.randomUUID().toString() : sourceId.trim();
-        String fileName = fallbackFileName == null || fallbackFileName.isBlank() ? file.getOriginalFilename() : fallbackFileName;
-        DocumentUploadStorageService.StoredUpload upload = documentUploadStorageService.store(
-                ownerUserId,
-                resolvedSourceId,
-                jobId,
-                file,
-                fileName
-        );
-        DocumentIngestionJob job = documentIngestionJobService.createJob(
-                jobId,
-                ownerUserId,
-                resolvedSourceId,
-                upload.fileName(),
-                upload.filePath(),
-                title,
-                Map.of(MetadataKeys.SOURCE_TYPE, sourceType == null || sourceType.isBlank() ? MetadataKeys.SOURCE_TYPE_USER : sourceType)
-        );
-        documentIngestionProducer.publish(new DocumentIngestionMessage(job.getId(), ownerUserId, resolvedSourceId));
-        return documentIngestionJobService.findJob(ownerUserId, job.getId()).orElse(job);
-    }
-
-    /**
-     * 解析逗号分隔的资产 ID 字符串为列表。
-     *
-     * @param assetIds 逗号分隔的资产 ID 字符串
+     * @param assetIds 逗号分隔的资产 ID
      * @return 资产 ID 列表
      */
     private List<String> parseAssetIds(String assetIds) {
@@ -441,11 +397,11 @@ public class DocumentController {
     }
 
     /**
-     * 解析批量上传的 items 参数，校验数量与文件数一致。
+     * 解析批量上传的 items 参数，并校验数量与文件数一致。
      *
-     * @param items JSON 格式的批量上传项参数
+     * @param items JSON 格式的批量上传参数
      * @param fileCount 上传文件数量
-     * @return 批量上传项请求列表
+     * @return 批量上传参数列表
      * @throws ResponseStatusException 参数格式错误或数量不一致时抛出
      */
     private List<BatchDocumentIngestionItemRequest> parseBatchItems(String items, int fileCount) {
@@ -474,9 +430,9 @@ public class DocumentController {
     }
 
     /**
-     * 计算从指定起始时间到当前的耗时（毫秒）。
+     * 计算从指定起始时间到当前的耗时，单位毫秒。
      *
-     * @param startNanos 起始时间（纳秒）
+     * @param startNanos 起始时间，纳秒
      * @return 耗时毫秒数
      */
     private long elapsedMs(long startNanos) {
@@ -486,7 +442,7 @@ public class DocumentController {
     /**
      * 获取上传文件的原始文件名，优先使用文件自带名称，其次使用请求中指定的名称。
      *
-     * @param file 上传的文件
+     * @param file 上传文件
      * @param item 批量上传项请求
      * @return 文件名
      */

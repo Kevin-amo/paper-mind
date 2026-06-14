@@ -28,6 +28,16 @@ public interface DocumentPersistenceService {
     PageResult<DocumentSummary> listDocuments(UUID ownerUserId, String keyword, String status, int page, int size);
 
     /**
+     * 分页查询当前用户提交的评审投稿文档。
+     *
+     * @param ownerUserId 文档所属用户 ID
+     * @param page 页码，从 0 开始
+     * @param size 每页条数
+     * @return 评审投稿文档分页结果
+     */
+    PageResult<DocumentDetail> listReviewDocuments(UUID ownerUserId, int page, int size);
+
+    /**
      * 按来源 ID 查询文档详情。
      *
      * @param ownerUserId 文档所属用户 ID

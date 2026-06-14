@@ -115,6 +115,22 @@ public class ReviewLeaderController {
     }
 
     /**
+     * 组长主动加入本组任务评审。
+     *
+     * @param principal 当前认证用户
+     * @param groupId   评审组ID
+     * @param taskId    评审任务ID
+     * @return 当前组长的评审分配
+     */
+    @PostMapping("/groups/{groupId}/tasks/{taskId}/join")
+    public ReviewAssignmentResponse joinTask(@AuthenticationPrincipal SecurityUserPrincipal principal,
+                                             @PathVariable UUID groupId,
+                                             @PathVariable UUID taskId) {
+        requireReviewer(principal);
+        return reviewAssignmentService.joinReviewAsLeader(principal.getId(), groupId, taskId);
+    }
+
+    /**
      * 获取评审任务报告列表
      *
      * @param principal 当前认证用户

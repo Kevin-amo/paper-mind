@@ -245,6 +245,21 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
                                                @Param("keyword") String keyword,
                                                @Param("status") String status);
 
+    @Select("""
+            <script>
+            select *
+            from public.review_task
+            where submitter_user_id = #{submitterUserId}
+              and source_id in
+              <foreach collection="sourceIds" item="sourceId" open="(" separator="," close=")">
+                #{sourceId}
+              </foreach>
+            order by updated_at desc, created_at desc
+            </script>
+            """)
+    List<ReviewTaskEntity> selectBySubmitterAndSourceIds(@Param("submitterUserId") UUID submitterUserId,
+                                                         @Param("sourceIds") List<String> sourceIds);
+
     /**
      * 根据评审组ID查询该组下所有评审任务
      *

@@ -3,6 +3,8 @@ package com.lqr.papermind.review.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lqr.papermind.ai.service.LlmService;
 import com.lqr.papermind.ai.service.PromptConstructionService;
+import com.lqr.papermind.document.entity.DocumentEntity;
+import com.lqr.papermind.document.mapper.DocumentMapper;
 import com.lqr.papermind.document.service.DocumentPersistenceService;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.document.structured.entity.PaperStructuredParseEntity;
@@ -13,6 +15,7 @@ import com.lqr.papermind.review.dto.ReviewCriterionResponse;
 import com.lqr.papermind.review.dto.ReviewReportUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewRiskUpdateRequest;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
+import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.entity.ReviewCriterionEntity;
 import com.lqr.papermind.review.entity.ReviewReportEntity;
 import com.lqr.papermind.review.entity.ReviewRiskItemEntity;
@@ -125,6 +128,101 @@ class ReviewServiceImplTest {
         );
 
         assertThat(service).isNotNull();
+    }
+
+    @Test
+    void createTaskForIndexedReviewDocumentShouldIgnoreUserSourceDocuments() {
+        UUID ownerUserId = UUID.randomUUID();
+        ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
+        DocumentMapper documentMapper = mock(DocumentMapper.class);
+        DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
+        ReviewAuditLogMapper auditLogMapper = mock(ReviewAuditLogMapper.class);
+        ReviewServiceImpl service = serviceWithDependencies(
+                taskMapper,
+                mock(ReviewReportMapper.class),
+                mock(ReviewCriterionMapper.class),
+                auditLogMapper,
+                documentMapper,
+                documentPersistenceService,
+                mock(PaperStructuredParseService.class),
+                null,
+                mock(ReviewOutputParser.class),
+                new ReferenceFormatChecker(),
+                mock(ReviewRiskService.class),
+                mock(ReviewAuditService.class)
+        );
+        when(documentPersistenceService.findReviewDocument(ownerUserId, "source-user")).thenReturn(Optional.empty());
+
+        service.createTaskForIndexedReviewDocument(ownerUserId, "source-user");
+
+        verify(documentMapper, never()).selectOne(any());
+        verify(taskMapper, never()).existsByDocumentId(any());
+        verify(taskMapper, never()).insert(any(ReviewTaskEntity.class));
+        verify(auditLogMapper, never()).insert(any(ReviewAuditLogEntity.class));
+    }
+
+    @Test
+    void createTaskForIndexedReviewDocumentShouldCreatePendingTaskForIndexedReviewDocument() {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
+        DocumentMapper documentMapper = mock(DocumentMapper.class);
+        DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
+        ReviewServiceImpl service = serviceWithDependencies(
+                taskMapper,
+                mock(ReviewReportMapper.class),
+                mock(ReviewCriterionMapper.class),
+                mock(ReviewAuditLogMapper.class),
+                documentMapper,
+                documentPersistenceService,
+                mock(PaperStructuredParseService.class),
+                null,
+                mock(ReviewOutputParser.class),
+                new ReferenceFormatChecker(),
+                mock(ReviewRiskService.class),
+                mock(ReviewAuditService.class)
+        );
+        DocumentEntity entity = new DocumentEntity();
+        entity.setId(documentId);
+        entity.setOwnerUserId(ownerUserId);
+        entity.setSourceId("source-review");
+        when(documentPersistenceService.findReviewDocument(ownerUserId, "source-review"))
+                .thenReturn(Optional.of(new DocumentPersistenceService.DocumentDetail(
+                        "source-review",
+                        ownerUserId,
+                        "Review Paper",
+                        null,
+                        "review.pdf",
+                        "application/pdf",
+                        100L,
+                        List.of(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of(),
+                        "content",
+                        Map.of(),
+                        "INDEXED",
+                        1,
+                        null,
+                        OffsetDateTime.now(),
+                        OffsetDateTime.now(),
+                        null
+                )));
+        when(documentMapper.selectOne(any())).thenReturn(entity);
+        when(taskMapper.existsByDocumentId(documentId)).thenReturn(false);
+        ArgumentCaptor<ReviewTaskEntity> taskCaptor = ArgumentCaptor.forClass(ReviewTaskEntity.class);
+
+        service.createTaskForIndexedReviewDocument(ownerUserId, "source-review");
+
+        verify(taskMapper).insert(taskCaptor.capture());
+        ReviewTaskEntity task = taskCaptor.getValue();
+        assertThat(task.getDocumentId()).isEqualTo(documentId);
+        assertThat(task.getSubmitterUserId()).isEqualTo(ownerUserId);
+        assertThat(task.getSourceId()).isEqualTo("source-review");
+        assertThat(task.getTitle()).isEqualTo("Review Paper");
+        assertThat(task.getStatus()).isEqualTo(ReviewTaskStatuses.PENDING_ASSIGNMENT);
     }
 
     @Test

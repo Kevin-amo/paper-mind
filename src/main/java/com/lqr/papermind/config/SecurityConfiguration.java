@@ -77,7 +77,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/reviews/**", "/review-leader/**").hasAnyRole("REVIEWER", "ADMIN")
-                        .requestMatchers("/documents/**", "/conversations/**", "/agent/**").hasRole("USER")
+                        .requestMatchers("/documents/**", "/conversations/**", "/agent/**", "/review-submissions/**").hasRole("USER")
                         .requestMatchers("/auth/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -76,6 +76,24 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
         return new PageResult<>(items, safePage, safeSize, result.getTotal());
     }
 
+    @Override
+    public PageResult<DocumentDetail> listReviewDocuments(UUID ownerUserId, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = clamp(size, 1, 100);
+        LambdaQueryWrapper<DocumentEntity> wrapper = new LambdaQueryWrapper<DocumentEntity>()
+                .eq(DocumentEntity::getOwnerUserId, ownerUserId)
+                .isNull(DocumentEntity::getDeletedAt)
+                .ne(DocumentEntity::getStatus, "DELETED")
+                .orderByDesc(DocumentEntity::getUpdatedAt)
+                .orderByDesc(DocumentEntity::getCreatedAt);
+        applySourceTypeFilter(wrapper, MetadataKeys.SOURCE_TYPE_REVIEW);
+        Page<DocumentEntity> result = documentMapper.selectPage(new Page<>(safePage + 1L, safeSize), wrapper);
+        List<DocumentDetail> items = result.getRecords().stream()
+                .map(this::toDocumentDetail)
+                .toList();
+        return new PageResult<>(items, safePage, safeSize, result.getTotal());
+    }
+
     /**
      * 按来源 ID 查询文档详情。
      *

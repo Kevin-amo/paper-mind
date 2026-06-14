@@ -6,6 +6,7 @@ import ChatSidebar from '../components/chat/ChatSidebar.vue';
 import RagChatWorkspace from '../components/chat/RagChatWorkspace.vue';
 import DocumentLibraryDrawer from '../components/documents/DocumentLibraryDrawer.vue';
 import DocumentDetailDrawer from '../components/documents/DocumentDetailDrawer.vue';
+import ReviewSubmissionDrawer from '../components/review-submissions/ReviewSubmissionDrawer.vue';
 import AccountManagementDialog from '../components/user/AccountManagementDialog.vue';
 import { getErrorMessage } from '../api/http';
 import { useAuth } from '../composables/useAuth';
@@ -14,13 +15,16 @@ import { useDocuments } from '../composables/useDocuments';
 import { useConversations } from '../composables/useConversations';
 import { useAgentChat } from '../composables/useAgentChat';
 import { useChatUpload } from '../composables/useChatUpload';
+import { useReviewSubmissions } from '../composables/useReviewSubmissions';
 import type { ConversationMessage } from '../types';
 
 const router = useRouter();
 const auth = useAuth();
 const documentsState = useDocuments();
+const reviewSubmissionsState = useReviewSubmissions();
 const conversationsState = useConversations();
 const documentLibraryVisible = ref(false);
+const reviewSubmissionsVisible = ref(false);
 const accountManagementVisible = ref(false);
 const avatarUploading = ref(false);
 const displayNameChanging = ref(false);
@@ -111,6 +115,10 @@ function handleFileInputChange(event: Event) {
   }
   chatUpload.uploadFiles(fileList);
   target.value = '';
+}
+
+async function handleReviewSubmissionUpload(file: File) {
+  await reviewSubmissionsState.submitFile(file);
 }
 
 async function handleAvatarUpload(file: File) {
@@ -217,6 +225,7 @@ onMounted(async () => {
       @delete-conversation="conversationsState.removeConversation"
       @rename-conversation="conversationsState.renameConversation"
       @open-documents="documentLibraryVisible = true"
+      @open-review-submissions="reviewSubmissionsVisible = true"
       @go-admin="router.push('/admin')"
       @open-account-management="accountManagementVisible = true"
       @logout="handleLogout"
@@ -255,6 +264,19 @@ onMounted(async () => {
       @delete="documentsState.removeDocument"
       @delete-all="documentsState.removeAllDocuments"
       @upload="handleSelectFiles"
+    />
+
+    <ReviewSubmissionDrawer
+      v-model="reviewSubmissionsVisible"
+      :submissions="reviewSubmissionsState.submissions.value"
+      :loading="reviewSubmissionsState.loading.value"
+      :uploading="reviewSubmissionsState.uploading.value"
+      :page="reviewSubmissionsState.pagination.page"
+      :size="reviewSubmissionsState.pagination.size"
+      :total="reviewSubmissionsState.pagination.total"
+      @upload="handleReviewSubmissionUpload"
+      @refresh="reviewSubmissionsState.loadSubmissions(0)"
+      @page-change="reviewSubmissionsState.loadSubmissions"
     />
 
     <AccountManagementDialog
