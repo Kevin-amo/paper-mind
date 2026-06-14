@@ -3,6 +3,7 @@ package com.lqr.papermind.review.service;
 import com.lqr.papermind.document.dto.PageResponse;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
+import com.lqr.papermind.review.dto.ReviewAuditLogResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewCriterionRequest;
 import com.lqr.papermind.review.dto.ReviewCriterionResponse;
@@ -185,4 +186,14 @@ public interface ReviewService {
      * @return 更新后的评审标准
      */
     ReviewCriterionResponse updateCriterion(UUID id, ReviewCriterionRequest request);
+
+    /**
+     * 查询指定任务的操作审计日志列表
+     *
+     * @param currentUserId 当前用户ID
+     * @param admin         是否为管理员
+     * @param taskId        任务ID
+     * @return 审计日志列表
+     */
+    List<ReviewAuditLogResponse> listAuditLogs(UUID currentUserId, boolean admin, UUID taskId);
 }

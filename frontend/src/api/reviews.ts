@@ -6,6 +6,7 @@ import type {
   ListReviewTasksParams,
   PageResponse,
   PaperStructuredParse,
+  ReviewAuditLog,
   ReviewCriterion,
   ReviewAssignment,
   ReviewConsensus,
@@ -130,5 +131,10 @@ export async function updateReviewConsensus(taskId: string, payload: UpdateRevie
 
 export async function confirmReviewConsensus(taskId: string) {
   const { data } = await http.post<ReviewConsensus>(`/reviews/tasks/${taskId}/consensus/confirm`);
+  return data;
+}
+
+export async function listAuditLogs(taskId: string) {
+  const { data } = await http.get<ReviewAuditLog[]>(`/reviews/tasks/${taskId}/audit-logs`);
   return data;
 }

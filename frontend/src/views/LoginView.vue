@@ -92,7 +92,7 @@ function validateRegisterForm() {
 
 async function handleLogin() {
   if (!loginForm.username.trim() || !loginForm.password) {
-    ElMessage.warning('请输入用户名和密码');
+    ElMessage.warning('请输入用户名或密码');
     return;
   }
   loginLoading.value = true;

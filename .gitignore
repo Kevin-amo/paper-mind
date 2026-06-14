@@ -43,7 +43,7 @@ frontend/.env.local
 ### AI skills ###
 .codex/
 .cursor/
-.claude/
+.mimocode/
 .agent/
 .agents/
 .superpowers/

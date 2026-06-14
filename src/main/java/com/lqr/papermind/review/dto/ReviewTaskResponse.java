@@ -11,45 +11,45 @@ import java.util.UUID;
  * 审阅任务的响应DTO，包含任务基本信息、关联文档、审阅报告及分配信息。
  */
 public record ReviewTaskResponse(
-        /** 任务唯一标识 */
+        /* 任务唯一标识 */
         UUID id,
-        /** 关联文档ID */
+        /* 关联文档ID */
         UUID documentId,
-        /** 提交者用户ID */
+        /* 提交者用户ID */
         UUID submitterUserId,
-        /** 所属评审批次ID */
+        /* 所属评审批次ID */
         UUID batchId,
-        /** 所属评审小组ID */
+        /* 所属评审小组ID */
         UUID groupId,
-        /** 分配人用户ID */
+        /* 分配人用户ID */
         UUID assignedByUserId,
-        /** 评审小组组长用户ID */
+        /* 评审小组组长用户ID */
         UUID leaderUserId,
-        /** 当前审阅者用户ID */
+        /* 当前审阅者用户ID */
         UUID reviewerUserId,
-        /** 论文来源标识 */
+        /* 论文来源标识 */
         String sourceId,
-        /** 论文标题 */
+        /* 论文标题 */
         String title,
-        /** 任务状态，如PENDING、IN_PROGRESS、COMPLETED等 */
+        /* 任务状态，如PENDING、IN_PROGRESS、COMPLETED等 */
         String status,
-        /** 分配时间 */
+        /* 分配时间 */
         OffsetDateTime assignedAt,
-        /** 截止时间 */
+        /* 截止时间 */
         OffsetDateTime dueAt,
-        /** 完成时间 */
+        /* 完成时间 */
         OffsetDateTime completedAt,
-        /** 创建时间 */
+        /* 创建时间 */
         OffsetDateTime createdAt,
-        /** 更新时间 */
+        /* 更新时间 */
         OffsetDateTime updatedAt,
-        /** 关联文档详情 */
+        /* 关联文档详情 */
         DocumentDetailResponse document,
-        /** 审阅报告 */
+        /* 审阅报告 */
         ReviewReportResponse report,
-        /** 当前分配信息 */
+        /* 当前分配信息 */
         ReviewAssignmentResponse currentAssignment,
-        /** 历史分配记录列表 */
+        /* 历史分配记录列表 */
         List<ReviewAssignmentResponse> assignments
 ) {
     /**

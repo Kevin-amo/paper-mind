@@ -27,8 +27,10 @@ import com.lqr.papermind.review.mapper.ReviewReportMapper;
 import com.lqr.papermind.review.mapper.ReviewTaskMapper;
 import com.lqr.papermind.review.model.ReviewAssignmentStatuses;
 import com.lqr.papermind.review.model.ReviewTaskStatuses;
+import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.review.risk.ReferenceFormatChecker;
 import com.lqr.papermind.review.risk.ReviewRiskService;
+import com.lqr.papermind.review.service.ReviewConsensusService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -124,6 +126,7 @@ class ReviewServiceImplTest {
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
                 mock(ReviewRiskService.class),
+                null,
                 objectMapper
         );
 
@@ -356,6 +359,7 @@ class ReviewServiceImplTest {
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
                 mock(ReviewRiskService.class),
+                null,
                 objectMapper
         );
 
@@ -397,6 +401,7 @@ class ReviewServiceImplTest {
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
                 mock(ReviewRiskService.class),
+                null,
                 new ObjectMapper()
         );
         ReviewTaskEntity task = task(taskId, null);
@@ -445,6 +450,7 @@ class ReviewServiceImplTest {
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
                 mock(ReviewRiskService.class),
+                null,
                 new ObjectMapper()
         );
         ReviewTaskEntity task = task(taskId, null);
@@ -502,6 +508,7 @@ class ReviewServiceImplTest {
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
                 reviewRiskService,
+                null,
                 new ObjectMapper()
         );
         ReviewTaskEntity task = task(taskId, null);
@@ -570,6 +577,7 @@ class ReviewServiceImplTest {
                 new ReferenceFormatChecker(),
                 reviewAuditService,
                 mock(ReviewRiskService.class),
+                null,
                 objectMapper
         );
         UUID assignmentId = UUID.randomUUID();
@@ -896,6 +904,7 @@ class ReviewServiceImplTest {
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
                 riskService,
+                null,
                 new ObjectMapper()
         );
     }
@@ -928,6 +937,7 @@ class ReviewServiceImplTest {
                 referenceFormatChecker,
                 auditService,
                 riskService,
+                null,
                 new ObjectMapper()
         );
     }

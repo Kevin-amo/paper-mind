@@ -197,7 +197,7 @@ onMounted(async () => {
             </el-tab-pane>
 
             <el-tab-pane label="留档信息" name="audit">
-              <ReviewAuditTab :selected-report="selectedReport" />
+              <ReviewAuditTab :selected-report="selectedReport" :task-id="selectedTask?.id ?? null" />
             </el-tab-pane>
           </el-tabs>
         </template>

@@ -1,5 +1,6 @@
 package com.lqr.papermind.review.audit;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.mapper.ReviewAuditLogMapper;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -50,6 +52,20 @@ public class ReviewAuditService {
         log.setClientInfo(clientInfo);
         log.setCreatedAt(OffsetDateTime.now());
         mapper.insert(log);
+    }
+
+    /**
+     * 查询指定任务的操作审计日志列表，按创建时间倒序排列。
+     *
+     * @param taskId 关联的评审任务ID
+     * @return 审计日志列表
+     */
+    public List<ReviewAuditLogEntity> listByTaskId(UUID taskId) {
+        return mapper.selectList(
+                new LambdaQueryWrapper<ReviewAuditLogEntity>()
+                        .eq(ReviewAuditLogEntity::getTaskId, taskId)
+                        .orderByDesc(ReviewAuditLogEntity::getCreatedAt)
+        );
     }
 
     /**

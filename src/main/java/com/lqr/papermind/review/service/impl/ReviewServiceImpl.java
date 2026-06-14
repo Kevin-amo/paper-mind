@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lqr.papermind.ai.service.LlmService;
 import com.lqr.papermind.ai.service.PromptConstructionService;
+import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.common.constant.MetadataKeys;
 import com.lqr.papermind.document.dto.DocumentDetailResponse;
 import com.lqr.papermind.document.dto.PageResponse;
@@ -16,6 +17,7 @@ import com.lqr.papermind.document.service.DocumentPersistenceService;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.document.structured.service.PaperStructuredParseService;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
+import com.lqr.papermind.review.dto.ReviewAuditLogResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewCriterionRequest;
@@ -47,12 +49,14 @@ import com.lqr.papermind.review.service.ReviewAssignmentService;
 import com.lqr.papermind.review.service.ReviewConsensusService;
 import com.lqr.papermind.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -70,6 +74,10 @@ public class ReviewServiceImpl implements ReviewService {
     private static final int MAX_PAGE_SIZE = 100;
     private static final int PAPER_TEXT_LIMIT = 10000;
     private static final ZoneId REVIEW_ZONE = ZoneId.of("Asia/Shanghai");
+    private static final String PROMPT_VERSION = "1.0";
+
+    @Value("${spring.ai.dashscope.chat.options.model:unknown}")
+    private String chatModelName;
 
     private final ReviewTaskMapper taskMapper;
     private final ReviewReportMapper reportMapper;
@@ -86,6 +94,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReferenceFormatChecker referenceFormatChecker;
     private final ReviewAuditService reviewAuditService;
     private final ReviewRiskService reviewRiskService;
+    private final SysUserMapper userMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -293,6 +302,10 @@ public class ReviewServiceImpl implements ReviewService {
         report.setTotalScore(intValue(parsed.get("totalScore"), calculateTotalScore(parsed.get("scores"))));
         report.setFinalRecommendation(stringValue(parsed.get("finalRecommendation"), "建议人工复核后进入下一评审环节"));
         report.setStatus("AI_GENERATED");
+        report.setModelVersion(chatModelName);
+        report.setPromptVersion(PROMPT_VERSION);
+        report.setCriterionVersion(extractCriterionVersion(criteria));
+        report.setConfidence(calculateOverallConfidence(parsed));
         report.setGeneratedAt(now);
         report.setUpdatedAt(now);
         if (creating) {
@@ -596,6 +609,33 @@ public class ReviewServiceImpl implements ReviewService {
         entity.setUpdatedAt(OffsetDateTime.now());
         criterionMapper.updateById(entity);
         return ReviewCriterionResponse.from(criterionMapper.selectById(id));
+    }
+
+    /**
+     * 查询指定任务的操作审计日志列表
+     */
+    @Override
+    public List<ReviewAuditLogResponse> listAuditLogs(UUID currentUserId, boolean admin, UUID taskId) {
+        requireAccessibleTask(currentUserId, admin, taskId);
+        List<ReviewAuditLogEntity> logs = reviewAuditService.listByTaskId(taskId);
+        return logs.stream()
+                .map(log -> {
+                    String username = null;
+                    String displayName = null;
+                    if (log.getOperatorUserId() != null) {
+                        try {
+                            var user = userMapper.selectById(log.getOperatorUserId());
+                            if (user != null) {
+                                username = user.getUsername();
+                                displayName = user.getDisplayName();
+                            }
+                        } catch (Exception ignored) {
+                            // fallback: leave username/displayName as null
+                        }
+                    }
+                    return ReviewAuditLogResponse.from(log, username, displayName);
+                })
+                .toList();
     }
 
     /**
@@ -995,6 +1035,43 @@ public class ReviewServiceImpl implements ReviewService {
                 "riskOverridden", !Objects.equals(before.get("risks"), after.get("risks")),
                 "finalRecommendationChanged", !Objects.equals(before.get("finalRecommendation"), after.get("finalRecommendation"))
         );
+    }
+
+    /**
+     * 从评审标准列表中提取指标版本号。
+     * 取所有启用指标中的最大版本号作为当前指标体系版本。
+     */
+    private Integer extractCriterionVersion(List<ReviewCriterionResponse> criteria) {
+        return criteria.stream()
+                .map(ReviewCriterionResponse::version)
+                .max(Integer::compareTo)
+                .orElse(1);
+    }
+
+    /**
+     * 计算报告整体置信度。
+     * 取各评分项 confidence 的加权平均值，若无则返回 null。
+     */
+    private BigDecimal calculateOverallConfidence(Map<String, Object> parsed) {
+        Object scoresObj = parsed.get("scores");
+        if (!(scoresObj instanceof List<?> scoreList) || scoreList.isEmpty()) {
+            return null;
+        }
+        double sum = 0.0;
+        int count = 0;
+        for (Object item : scoreList) {
+            if (item instanceof Map<?, ?> scoreMap) {
+                Object conf = scoreMap.get("confidence");
+                if (conf instanceof Number n) {
+                    sum += n.doubleValue();
+                    count++;
+                }
+            }
+        }
+        if (count == 0) {
+            return null;
+        }
+        return BigDecimal.valueOf(sum / count).setScale(4, java.math.RoundingMode.HALF_UP);
     }
 
     /**

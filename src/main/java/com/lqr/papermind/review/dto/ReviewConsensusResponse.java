@@ -7,41 +7,41 @@ import java.util.List;
 import java.util.UUID;
 
 public record ReviewConsensusResponse(
-        /** 共识记录唯一标识 */
+        /* 共识记录唯一标识 */
         UUID id,
-        /** 关联任务ID */
+        /* 关联任务ID */
         UUID taskId,
-        /** 主审阅者（组长）用户ID */
+        /* 主审阅者（组长）用户ID */
         UUID leadReviewerUserId,
-        /** 主审阅者用户名 */
+        /* 主审阅者用户名 */
         String leadReviewerUsername,
-        /** 主审阅者显示名称 */
+        /* 主审阅者显示名称 */
         String leadReviewerDisplayName,
-        /** 确认人用户ID */
+        /* 确认人用户ID */
         UUID confirmedByUserId,
-        /** 确认人用户名 */
+        /* 确认人用户名 */
         String confirmedByUsername,
-        /** 确认人显示名称 */
+        /* 确认人显示名称 */
         String confirmedByDisplayName,
-        /** 各审阅者评分汇总 */
+        /* 各审阅者评分汇总 */
         Object scoreSummary,
-        /** 各审阅者意见汇总 */
+        /* 各审阅者意见汇总 */
         Object commentSummary,
-        /** 审阅意见分歧项列表 */
+        /* 审阅意见分歧项列表 */
         Object disagreementItems,
-        /** 最终综合评分 */
+        /* 最终综合评分 */
         Integer finalScore,
-        /** 最终推荐意见 */
+        /* 最终推荐意见 */
         String finalRecommendation,
-        /** 共识状态，如PENDING、CONFIRMED等 */
+        /* 共识状态，如PENDING、CONFIRMED等 */
         String status,
-        /** 确认时间 */
+        /* 确认时间 */
         OffsetDateTime confirmedAt,
-        /** 创建时间 */
+        /* 创建时间 */
         OffsetDateTime createdAt,
-        /** 更新时间 */
+        /* 更新时间 */
         OffsetDateTime updatedAt,
-        /** 已提交的审阅报告列表 */
+        /* 已提交的审阅报告列表 */
         List<ReviewReportResponse> submittedReports
 ) {
     /**

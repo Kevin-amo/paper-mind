@@ -10,29 +10,29 @@ import java.util.UUID;
  * 审阅任务分配的响应DTO，包含分配详情及审阅者信息。
  */
 public record ReviewAssignmentResponse(
-        /** 分配记录唯一标识 */
+        /* 分配记录唯一标识 */
         UUID id,
-        /** 关联任务ID */
+        /* 关联任务ID */
         UUID taskId,
-        /** 审阅者用户ID */
+        /* 审阅者用户ID */
         UUID reviewerUserId,
-        /** 审阅者用户名 */
+        /* 审阅者用户名 */
         String reviewerUsername,
-        /** 审阅者显示名称 */
+        /* 审阅者显示名称 */
         String reviewerDisplayName,
-        /** 审阅角色，如LEAD、REVIEWER */
+        /* 审阅角色，如LEAD、REVIEWER */
         String role,
-        /** 分配状态，如ASSIGNED、SUBMITTED等 */
+        /* 分配状态，如ASSIGNED、SUBMITTED等 */
         String status,
-        /** 分配时间 */
+        /* 分配时间 */
         OffsetDateTime assignedAt,
-        /** 截止时间 */
+        /* 截止时间 */
         OffsetDateTime dueAt,
-        /** 提交时间 */
+        /* 提交时间 */
         OffsetDateTime submittedAt,
-        /** 创建时间 */
+        /* 创建时间 */
         OffsetDateTime createdAt,
-        /** 更新时间 */
+        /* 更新时间 */
         OffsetDateTime updatedAt
 ) {
     /**

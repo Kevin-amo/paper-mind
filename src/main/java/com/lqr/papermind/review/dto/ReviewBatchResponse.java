@@ -9,23 +9,23 @@ import java.util.UUID;
  * 审阅批次响应DTO，包含批次基本信息及时间范围。
  */
 public record ReviewBatchResponse(
-        /** 批次唯一标识 */
+        /* 批次唯一标识 */
         UUID id,
-        /** 批次名称 */
+        /* 批次名称 */
         String name,
-        /** 批次描述 */
+        /* 批次描述 */
         String description,
-        /** 批次状态 */
+        /* 批次状态 */
         String status,
-        /** 开始时间 */
+        /* 开始时间 */
         OffsetDateTime startsAt,
-        /** 结束时间 */
+        /* 结束时间 */
         OffsetDateTime endsAt,
-        /** 创建者用户ID */
+        /* 创建者用户ID */
         UUID createdByUserId,
-        /** 创建时间 */
+        /* 创建时间 */
         OffsetDateTime createdAt,
-        /** 更新时间 */
+        /* 更新时间 */
         OffsetDateTime updatedAt
 ) {
     /**

@@ -9,6 +9,7 @@ import com.lqr.papermind.document.entity.DocumentIngestionJob;
 import com.lqr.papermind.document.service.DocumentUploadWorkflowService;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
+import com.lqr.papermind.review.dto.ReviewAuditLogResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewCriterionRequest;
@@ -368,6 +369,20 @@ public class ReviewController {
                                                    @Valid @RequestBody ReviewCriterionRequest request) {
         requireAdmin(principal);
         return reviewService.updateCriterion(id, request);
+    }
+
+    /**
+     * 查询评审任务的操作审计日志
+     *
+     * @param principal 当前认证用户
+     * @param taskId    评审任务ID
+     * @return 审计日志列表
+     */
+    @GetMapping("/tasks/{taskId}/audit-logs")
+    public List<ReviewAuditLogResponse> listAuditLogs(@AuthenticationPrincipal SecurityUserPrincipal principal,
+                                                       @PathVariable UUID taskId) {
+        requireReviewer(principal);
+        return reviewService.listAuditLogs(principal.getId(), isAdmin(principal), taskId);
     }
 
     /**

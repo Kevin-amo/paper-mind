@@ -9,33 +9,33 @@ import java.util.UUID;
  * 审阅指标响应DTO，包含指标的完整信息及默认值。
  */
 public record ReviewCriterionResponse(
-        /** 指标唯一标识 */
+        /* 指标唯一标识 */
         UUID id,
-        /** 指标编码 */
+        /* 指标编码 */
         String code,
-        /** 指标名称 */
+        /* 指标名称 */
         String name,
-        /** 指标描述说明 */
+        /* 指标描述说明 */
         String description,
-        /** 最高分值，默认100 */
+        /* 最高分值，默认100 */
         int maxScore,
-        /** 权重，默认20 */
+        /* 权重，默认20 */
         int weight,
-        /** 版本号，默认1 */
+        /* 版本号，默认1 */
         int version,
-        /** 指标分类 */
+        /* 指标分类 */
         String category,
-        /** 是否要求提供证据，默认true */
+        /* 是否要求提供证据，默认true */
         boolean evidenceRequired,
-        /** 评分规则 */
+        /* 评分规则 */
         Object scoringRules,
-        /** 是否启用，默认true */
+        /* 是否启用，默认true */
         boolean enabled,
-        /** 排序序号，默认0 */
+        /* 排序序号，默认0 */
         int sortOrder,
-        /** 创建时间 */
+        /* 创建时间 */
         OffsetDateTime createdAt,
-        /** 更新时间 */
+        /* 更新时间 */
         OffsetDateTime updatedAt
 ) {
     /**

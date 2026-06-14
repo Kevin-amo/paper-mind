@@ -11,33 +11,33 @@ import java.util.UUID;
  * 审阅风险项响应DTO，包含风险类型、等级、证据及处理状态等完整信息。
  */
 public record ReviewRiskItemResponse(
-        /** 风险项唯一标识 */
+        /* 风险项唯一标识 */
         UUID id,
-        /** 关联报告ID */
+        /* 关联报告ID */
         UUID reportId,
-        /** 关联任务ID */
+        /* 关联任务ID */
         UUID taskId,
-        /** 风险类型，如抄袭、数据造假等 */
+        /* 风险类型，如抄袭、数据造假等 */
         String riskType,
-        /** 风险等级，如HIGH、MEDIUM、LOW */
+        /* 风险等级，如HIGH、MEDIUM、LOW */
         String riskLevel,
-        /** 风险证据描述 */
+        /* 风险证据描述 */
         String evidence,
-        /** 证据位置信息，包含章节、页码等 */
+        /* 证据位置信息，包含章节、页码等 */
         Map<String, Object> evidenceLocation,
-        /** 处理建议 */
+        /* 处理建议 */
         String suggestion,
-        /** 检测器标识，如AI检测、人工标注等 */
+        /* 检测器标识，如AI检测、人工标注等 */
         String detector,
-        /** 置信度 */
+        /* 置信度 */
         BigDecimal confidence,
-        /** 风险状态，如OPEN、CONFIRMED、IGNORED、RESOLVED */
+        /* 风险状态，如OPEN、CONFIRMED、IGNORED、RESOLVED */
         String status,
-        /** 审阅者备注 */
+        /* 审阅者备注 */
         String reviewerNote,
-        /** 创建时间 */
+        /* 创建时间 */
         OffsetDateTime createdAt,
-        /** 更新时间 */
+        /* 更新时间 */
         OffsetDateTime updatedAt
 ) {
     /**

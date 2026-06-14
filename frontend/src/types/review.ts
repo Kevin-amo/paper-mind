@@ -269,6 +269,20 @@ export interface ReviewReport {
   updatedAt: string;
 }
 
+export interface ReviewAuditLog {
+  id: string;
+  taskId: string;
+  operatorUserId: string | null;
+  operatorUsername: string | null;
+  operatorDisplayName: string | null;
+  action: string;
+  note: string | null;
+  beforeSnapshot: Record<string, unknown> | null;
+  afterSnapshot: Record<string, unknown> | null;
+  diff: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export interface ReviewTask {
   id: string;
   documentId: string;
