@@ -7,7 +7,7 @@ import com.lqr.papermind.agent.core.AgentStep;
 import com.lqr.papermind.agent.dto.AgentStreamEvent;
 import com.lqr.papermind.agent.paper.CitationNormalizer;
 import com.lqr.papermind.agent.tool.AgentToolResult;
-import com.lqr.papermind.agent.service.AgentLoop;
+import com.lqr.papermind.agent.core.AgentLoop;
 import com.lqr.papermind.agent.planning.AgentHybridTaskPolicy;
 import com.lqr.papermind.agent.planning.AgentPlanner;
 import com.lqr.papermind.agent.tool.AgentTool;

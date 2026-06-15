@@ -300,9 +300,6 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
 
     /**
      * 验证指定用户是否为有效的小组评审员
-     *
-     * @param groupId    评审小组ID
-     * @param reviewerId 评审员用户ID
      */
     private ReviewGroupEntity requireAdminOverrideGroup(ReviewTaskEntity task, UUID requestedGroupId) {
         UUID effectiveGroupId = task.getGroupId() == null ? requestedGroupId : task.getGroupId();

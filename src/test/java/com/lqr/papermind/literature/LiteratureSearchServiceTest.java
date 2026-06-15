@@ -8,6 +8,7 @@ import com.lqr.papermind.literature.model.LiteratureSearchRequest;
 import com.lqr.papermind.literature.model.LiteratureSearchResponse;
 import com.lqr.papermind.literature.model.LiteratureSearchResult;
 import com.lqr.papermind.literature.service.LiteratureSearchService;
+import com.lqr.papermind.literature.service.impl.LiteratureSearchServiceImpl;
 import com.lqr.papermind.literature.support.LiteratureSearchCache;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +42,7 @@ class LiteratureSearchServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new LiteratureSearchService(searchProperties(true, true), openAlexLiteratureClient, testCache());
+        service = new LiteratureSearchServiceImpl(searchProperties(true, true), openAlexLiteratureClient, testCache());
     }
 
     @Test
@@ -152,7 +153,7 @@ class LiteratureSearchServiceTest {
 
     @Test
     void searchShouldFailClearlyWhenOpenAlexDisabled() {
-        LiteratureSearchService disabledService = new LiteratureSearchService(searchProperties(false, true), openAlexLiteratureClient, testCache());
+        LiteratureSearchService disabledService = new LiteratureSearchServiceImpl(searchProperties(false, true), openAlexLiteratureClient, testCache());
 
         assertThatThrownBy(() -> disabledService.search(new LiteratureSearchRequest("Graph RAG", null, null, null, null)))
                 .isInstanceOf(LiteratureSearchException.class)
@@ -245,7 +246,7 @@ class LiteratureSearchServiceTest {
         when(guardedCache.get(any())).thenReturn(Optional.empty());
         when(guardedCache.tryAcquireLock(any(), any())).thenReturn(Optional.of(lockHandle));
         when(openAlexLiteratureClient.search(any(), anyInt(), anyString(), any())).thenReturn(List.of(result));
-        LiteratureSearchService guardedService = new LiteratureSearchService(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
+        LiteratureSearchService guardedService = new LiteratureSearchServiceImpl(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
 
         LiteratureSearchResponse response = guardedService.search(new LiteratureSearchRequest("Graph RAG", 10, null, null, "relevance"));
 
@@ -261,7 +262,7 @@ class LiteratureSearchServiceTest {
         LiteratureSearchResponse cachedResponse = new LiteratureSearchResponse(List.of(openAlexResult("Cached Graph RAG")));
         when(guardedCache.get(any())).thenReturn(Optional.empty(), Optional.of(cachedResponse));
         when(guardedCache.tryAcquireLock(any(), any())).thenReturn(Optional.of(lockHandle));
-        LiteratureSearchService guardedService = new LiteratureSearchService(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
+        LiteratureSearchService guardedService = new LiteratureSearchServiceImpl(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
 
         LiteratureSearchResponse response = guardedService.search(new LiteratureSearchRequest("Graph RAG", 10, null, null, "relevance"));
 
@@ -279,7 +280,7 @@ class LiteratureSearchServiceTest {
         when(guardedCache.get(any())).thenReturn(Optional.empty());
         when(guardedCache.tryAcquireLock(any(), any())).thenReturn(Optional.of(lockHandle));
         when(openAlexLiteratureClient.search(any(), anyInt(), anyString(), any())).thenReturn(List.of(result));
-        LiteratureSearchService guardedService = new LiteratureSearchService(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
+        LiteratureSearchService guardedService = new LiteratureSearchServiceImpl(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
 
         LiteratureSearchResponse response = guardedService.search(new LiteratureSearchRequest("Graph RAG", 10, null, null, "relevance"));
 
@@ -295,7 +296,7 @@ class LiteratureSearchServiceTest {
         LiteratureSearchResponse cachedResponse = new LiteratureSearchResponse(List.of(openAlexResult("Cached Graph RAG")));
         when(guardedCache.get(any())).thenReturn(Optional.empty(), Optional.of(cachedResponse));
         when(guardedCache.tryAcquireLock(any(), any())).thenReturn(Optional.empty());
-        LiteratureSearchService guardedService = new LiteratureSearchService(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
+        LiteratureSearchService guardedService = new LiteratureSearchServiceImpl(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
 
         LiteratureSearchResponse response = guardedService.search(new LiteratureSearchRequest("Graph RAG", 10, null, null, "relevance"));
 
@@ -311,7 +312,7 @@ class LiteratureSearchServiceTest {
         when(guardedCache.get(any())).thenReturn(Optional.empty());
         when(guardedCache.tryAcquireLock(any(), any())).thenReturn(Optional.empty());
         when(openAlexLiteratureClient.search(any(), anyInt(), anyString(), any())).thenReturn(List.of(result));
-        LiteratureSearchService guardedService = new LiteratureSearchService(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
+        LiteratureSearchService guardedService = new LiteratureSearchServiceImpl(searchProperties(true, true), openAlexLiteratureClient, guardedCache);
 
         LiteratureSearchResponse response = guardedService.search(new LiteratureSearchRequest("Graph RAG", 10, null, null, "relevance"));
 

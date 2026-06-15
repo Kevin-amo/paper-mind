@@ -1,9 +1,10 @@
-package com.lqr.papermind.agent.application;
+package com.lqr.papermind.agent.service.impl;
 
+import com.lqr.papermind.agent.core.AgentLoop;
 import com.lqr.papermind.agent.dto.AgentAskRequest;
 import com.lqr.papermind.agent.dto.AgentStreamEvent;
 import com.lqr.papermind.agent.planning.AgentPlanner;
-import com.lqr.papermind.agent.service.AgentLoop;
+import com.lqr.papermind.agent.service.AgentChatService;
 import com.lqr.papermind.common.logging.LogSanitizer;
 import com.lqr.papermind.conversation.service.ConversationService;
 import com.lqr.papermind.literature.model.LiteratureSearchContext;
@@ -21,7 +22,7 @@ import java.util.function.Consumer;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AgentChatService {
+public class AgentChatServiceImpl implements AgentChatService {
 
     private final ConversationService conversationService;
     private final AgentLoop agentLoop;
@@ -35,6 +36,7 @@ public class AgentChatService {
      * @param request     智能体问答请求
      * @return 智能体流式事件
      */
+    @Override
     public Flux<AgentStreamEvent> streamAnswer(UUID ownerUserId, AgentAskRequest request) {
         return Flux.<AgentStreamEvent>create(sink -> {
             UUID activeConversationId = request.conversationId();

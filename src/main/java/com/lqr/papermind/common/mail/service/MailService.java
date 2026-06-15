@@ -1,4 +1,4 @@
-package com.lqr.papermind.mail.service;
+package com.lqr.papermind.common.mail.service;
 
 import java.time.Duration;
 

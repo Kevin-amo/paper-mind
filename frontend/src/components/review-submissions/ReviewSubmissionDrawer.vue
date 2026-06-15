@@ -30,7 +30,7 @@ function beforeUpload(file: File) {
 <template>
   <el-drawer
     :model-value="props.modelValue"
-    title="我的评审投稿"
+    title="我的投稿"
     size="720px"
     destroy-on-close
     @update:model-value="emit('update:modelValue', $event)"

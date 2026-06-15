@@ -1,4 +1,4 @@
-package com.lqr.papermind.mail.config;
+package com.lqr.papermind.common.mail.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

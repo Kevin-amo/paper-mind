@@ -36,7 +36,7 @@ class RerankServiceImplTest {
         server.expect(requestTo("https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"))
                 .andExpect(method(POST))
                 .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer test-key"))
-                .andExpect(jsonPath("$.model").value("gte-rerank-v2"))
+                .andExpect(jsonPath("$.model").value("qwen3-rerank"))
                 .andExpect(jsonPath("$.input.query").value("query text"))
                 .andExpect(jsonPath("$.input.documents[0]").value("first content"))
                 .andExpect(jsonPath("$.input.documents[1]").value("second content"))

@@ -1,11 +1,12 @@
 package com.lqr.papermind.agent;
 
+import com.lqr.papermind.agent.core.AgentLoop;
 import com.lqr.papermind.agent.dto.AgentAskRequest;
 import com.lqr.papermind.agent.dto.AgentStreamEvent;
-import com.lqr.papermind.agent.application.AgentChatService;
 import com.lqr.papermind.agent.core.AgentStep;
-import com.lqr.papermind.agent.service.AgentLoop;
 import com.lqr.papermind.agent.planning.AgentPlanner;
+import com.lqr.papermind.agent.service.AgentChatService;
+import com.lqr.papermind.agent.service.impl.AgentChatServiceImpl;
 import com.lqr.papermind.common.model.AnswerCitation;
 import com.lqr.papermind.conversation.service.ConversationService;
 import com.lqr.papermind.literature.support.LiteratureSearchContextResolver;
@@ -38,7 +39,8 @@ class AgentServiceTest {
     private final AgentLoop agentLoop = mock(AgentLoop.class);
     private final AgentPlanner planner = mock(AgentPlanner.class);
     private final LiteratureSearchContextResolver literatureSearchContextResolver = mock(LiteratureSearchContextResolver.class);
-    private final AgentChatService service = new AgentChatService(conversationService, agentLoop, planner, literatureSearchContextResolver);
+    private final AgentChatService service =
+            new AgentChatServiceImpl(conversationService, agentLoop, planner, literatureSearchContextResolver);
 
     /**
      * 验证流式问答会输出实时事件、拼接最终回答并持久化助手消息。

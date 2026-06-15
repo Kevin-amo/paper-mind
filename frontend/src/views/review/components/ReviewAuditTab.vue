@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { formatJson } from '../../../utils/format';
 import { listAuditLogs } from '../../../api/reviews';
 import { getErrorMessage } from '../../../api/http';
 import { ElMessage } from 'element-plus';
@@ -19,9 +18,14 @@ const actionLabels: Record<string, string> = {
   AI_REVIEW: '生成 AI 评审',
   ADJUST_REPORT: '人工调整报告',
   ASSIGN: '分配评审人',
+  ASSIGN_BY_ADMIN_OVERRIDE: '管理员兜底分配',
+  ASSIGN_BY_LEADER: '组长分配本组评审任务',
+  JOIN_REVIEW_BY_LEADER: '组长加入本组评审任务',
+  DISPATCH_TO_GROUP: '管理员派发评审任务到小组',
   RETURN: '退回评审',
   CANCEL_ASSIGNMENT: '取消分配',
   SUBMIT: '提交评审',
+  SUBMIT_ASSIGNMENT: '提交个人评审任务',
   UPDATE_CONSENSUS: '更新共识',
   CONFIRM_CONSENSUS: '确认共识',
   RECALCULATE_CONSENSUS: '重新计算共识',
@@ -69,29 +73,13 @@ watch(() => props.taskId, loadAuditLogs);
   <section class="detail-section">
     <div class="section-header">
       <h3>评审留档信息</h3>
-      <p>模型、提示词、指标版本与人工调整记录</p>
+      <p>模型与评审操作记录</p>
     </div>
     <div v-if="selectedReport" class="audit-grid">
       <article>
         <span>模型版本</span>
         <strong>{{ selectedReport.modelVersion || '-' }}</strong>
       </article>
-      <article>
-        <span>Prompt 版本</span>
-        <strong>{{ selectedReport.promptVersion || '-' }}</strong>
-      </article>
-      <article>
-        <span>指标版本</span>
-        <strong>{{ selectedReport.criterionVersion ?? '-' }}</strong>
-      </article>
-      <article>
-        <span>置信度</span>
-        <strong>{{ selectedReport.confidence != null ? (selectedReport.confidence * 100).toFixed(1) + '%' : '-' }}</strong>
-      </article>
-    </div>
-    <div v-if="selectedReport?.manualDelta && Object.keys(selectedReport.manualDelta).length > 0" class="manual-delta-section">
-      <h4>人工调整记录</h4>
-      <pre class="manual-delta">{{ formatJson(selectedReport.manualDelta) }}</pre>
     </div>
     <el-empty v-if="!selectedReport" description="生成辅助评审后展示留档信息" />
 
@@ -110,10 +98,6 @@ watch(() => props.taskId, loadAuditLogs);
             </div>
             <p v-if="log.note" class="timeline-note">{{ log.note }}</p>
             <time class="timeline-time">{{ formatTime(log.createdAt) }}</time>
-            <details v-if="log.diff && Object.keys(log.diff).length > 0" class="timeline-diff">
-              <summary>变更详情</summary>
-              <pre>{{ formatJson(log.diff) }}</pre>
-            </details>
           </div>
         </li>
       </ul>
@@ -147,7 +131,7 @@ watch(() => props.taskId, loadAuditLogs);
 
 .audit-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(220px, 360px);
   gap: 12px;
 }
 
@@ -171,29 +155,6 @@ watch(() => props.taskId, loadAuditLogs);
   color: var(--app-text);
   font-size: 14px;
   line-height: 1.5;
-}
-
-.manual-delta-section {
-  margin-top: 14px;
-}
-
-.manual-delta-section h4 {
-  margin: 0 0 8px;
-  color: var(--app-text);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.manual-delta {
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
-  padding: 14px;
-  background: var(--app-surface-soft);
-  color: var(--app-text-muted);
-  font-size: 13px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
 
 .audit-timeline-section {
@@ -289,33 +250,9 @@ watch(() => props.taskId, loadAuditLogs);
   font-size: 11px;
 }
 
-.timeline-diff {
-  margin-top: 6px;
-}
-
-.timeline-diff summary {
-  color: var(--app-primary);
-  font-size: 12px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.timeline-diff pre {
-  margin: 6px 0 0;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
-  padding: 10px;
-  background: var(--app-surface-soft);
-  color: var(--app-text-muted);
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 1180px) {
   .audit-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(220px, 360px);
   }
 }
 

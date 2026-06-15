@@ -12,7 +12,7 @@ import com.lqr.papermind.auth.service.AuthService;
 import com.lqr.papermind.auth.service.LoginAttemptService;
 import com.lqr.papermind.auth.service.TokenRevocationService;
 import com.lqr.papermind.auth.service.VerificationCodeService;
-import com.lqr.papermind.storage.service.ObjectStorageService;
+import com.lqr.papermind.common.storage.service.ObjectStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;

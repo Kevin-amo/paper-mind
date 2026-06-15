@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run check:routing && npm run check:home-redirect && npm run check:admin-review-detail && vue-tsc --noEmit && vite build",
+    "build": "npm run check:routing && npm run check:home-redirect && npm run check:admin-review-detail && npm run check:review-audit-labels && vue-tsc --noEmit && vite build",
     "check:routing": "node scripts/check-routing-config.mjs",
     "check:home-redirect": "node scripts/check-home-redirect.mjs",
     "check:admin-review-detail": "node scripts/check-admin-review-detail.mjs",
+    "check:review-audit-labels": "node scripts/check-review-audit-labels.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

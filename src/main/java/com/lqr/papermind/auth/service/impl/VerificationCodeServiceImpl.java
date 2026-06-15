@@ -2,7 +2,7 @@ package com.lqr.papermind.auth.service.impl;
 
 import com.lqr.papermind.auth.config.SecurityProperties;
 import com.lqr.papermind.auth.service.VerificationCodeService;
-import com.lqr.papermind.mail.service.MailService;
+import com.lqr.papermind.common.mail.service.MailService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

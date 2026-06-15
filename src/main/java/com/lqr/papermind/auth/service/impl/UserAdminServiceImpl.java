@@ -10,7 +10,7 @@ import com.lqr.papermind.auth.mapper.SysUserRoleMapper;
 import com.lqr.papermind.auth.security.RoleCodes;
 import com.lqr.papermind.auth.service.TokenRevocationService;
 import com.lqr.papermind.auth.service.UserAdminService;
-import com.lqr.papermind.storage.service.ObjectStorageService;
+import com.lqr.papermind.common.storage.service.ObjectStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

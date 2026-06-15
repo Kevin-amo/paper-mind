@@ -1,6 +1,6 @@
 package com.lqr.papermind.agent.web;
 
-import com.lqr.papermind.agent.application.AgentChatService;
+import com.lqr.papermind.agent.service.AgentChatService;
 import com.lqr.papermind.agent.dto.AgentAskRequest;
 import com.lqr.papermind.agent.dto.AgentStreamEvent;
 import com.lqr.papermind.auth.security.SecurityUserPrincipal;

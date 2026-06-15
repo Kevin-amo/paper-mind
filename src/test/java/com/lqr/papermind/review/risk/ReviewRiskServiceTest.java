@@ -2,6 +2,7 @@ package com.lqr.papermind.review.risk;
 
 import com.lqr.papermind.review.entity.ReviewRiskItemEntity;
 import com.lqr.papermind.review.mapper.ReviewRiskItemMapper;
+import com.lqr.papermind.review.risk.impl.ReviewRiskServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
@@ -28,7 +29,7 @@ class ReviewRiskServiceTest {
         UUID reportId = UUID.randomUUID();
         UUID taskId = UUID.randomUUID();
         ReviewRiskItemMapper mapper = mock(ReviewRiskItemMapper.class);
-        ReviewRiskService service = new ReviewRiskService(mapper);
+        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
 
         service.replaceReportRisks(reportId, taskId, List.of(Map.of(
                 "type", "REFERENCE_FORMAT",
@@ -61,7 +62,7 @@ class ReviewRiskServiceTest {
         existing.setId(riskId);
         existing.setStatus("OPEN");
         when(mapper.selectById(riskId)).thenReturn(existing);
-        ReviewRiskService service = new ReviewRiskService(mapper);
+        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
 
         service.updateStatus(riskId, "CONFIRMED", "证据明确");
 
@@ -78,7 +79,7 @@ class ReviewRiskServiceTest {
     void replaceReportRisksShouldDeleteAndNotInsertWhenRisksIsNotList() {
         UUID reportId = UUID.randomUUID();
         ReviewRiskItemMapper mapper = mock(ReviewRiskItemMapper.class);
-        ReviewRiskService service = new ReviewRiskService(mapper);
+        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
 
         service.replaceReportRisks(reportId, UUID.randomUUID(), Map.of("type", "REFERENCE_FORMAT"));
 
@@ -91,7 +92,7 @@ class ReviewRiskServiceTest {
         UUID reportId = UUID.randomUUID();
         UUID taskId = UUID.randomUUID();
         ReviewRiskItemMapper mapper = mock(ReviewRiskItemMapper.class);
-        ReviewRiskService service = new ReviewRiskService(mapper);
+        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
 
         service.replaceReportRisks(reportId, taskId, List.of(
                 Map.of("type", "   ", "level", "SEVERE", "status", "CONFIRMED"),
@@ -111,7 +112,7 @@ class ReviewRiskServiceTest {
     @Test
     void replaceReportRisksShouldParseAndClampConfidenceValues() {
         ReviewRiskItemMapper mapper = mock(ReviewRiskItemMapper.class);
-        ReviewRiskService service = new ReviewRiskService(mapper);
+        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
 
         service.replaceReportRisks(UUID.randomUUID(), UUID.randomUUID(), List.of(
                 Map.of("type", "A", "level", "LOW", "confidence", "0.75"),
@@ -135,7 +136,7 @@ class ReviewRiskServiceTest {
     void updateStatusShouldThrowNotFoundWhenRiskMissing() {
         UUID riskId = UUID.randomUUID();
         ReviewRiskItemMapper mapper = mock(ReviewRiskItemMapper.class);
-        ReviewRiskService service = new ReviewRiskService(mapper);
+        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
 
         assertThatThrownBy(() -> service.updateStatus(riskId, "CONFIRMED", null))
                 .isInstanceOf(ResponseStatusException.class)
@@ -150,7 +151,7 @@ class ReviewRiskServiceTest {
         existing.setId(riskId);
         existing.setStatus("OPEN");
         when(mapper.selectById(riskId)).thenReturn(existing);
-        ReviewRiskService service = new ReviewRiskService(mapper);
+        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
 
         assertThatThrownBy(() -> service.updateStatus(riskId, "CLOSED", null))
                 .isInstanceOf(ResponseStatusException.class)

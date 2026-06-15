@@ -1,4 +1,4 @@
-package com.lqr.papermind.storage.config;
+package com.lqr.papermind.common.storage.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.util.unit.DataSize;

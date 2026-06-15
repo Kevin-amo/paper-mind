@@ -2,6 +2,7 @@ package com.lqr.papermind.review.audit;
 
 import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.mapper.ReviewAuditLogMapper;
+import com.lqr.papermind.review.audit.impl.ReviewAuditServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -15,7 +16,7 @@ import static org.mockito.Mockito.verify;
 
 class ReviewAuditServiceTest {
     private final ReviewAuditLogMapper mapper = mock(ReviewAuditLogMapper.class);
-    private final ReviewAuditService service = new ReviewAuditService(mapper);
+    private final ReviewAuditService service = new ReviewAuditServiceImpl(mapper);
 
     @Test
     void appendShouldStoreBeforeAfterAndDiff() {

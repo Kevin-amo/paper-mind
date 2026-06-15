@@ -1,6 +1,6 @@
-package com.lqr.papermind.mail.service.impl;
+package com.lqr.papermind.common.mail.service.impl;
 
-import com.lqr.papermind.mail.config.ResendProperties;
+import com.lqr.papermind.common.mail.config.ResendProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 

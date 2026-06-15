@@ -1,10 +1,10 @@
-package com.lqr.papermind.storage.service.impl;
+package com.lqr.papermind.common.storage.service.impl;
 
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSClientBuilder;
 import com.aliyun.oss.model.ObjectMetadata;
-import com.lqr.papermind.storage.config.OssProperties;
-import com.lqr.papermind.storage.service.ObjectStorageService;
+import com.lqr.papermind.common.storage.config.OssProperties;
+import com.lqr.papermind.common.storage.service.ObjectStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

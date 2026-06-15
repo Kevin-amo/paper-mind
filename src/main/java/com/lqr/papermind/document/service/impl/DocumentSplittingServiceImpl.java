@@ -36,12 +36,19 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DocumentSplittingServiceImpl implements DocumentSplittingService {
 
+    // 识别换行
     private static final Pattern LINE_BREAK = Pattern.compile("\\R");
+    // 识别编号式标题
     private static final Pattern NUMBERED_HEADING = Pattern.compile("^(\\d+(?:\\.\\d+){0,4})(?:\\s*[.．、\\)]\\s*|\\s+)(.+?)\\s*$");
+    // 识别常见中文标题
     private static final Pattern CHINESE_CHAPTER_HEADING = Pattern.compile("^第([一二三四五六七八九十百千0-9]+)([章节篇部分])\\s*(.*)$");
+    // 识别中文列表式标题
     private static final Pattern CHINESE_LIST_HEADING = Pattern.compile("^([一二三四五六七八九十]+)[、．.\\)]\\s*(.+)$");
+    // 识别目录中带尾部引导符（点线、空格、制表符）和页码
     private static final Pattern CONTENTS_ENTRY_WITH_TRAILING_PAGE = Pattern.compile("^.+?(?:\\.{2,}|…{2,}|\\s{2,}|\\t+)\\s*(?:\\d+|[ivxlcdmIVXLCDM]+)\\s*$");
+    // 识别编号 + 名称 + 页码紧凑排列的目录条目（无中间引导符）
     private static final Pattern CONTENTS_NUMBERED_ENTRY = Pattern.compile("^(?:\\d+(?:\\.\\d+){0,4}|第[一二三四五六七八九十百千0-9]+[章节篇部分]|[一二三四五六七八九十]+[、．.\\)])\\s+.+?\\s+(?:\\d+|[ivxlcdmIVXLCDM]+)\\s*$");
+    // 捕获目录中编号后标题末尾紧贴页码（无分隔符）的格式
     private static final Pattern CONTENTS_NUMBERED_ENTRY_WITH_ATTACHED_PAGE = Pattern.compile("^\\d+(?:\\.\\d+){0,4}\\s+.+?\\d+$");
     private static final int VISUAL_ARTIFACT_RUN_MIN_LINES = 4;
     private static final int FIGURE_CONTEXT_MIN_LENGTH = 80;

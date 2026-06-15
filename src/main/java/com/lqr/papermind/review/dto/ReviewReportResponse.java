@@ -3,7 +3,6 @@ package com.lqr.papermind.review.dto;
 import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.review.entity.ReviewReportEntity;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -34,16 +33,8 @@ public record ReviewReportResponse(
         Map<String, Object> comments,
         /* 风险项数据 */
         Object risks,
-        /* 评审指标版本号 */
-        Integer criterionVersion,
         /* AI模型版本标识 */
         String modelVersion,
-        /* 提示词版本标识 */
-        String promptVersion,
-        /* AI生成置信度 */
-        BigDecimal confidence,
-        /* 人工调整增量 */
-        Map<String, Object> manualDelta,
         /* 总分 */
         Integer totalScore,
         /* 最终推荐意见 */
@@ -92,11 +83,7 @@ public record ReviewReportResponse(
                 entity.getScores(),
                 entity.getComments(),
                 entity.getRisks(),
-                entity.getCriterionVersion(),
                 entity.getModelVersion(),
-                entity.getPromptVersion(),
-                entity.getConfidence(),
-                entity.getManualDelta(),
                 entity.getTotalScore(),
                 entity.getFinalRecommendation(),
                 entity.getStatus(),

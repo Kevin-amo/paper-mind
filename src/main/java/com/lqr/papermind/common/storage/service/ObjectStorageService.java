@@ -1,4 +1,4 @@
-package com.lqr.papermind.storage.service;
+package com.lqr.papermind.common.storage.service;
 
 import java.io.InputStream;
 

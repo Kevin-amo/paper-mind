@@ -255,11 +255,7 @@ export interface ReviewReport {
   scores: ReviewScoreItem[] | unknown;
   comments: ReviewComments | Record<string, unknown>;
   risks: ReviewRiskItem[] | unknown;
-  criterionVersion: number | null;
   modelVersion: string | null;
-  promptVersion: string | null;
-  confidence: number | null;
-  manualDelta: Record<string, unknown> | null;
   totalScore: number | null;
   finalRecommendation: string | null;
   status: ReviewReportStatus;
@@ -277,9 +273,6 @@ export interface ReviewAuditLog {
   operatorDisplayName: string | null;
   action: string;
   note: string | null;
-  beforeSnapshot: Record<string, unknown> | null;
-  afterSnapshot: Record<string, unknown> | null;
-  diff: Record<string, unknown> | null;
   createdAt: string;
 }
 

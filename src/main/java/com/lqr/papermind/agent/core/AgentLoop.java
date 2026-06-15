@@ -1,7 +1,5 @@
-package com.lqr.papermind.agent.service;
+package com.lqr.papermind.agent.core;
 
-import com.lqr.papermind.agent.core.AgentRuntime;
-import com.lqr.papermind.agent.core.AgentStep;
 import com.lqr.papermind.agent.dto.AgentStreamEvent;
 import com.lqr.papermind.common.model.AnswerCitation;
 import com.lqr.papermind.conversation.service.ConversationService;

@@ -3,7 +3,6 @@ package com.lqr.papermind.review.dto;
 import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 
 import java.time.OffsetDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -24,12 +23,6 @@ public record ReviewAuditLogResponse(
         String action,
         /* 操作备注说明 */
         String note,
-        /* 操作前的状态快照 */
-        Map<String, Object> beforeSnapshot,
-        /* 操作后的状态快照 */
-        Map<String, Object> afterSnapshot,
-        /* 操作前后的差异信息 */
-        Map<String, Object> diff,
         /* 记录创建时间 */
         OffsetDateTime createdAt
 ) {
@@ -55,9 +48,6 @@ public record ReviewAuditLogResponse(
                 displayName,
                 entity.getAction(),
                 entity.getNote(),
-                entity.getBeforeSnapshot(),
-                entity.getAfterSnapshot(),
-                entity.getDiff(),
                 entity.getCreatedAt()
         );
     }

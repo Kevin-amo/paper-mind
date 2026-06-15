@@ -2,7 +2,7 @@ package com.lqr.papermind.auth;
 
 import com.lqr.papermind.auth.config.SecurityProperties;
 import com.lqr.papermind.auth.service.impl.VerificationCodeServiceImpl;
-import com.lqr.papermind.mail.service.MailService;
+import com.lqr.papermind.common.mail.service.MailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;
