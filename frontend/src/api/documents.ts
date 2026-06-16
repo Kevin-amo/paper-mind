@@ -10,6 +10,8 @@ import type {
   DocumentSummary,
   ListChunksParams,
   ListDocumentsParams,
+  OssUploadPolicy,
+  OssUploadPolicyRequest,
   PageResponse,
   PaperStructuredParse,
   PaperStructuredParseStatus,
@@ -40,6 +42,11 @@ export async function uploadDocument(payload: UploadDocumentPayload) {
     },
   });
 
+  return data;
+}
+
+export async function getUploadPolicy(request: OssUploadPolicyRequest): Promise<OssUploadPolicy> {
+  const { data } = await http.post<OssUploadPolicy>('/documents/upload-policy', request);
   return data;
 }
 

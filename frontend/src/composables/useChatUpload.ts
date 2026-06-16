@@ -1,8 +1,9 @@
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { uploadDocumentsBatch } from '../api/documents';
+import { getUploadPolicy } from '../api/documents';
 import { getErrorMessage } from '../api/http';
-import type { BatchUploadDocumentPayload, BatchDocumentIngestionResponse } from '../types';
+import { uploadFileToOss } from '../utils/ossUpload';
+import type { OssUploadPolicy, BatchUploadDocumentPayload, BatchDocumentIngestionResponse } from '../types';
 
 export type UploadQueueItemStatus = 'pending' | 'uploading' | 'success' | 'failed';
 
@@ -13,6 +14,7 @@ export interface UploadQueueItem {
   status: UploadQueueItemStatus;
   errorMessage?: string;
   progress?: number;
+  sourceId?: string;
 }
 
 let idCounter = 0;
@@ -66,73 +68,70 @@ export function useChatUpload(options: {
     const items = addFiles(files);
     isUploading.value = true;
 
-    const payload: BatchUploadDocumentPayload = {
-      items: files.map((file) => ({
-        file,
-        sourceId: buildFallbackSourceId(file),
-        title: file.name.replace(/\.[^.]+$/, ''),
-      })),
-    };
+    // 对每个文件：获取凭证 → 直传 OSS
+    const uploadPromises = files.map(async (file, index) => {
+      const queueItem = items[index];
+      updateItem(queueItem.id, { status: 'uploading', progress: 0 });
 
-    items.forEach((item) => {
-      updateItem(item.id, { status: 'uploading', progress: 0 });
-    });
+      try {
+        // Step 1: 获取上传凭证
+        const policy = await getUploadPolicy({
+          fileName: file.name,
+          contentType: file.type || 'application/octet-stream',
+          fileSize: file.size,
+          sourceId: buildFallbackSourceId(file),
+          title: file.name.replace(/\.[^.]+$/, ''),
+        });
 
-    // Simulate progress animation
-    const progressTimers = items.map((item) => {
-      let progress = 10;
-      return window.setInterval(() => {
-        progress = Math.min(progress + Math.random() * 20, 85);
-        updateItem(item.id, { progress: Math.round(progress) });
-      }, 400);
-    });
+        updateItem(queueItem.id, { sourceId: policy.sourceId, progress: 5 });
 
-    try {
-      const result: BatchDocumentIngestionResponse = await uploadDocumentsBatch(payload);
+        // Step 2: 直传 OSS（带真实进度）
+        await uploadFileToOss(file, policy, (progress) => {
+          // OSS 上传进度映射到 5-95 的范围（前5%是获取凭证，后5%是回调处理）
+          const mappedProgress = Math.round(5 + (progress / 100) * 90);
+          updateItem(queueItem.id, { progress: mappedProgress });
+        });
 
-      progressTimers.forEach((timer) => window.clearInterval(timer));
-
-      result.items.forEach((resItem, index) => {
-        const queueItem = items[index];
-        if (!queueItem) return;
-
-        if (resItem.accepted) {
-          updateItem(queueItem.id, { status: 'success', progress: 100 });
-        } else {
-          updateItem(queueItem.id, {
-            status: 'failed',
-            progress: 100,
-            errorMessage: resItem.errorMessage || '上传失败',
-          });
-        }
-      });
-
-      const { acceptedCount, failureCount } = result;
-      if (acceptedCount > 0 && failureCount === 0) {
-        ElMessage.success(`上传完成：${acceptedCount} 个文件上传成功`);
-      } else if (acceptedCount > 0) {
-        ElMessage.warning(`上传完成：成功 ${acceptedCount} 个，失败 ${failureCount} 个`);
-      } else {
-        ElMessage.error('上传失败，请检查文件格式或网络连接');
-      }
-
-      options.onSuccess?.();
-    } catch (error) {
-      progressTimers.forEach((timer) => window.clearInterval(timer));
-
-      const message = getErrorMessage(error);
-      items.forEach((item) => {
-        updateItem(item.id, {
+        // 上传成功，OSS 会回调后端创建入库任务
+        updateItem(queueItem.id, { status: 'success', progress: 100, sourceId: policy.sourceId });
+        return { success: true, sourceId: policy.sourceId, fileName: file.name };
+      } catch (error) {
+        const message = getErrorMessage(error) || '上传失败';
+        updateItem(queueItem.id, {
           status: 'failed',
           progress: 100,
-          errorMessage: message || '上传请求失败',
+          errorMessage: message,
         });
-      });
+        return { success: false, sourceId: null, fileName: file.name, errorMessage: message };
+      }
+    });
 
-      ElMessage.error(`上传失败：${message}`);
-    } finally {
-      isUploading.value = false;
+    const results = await Promise.allSettled(uploadPromises);
+
+    const successCount = results.filter(
+      (r) => r.status === 'fulfilled' && r.value?.success,
+    ).length;
+    const failureCount = results.length - successCount;
+
+    if (successCount > 0 && failureCount === 0) {
+      ElMessage.success(`上传完成：${successCount} 个文件已进入解析队列`);
+    } else if (successCount > 0) {
+      ElMessage.warning(`上传完成：成功 ${successCount} 个，失败 ${failureCount} 个`);
+    } else {
+      ElMessage.error('上传失败，请检查文件格式或网络连接');
     }
+
+    options.onSuccess?.();
+    isUploading.value = false;
+  }
+
+  /**
+   * 降级上传：使用旧的批量上传接口（MultipartFile → 后端 → 本地存储）。
+   * 当 OSS 直传不可用时作为回退方案。
+   */
+  async function uploadFilesLegacy(payload: BatchUploadDocumentPayload) {
+    // 此方法保留但不再默认使用
+    // 如果需要降级，可从 api/documents.ts 调用 uploadDocumentsBatch
   }
 
   return {

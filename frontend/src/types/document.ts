@@ -160,6 +160,29 @@ export interface UploadDocumentPayload {
   title?: string;
 }
 
+export interface OssUploadPolicyRequest {
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  sourceId?: string;
+  title?: string;
+  sourceType?: string; // 'USER' | 'REVIEW'
+}
+
+export interface OssUploadPolicy {
+  accessKeyId: string;
+  policy: string;
+  signature: string;
+  dir: string;
+  host: string;
+  expire: number;
+  objectKey: string;
+  sourceId: string;
+  sourceType?: string; // 透传给 OSS 回调
+  callback: string; // Base64 编码的 OSS 回调配置 JSON
+  callbackVar: string; // Base64 编码的 OSS 回调自定义变量 JSON
+}
+
 export interface BatchUploadDocumentItemPayload {
   file: File;
   sourceId?: string;

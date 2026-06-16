@@ -64,7 +64,7 @@ public class DocumentUploadWorkflowServiceImpl implements DocumentUploadWorkflow
                 file,
                 fileName
         );
-        // 创建文档摄入任务记录，包含存储路径、文件名及元数据（来源类型）
+        // 创建文档摄入任务记录，包含存储路径、文件名及元数据（来源类型 + 存储提供者）
         DocumentIngestionJob job = documentIngestionJobService.createJob(
                 jobId,
                 ownerUserId,
@@ -72,7 +72,10 @@ public class DocumentUploadWorkflowServiceImpl implements DocumentUploadWorkflow
                 upload.fileName(),
                 upload.filePath(),
                 title,
-                Map.of(MetadataKeys.SOURCE_TYPE, sourceType == null || sourceType.isBlank() ? MetadataKeys.SOURCE_TYPE_USER : sourceType)
+                Map.of(
+                        MetadataKeys.SOURCE_TYPE, sourceType == null || sourceType.isBlank() ? MetadataKeys.SOURCE_TYPE_USER : sourceType,
+                        "storageProvider", "LOCAL"
+                )
         );
         // 将任务消息发布到消息队列，触发后续异步摄入流程
         documentIngestionProducer.publish(new DocumentIngestionMessage(job.getId(), ownerUserId, resolvedSourceId));

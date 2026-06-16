@@ -74,6 +74,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.ASYNC).permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/register/email-code").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/documents/upload-callback").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/reviews/**", "/review-leader/**").hasAnyRole("REVIEWER", "ADMIN")

@@ -1,8 +1,10 @@
 package com.lqr.papermind.document.service.impl;
 
+import com.lqr.papermind.common.storage.service.ObjectStorageService;
 import com.lqr.papermind.document.config.DocumentIngestionProperties;
 import com.lqr.papermind.document.service.DocumentUploadStorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -16,12 +18,15 @@ import java.util.UUID;
 
 /**
  * 基于本地文件系统的上传原始文件存储实现。
+ * OSS 读写操作委托给 {@link ObjectStorageService}，不直接依赖 OSS SDK。
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DocumentUploadStorageServiceImpl implements DocumentUploadStorageService {
 
     private final DocumentIngestionProperties properties;
+    private final ObjectStorageService objectStorageService;
 
     /**
      * 将上传文件持久化到本地文件系统。
@@ -77,6 +82,41 @@ public class DocumentUploadStorageServiceImpl implements DocumentUploadStorageSe
     public void delete(String filePath) throws IOException {
         if (filePath != null && !filePath.isBlank()) {
             Files.deleteIfExists(Paths.get(filePath).normalize());
+        }
+    }
+
+    /**
+     * 从对象存储读取指定对象的内容。
+     * 委托给 {@link ObjectStorageService#getObjectContent}，
+     * 具体实现由 {@link com.lqr.papermind.common.storage.service.impl.AliyunOssStorageService} 完成。
+     *
+     * @param bucket Bucket 名称（当前实现中由 ObjectStorageService 内部处理）
+     * @param objectKey 对象键
+     * @return 对象二进制内容
+     * @throws IOException 对象读取失败时抛出
+     */
+    @Override
+    public byte[] readFromOss(String bucket, String objectKey) throws IOException {
+        return objectStorageService.getObjectContent(objectKey);
+    }
+
+    /**
+     * 删除对象存储上的指定对象。
+     * 委托给 {@link ObjectStorageService#deleteObject}，
+     * 具体实现由 {@link com.lqr.papermind.common.storage.service.impl.AliyunOssStorageService} 完成。
+     *
+     * @param objectKey 对象键
+     */
+    @Override
+    public void deleteFromOss(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return;
+        }
+        try {
+            objectStorageService.deleteObject(objectKey);
+            log.info("oss.delete.done objectKey={}", objectKey);
+        } catch (Exception ex) {
+            log.warn("oss.delete.failed objectKey={}", objectKey, ex);
         }
     }
 

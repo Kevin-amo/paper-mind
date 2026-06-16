@@ -11,6 +11,7 @@ import com.lqr.papermind.document.entity.DocumentIngestionJob;
 import com.lqr.papermind.document.service.DocumentIngestionJobService;
 import com.lqr.papermind.document.service.DocumentIngestionService;
 import com.lqr.papermind.document.service.DocumentManagementService;
+import com.lqr.papermind.document.service.DocumentOssUploadService;
 import com.lqr.papermind.document.service.DocumentPersistenceService;
 import com.lqr.papermind.document.service.DocumentUploadWorkflowService;
 import com.lqr.papermind.document.structured.entity.PaperStructuredParseEntity;
@@ -45,6 +46,7 @@ class DocumentControllerTest {
     private final DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
     private final DocumentIngestionJobService documentIngestionJobService = mock(DocumentIngestionJobService.class);
     private final DocumentUploadWorkflowService documentUploadWorkflowService = mock(DocumentUploadWorkflowService.class);
+    private final DocumentOssUploadService documentOssUploadService = mock(DocumentOssUploadService.class);
     private final PaperStructuredParseService paperStructuredParseService = mock(PaperStructuredParseService.class);
     private DocumentController controller;
     private UUID ownerUserId;
@@ -58,6 +60,7 @@ class DocumentControllerTest {
                 documentPersistenceService,
                 documentIngestionJobService,
                 documentUploadWorkflowService,
+                documentOssUploadService,
                 paperStructuredParseService,
                 new ObjectMapper()
         );

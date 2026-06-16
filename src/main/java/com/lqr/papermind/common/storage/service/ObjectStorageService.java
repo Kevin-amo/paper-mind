@@ -1,5 +1,6 @@
 package com.lqr.papermind.common.storage.service;
 
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -31,4 +32,13 @@ public interface ObjectStorageService {
      * @return 公共访问 URL
      */
     String publicUrl(String objectKey);
+
+    /**
+     * 读取指定对象的全部字节内容。
+     *
+     * @param objectKey 对象键
+     * @return 对象的二进制内容
+     * @throws IOException 对象读取失败时抛出
+     */
+    byte[] getObjectContent(String objectKey) throws IOException;
 }

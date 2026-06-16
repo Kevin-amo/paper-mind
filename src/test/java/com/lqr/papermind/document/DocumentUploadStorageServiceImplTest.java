@@ -1,5 +1,6 @@
 package com.lqr.papermind.document;
 
+import com.lqr.papermind.common.storage.service.ObjectStorageService;
 import com.lqr.papermind.document.config.DocumentIngestionProperties;
 import com.lqr.papermind.document.service.impl.DocumentUploadStorageServiceImpl;
 import com.lqr.papermind.document.service.DocumentUploadStorageService;
@@ -12,6 +13,7 @@ import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * 本地文档上传存储服务的文件名净化和落盘路径测试。
@@ -26,7 +28,8 @@ class DocumentUploadStorageServiceImplTest {
         DocumentIngestionProperties properties = new DocumentIngestionProperties(
                 tempDir.toString(), true, 3, new DocumentIngestionProperties.Listener(2, 4), null
         );
-        DocumentUploadStorageServiceImpl service = new DocumentUploadStorageServiceImpl(properties);
+        ObjectStorageService objectStorageService = mock(ObjectStorageService.class);
+        DocumentUploadStorageServiceImpl service = new DocumentUploadStorageServiceImpl(properties, objectStorageService);
         UUID ownerUserId = UUID.randomUUID();
         UUID jobId = UUID.randomUUID();
         MockMultipartFile file = new MockMultipartFile("file", "..\\evil.pdf", "application/pdf", "content".getBytes());

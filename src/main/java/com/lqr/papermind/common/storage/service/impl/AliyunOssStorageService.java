@@ -6,15 +6,19 @@ import com.aliyun.oss.model.ObjectMetadata;
 import com.lqr.papermind.common.storage.config.OssProperties;
 import com.lqr.papermind.common.storage.service.ObjectStorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 /**
  * 阿里云 OSS 对象存储实现。
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AliyunOssStorageService implements ObjectStorageService {
@@ -78,6 +82,35 @@ public class AliyunOssStorageService implements ObjectStorageService {
             return objectKey;
         }
         return baseUrl + "/" + objectKey.replaceAll("^/+", "");
+    }
+
+    /**
+     * 从阿里云 OSS 读取指定对象的全部字节内容。
+     *
+     * @param objectKey 对象键
+     * @return 对象的二进制内容
+     * @throws IOException 对象读取失败时抛出
+     */
+    @Override
+    public byte[] getObjectContent(String objectKey) throws IOException {
+        if (objectKey == null || objectKey.isBlank()) {
+            throw new IllegalArgumentException("对象键不能为空");
+        }
+        ensureConfigured();
+        OSS ossClient = createClient();
+        try {
+            var ossObject = ossClient.getObject(properties.bucket(), objectKey);
+            try (InputStream inputStream = ossObject.getObjectContent();
+                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                inputStream.transferTo(outputStream);
+                return outputStream.toByteArray();
+            }
+        } catch (Exception ex) {
+            log.error("oss.getObjectContent.failed bucket={} objectKey={}", properties.bucket(), objectKey, ex);
+            throw new IOException("从 OSS 读取对象失败：" + objectKey, ex);
+        } finally {
+            ossClient.shutdown();
+        }
     }
 
     /**

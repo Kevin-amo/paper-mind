@@ -62,6 +62,19 @@ app:
         - image/jpeg
         - image/png
         - image/webp
+      document:
+        endpoint: https://oss-cn-hangzhou.aliyuncs.com
+        bucket: your-bucket-name
+        access-key-id: ${ALIYUN_OSS_DOCUMENT_ACCESS_KEY_ID:}
+        access-key-secret: ${ALIYUN_OSS_DOCUMENT_ACCESS_KEY_SECRET:}
+        callback-url: https://your-server-domain/api/documents/upload-callback
+        upload-prefix: documents
+        max-size: 50MB
+        allowed-content-types:
+          - application/pdf
+          - application/msword
+          - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+        policy-expire-seconds: 1800
   rag:
     chunk-size: 800
     chunk-overlap: 120

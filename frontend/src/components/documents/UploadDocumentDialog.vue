@@ -146,9 +146,9 @@ function statusType(status: UploadStatus) {
 }
 
 function statusText(status: UploadStatus) {
-  if (status === 'success') return '上传成功';
-  if (status === 'failed') return '上传失败';
-  if (status === 'uploading') return '正在上传';
+  if (status === 'success') return '已进入解析队列';
+  if (status === 'failed') return '直传失败';
+  if (status === 'uploading') return '正在直传 OSS';
   return '等待上传';
 }
 

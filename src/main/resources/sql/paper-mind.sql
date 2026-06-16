@@ -455,6 +455,23 @@ create index if not exists idx_document_ingestion_job_owner_source
 create index if not exists idx_document_ingestion_job_status
     on public.document_ingestion_job using btree (status);
 
+-- ===== 11b_document_ingestion_job_oss_migration.sql =====
+-- 为 OSS 直传场景扩展 document_ingestion_job 表字段。
+
+alter table if exists public.document_ingestion_job
+    add column if not exists storage_provider varchar(16) not null default 'LOCAL';
+alter table if exists public.document_ingestion_job
+    add column if not exists object_key text;
+alter table if exists public.document_ingestion_job
+    add column if not exists bucket_name varchar(128);
+alter table if exists public.document_ingestion_job
+    add column if not exists etag varchar(128);
+
+comment on column public.document_ingestion_job.storage_provider is '文件存储提供者：LOCAL（本地文件系统）或 OSS（阿里云对象存储）';
+comment on column public.document_ingestion_job.object_key is 'OSS 对象键，仅当 storage_provider 为 OSS 时有值';
+comment on column public.document_ingestion_job.bucket_name is 'OSS Bucket 名称，仅当 storage_provider 为 OSS 时有值';
+comment on column public.document_ingestion_job.etag is '文件 ETag，仅当 storage_provider 为 OSS 时有值';
+
 -- ===== 12_paper_structured_parse.sql =====
 -- 论文结构化解析结果表。
 

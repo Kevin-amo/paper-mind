@@ -100,8 +100,13 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             if (job.getTitle() != null && !job.getTitle().isBlank()) {
                 metadata.put(MetadataKeys.TITLE, job.getTitle());
             }
-            // 读取上传的文件
-            byte[] content = documentUploadStorageService.read(job.getFilePath());
+            // 读取上传的文件：根据 storageProvider 判断来源
+            byte[] content;
+            if ("OSS".equalsIgnoreCase(job.getStorageProvider())) {
+                content = documentUploadStorageService.readFromOss(job.getBucketName(), job.getObjectKey());
+            } else {
+                content = documentUploadStorageService.read(job.getFilePath());
+            }
             log.info("document.ingest.read.done ownerUserId={} jobId={} sourceId={} fileName={} fileSize={} costMs={}",
                     job.getOwnerUserId(), job.getId(), job.getSourceId(), job.getFileName(), contentLength(content), elapsedMs(startNanos));
             markJobStage(job, DocumentIngestionJobService.STATUS_PARSING, 20);
@@ -110,7 +115,11 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
                     job.getOwnerUserId(), job.getId(), parsedDocument.source().sourceId(), job.getFileName(), textLength(parsedDocument.text()), assetCount(parsedDocument), elapsedMs(startNanos));
             DocumentIngestionResult result = processParsedDocument(job, parsedDocument, startNanos);
             if (!documentIngestionProperties.keepUploadFile()) {
-                documentUploadStorageService.delete(job.getFilePath());
+                if ("OSS".equalsIgnoreCase(job.getStorageProvider())) {
+                    documentUploadStorageService.deleteFromOss(job.getObjectKey());
+                } else {
+                    documentUploadStorageService.delete(job.getFilePath());
+                }
             }
             log.info("document.ingest.done ownerUserId={} jobId={} sourceId={} fileName={} chunkCount={} costMs={}",
                     job.getOwnerUserId(), job.getId(), result.source().sourceId(), job.getFileName(), result.chunkCount(), elapsedMs(startNanos));

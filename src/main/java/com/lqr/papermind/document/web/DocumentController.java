@@ -25,6 +25,9 @@ import com.lqr.papermind.document.service.DocumentUploadWorkflowService;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseStatusResponse;
 import com.lqr.papermind.document.structured.service.PaperStructuredParseService;
+import com.lqr.papermind.document.dto.DocumentOssUploadPolicyRequest;
+import com.lqr.papermind.document.dto.DocumentOssUploadPolicyResponse;
+import com.lqr.papermind.document.service.DocumentOssUploadService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -66,11 +69,40 @@ public class DocumentController {
     private final DocumentPersistenceService documentPersistenceService;
     private final DocumentIngestionJobService documentIngestionJobService;
     private final DocumentUploadWorkflowService documentUploadWorkflowService;
+    private final DocumentOssUploadService documentOssUploadService;
     private final PaperStructuredParseService paperStructuredParseService;
     private final ObjectMapper objectMapper;
 
     /**
-     * 上传单个普通知识库文档，并异步入库。
+     * 获取论文上传 OSS 直传凭证。
+     * 前端拿到凭证后，直接上传文件到 OSS，上传完成后 OSS 回调后端创建入库任务。
+     *
+     * @param principal 当前登录用户
+     * @param request 上传凭证请求参数（包含文件名、类型、大小等）
+     * @return OSS 直传所需的凭证信息
+     */
+    @PostMapping("/upload-policy")
+    public ResponseEntity<DocumentOssUploadPolicyResponse> uploadPolicy(
+            @AuthenticationPrincipal SecurityUserPrincipal principal,
+            @Valid @RequestBody DocumentOssUploadPolicyRequest request) {
+        long startNanos = System.nanoTime();
+        UUID ownerUserId = principal.getId();
+        log.info("document.upload-policy.start ownerUserId={} fileName={} contentType={} fileSize={}",
+                ownerUserId, request.getFileName(), request.getContentType(), request.getFileSize());
+        try {
+            DocumentOssUploadPolicyResponse response = documentOssUploadService.generateUploadPolicy(ownerUserId, request);
+            log.info("document.upload-policy.done ownerUserId={} sourceId={} objectKey={} costMs={}",
+                    ownerUserId, response.getSourceId(), response.getObjectKey(), elapsedMs(startNanos));
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException ex) {
+            log.error("document.upload-policy.failed ownerUserId={} fileName={} costMs={}",
+                    ownerUserId, request.getFileName(), elapsedMs(startNanos), ex);
+            throw ex;
+        }
+    }
+
+    /**
+     * 上传单个普通知识库文档，并异步入库（降级入口）。
      *
      * @param principal 当前登录用户
      * @param file 上传文件

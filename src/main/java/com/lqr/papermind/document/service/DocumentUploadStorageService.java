@@ -33,12 +33,29 @@ public interface DocumentUploadStorageService {
     byte[] read(String filePath) throws IOException;
 
     /**
+     * 从阿里云 OSS 读取指定对象的内容。
+     *
+     * @param bucket Bucket 名称
+     * @param objectKey 对象键
+     * @return 对象二进制内容
+     * @throws IOException 对象读取失败时抛出
+     */
+    byte[] readFromOss(String bucket, String objectKey) throws IOException;
+
+    /**
      * 删除指定路径的文件。
      *
      * @param filePath 文件存储路径
      * @throws IOException 文件删除失败时抛出
      */
     void delete(String filePath) throws IOException;
+
+    /**
+     * 删除 OSS 上指定对象。
+     *
+     * @param objectKey 对象键
+     */
+    void deleteFromOss(String objectKey);
 
     record StoredUpload(String fileName, String filePath) {
     }

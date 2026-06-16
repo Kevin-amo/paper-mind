@@ -5,17 +5,26 @@ import {
   deleteDocument,
   getDocumentChunks,
   getDocumentDetail,
+  getUploadPolicy,
   listDocuments,
   uploadDocumentsBatch,
 } from '../api/documents';
 import { getErrorMessage } from '../api/http';
+import { uploadFileToOss } from '../utils/ossUpload';
 import type {
   BatchDocumentIngestionResponse,
   BatchUploadDocumentPayload,
   DocumentChunk,
   DocumentDetail,
   DocumentSummary,
+  OssUploadPolicy,
 } from '../types';
+
+function buildFallbackSourceId(file: File) {
+  return `paper-${file.name}-${file.size}-${file.lastModified}`
+    .replace(/[^\p{L}\p{N}._-]+/gu, '-')
+    .slice(0, 128);
+}
 
 export function useDocuments() {
   const uploadLoading = ref(false);
@@ -128,25 +137,65 @@ export function useDocuments() {
   async function uploadBatch(payload: BatchUploadDocumentPayload) {
     uploadLoading.value = true;
     uploadErrorMessage.value = '';
-    lastBatchUploadResult.value = null;
 
     try {
-      lastBatchUploadResult.value = await uploadDocumentsBatch(payload);
-      const { acceptedCount, failureCount } = lastBatchUploadResult.value;
-      if (acceptedCount > 0 && failureCount === 0) {
-        ElMessage.success(`上传请求已提交，共 ${acceptedCount} 个文件进入处理队列`);
-      } else if (acceptedCount > 0) {
-        ElMessage.warning(`上传请求已提交：已入队 ${acceptedCount} 个，失败 ${failureCount} 个`);
-      } else {
-        ElMessage.error('上传请求提交失败，请检查文件格式或后端日志');
+      // OSS 直传流程：对每个文件获取凭证 → 直传 OSS
+      const sourceIds: string[] = [];
+      let successCount = 0;
+      let failureCount = 0;
+
+      for (const item of payload.items) {
+        try {
+          // Step 1: 获取 OSS 直传凭证
+          const policy = await getUploadPolicy({
+            fileName: item.file.name,
+            contentType: item.file.type || 'application/octet-stream',
+            fileSize: item.file.size,
+            sourceId: item.sourceId,
+            title: item.title,
+          });
+
+          // Step 2: 直传 OSS
+          await uploadFileToOss(item.file, policy);
+
+          successCount++;
+          sourceIds.push(policy.sourceId);
+        } catch (error) {
+          failureCount++;
+          const msg = getErrorMessage(error);
+          console.error(`上传文件 ${item.file.name} 失败：${msg}`);
+        }
       }
+
+      // 构造伪 BatchDocumentIngestionResponse 以兼容现有轮询逻辑
+      lastBatchUploadResult.value = {
+        items: payload.items.map((item, index) => ({
+          index,
+          fileName: item.file.name,
+          accepted: sourceIds.length > index,
+          errorMessage: null,
+          jobId: null,
+          sourceId: sourceIds[index] || null,
+          status: 'PENDING',
+          message: '已进入解析队列',
+        })),
+        acceptedCount: successCount,
+        failureCount,
+      };
+
+      if (successCount > 0 && failureCount === 0) {
+        ElMessage.success(`上传完成：${successCount} 个文件已进入解析队列`);
+      } else if (successCount > 0) {
+        ElMessage.warning(`上传完成：成功 ${successCount} 个，失败 ${failureCount} 个`);
+      } else {
+        ElMessage.error('上传失败，请检查文件格式或网络连接');
+      }
+
       await loadDocuments(0);
-      startUploadRefreshPolling(lastBatchUploadResult.value.items
-        .filter((item) => item.accepted && item.sourceId)
-        .map((item) => item.sourceId as string));
+      startUploadRefreshPolling(sourceIds);
     } catch (error) {
       const message = getErrorMessage(error);
-      uploadErrorMessage.value = `上传请求失败，后端可能仍在处理；请刷新文档列表确认状态。${message}`;
+      uploadErrorMessage.value = `上传请求失败：${message}`;
       ElMessage.error(uploadErrorMessage.value);
       await loadDocuments(0);
     } finally {

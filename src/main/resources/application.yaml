@@ -109,6 +109,19 @@ app:
         - image/jpeg
         - image/png
         - image/webp
+      document:
+        endpoint: ${ALIYUN_OSS_DOCUMENT_ENDPOINT:}
+        bucket: ${ALIYUN_OSS_DOCUMENT_BUCKET:}
+        access-key-id: ${ALIYUN_OSS_DOCUMENT_ACCESS_KEY_ID:}
+        access-key-secret: ${ALIYUN_OSS_DOCUMENT_ACCESS_KEY_SECRET:}
+        callback-url: ${ALIYUN_OSS_DOCUMENT_CALLBACK_URL:}
+        upload-prefix: ${ALIYUN_OSS_DOCUMENT_UPLOAD_PREFIX:documents}
+        max-size: ${ALIYUN_OSS_DOCUMENT_MAX_SIZE:20MB}
+        allowed-content-types:
+          - application/pdf
+          - application/msword
+          - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+        policy-expire-seconds: ${ALIYUN_OSS_DOCUMENT_POLICY_EXPIRE_SECONDS:1800}
   rag:
     chunk-size: ${RAG_CHUNK_SIZE:800}
     chunk-overlap: ${RAG_CHUNK_OVERLAP:120}
@@ -148,9 +161,9 @@ app:
       window: ${LOGIN_ATTEMPT_WINDOW:10m}
       lock-duration: ${LOGIN_ATTEMPT_LOCK_DURATION:10m}
     bootstrap-admin:
-      enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
+      enabled: ${BOOTSTRAP_ADMIN_ENABLED:true}
       username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
-      password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:admin}
       display-name: ${BOOTSTRAP_ADMIN_DISPLAY_NAME:系统管理员}
 
 management:

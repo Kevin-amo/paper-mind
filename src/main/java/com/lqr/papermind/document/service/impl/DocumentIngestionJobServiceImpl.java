@@ -66,6 +66,16 @@ public class DocumentIngestionJobServiceImpl implements DocumentIngestionJobServ
         job.setStatus(STATUS_PENDING);
         job.setProgress(0);
         job.setRetryCount(0);
+        // 从 extraMetadata 中提取 OSS 相关字段
+        String storageProvider = extractMetadataValue(extraMetadata, "storageProvider");
+        if (storageProvider != null && !storageProvider.isBlank()) {
+            job.setStorageProvider(storageProvider);
+        } else {
+            job.setStorageProvider("LOCAL");
+        }
+        job.setObjectKey(extractMetadataValue(extraMetadata, "objectKey"));
+        job.setBucketName(extractMetadataValue(extraMetadata, "bucket"));
+        job.setEtag(extractMetadataValue(extraMetadata, "etag"));
         jobMapper.insert(job);
 
         Map<String, Object> metadata = new LinkedHashMap<>();
@@ -220,6 +230,25 @@ public class DocumentIngestionJobServiceImpl implements DocumentIngestionJobServ
             return MetadataKeys.SOURCE_TYPE_REVIEW;
         }
         return MetadataKeys.SOURCE_TYPE_USER;
+    }
+
+    /**
+     * 从元数据映射中提取字符串值。
+     *
+     * @param metadata 元数据映射
+     * @param key 键名
+     * @return 对应的字符串值，不存在时返回 null
+     */
+    private String extractMetadataValue(Map<String, Object> metadata, String key) {
+        if (metadata == null) {
+            return null;
+        }
+        Object value = metadata.get(key);
+        if (value == null) {
+            return null;
+        }
+        String strValue = String.valueOf(value);
+        return strValue.isBlank() ? null : strValue;
     }
 
     /**
