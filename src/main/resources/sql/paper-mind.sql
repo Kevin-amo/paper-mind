@@ -564,8 +564,8 @@ values
     ('POLICY', '政策导向', '检查论文是否存在政治不当表述、价值导向偏差或敏感风险。', 100, 20, 1, 'CONTENT', true, '[]'::jsonb, true, 10),
     ('MATCH', '专业匹配', '判断研究主题、研究对象和方法路径是否符合申报方向或评审场景。', 100, 20, 1, 'CONTENT', true, '[]'::jsonb, true, 20),
     ('INNOVATION', '创新性', '评价选题、方法、数据、结论或应用场景是否具有新意。', 100, 20, 1, 'QUALITY', true, '[]'::jsonb, true, 30),
-    ('LOGIC', '逻辑性', '评价论文结构、论证链路、方法与结论之间的连贯性。', 100, 20, 1, 'QUALITY', true, '[]'::jsonb, true, 40),
-    ('LANGUAGE', '语言质量', '评价表达准确性、学术规范性、语句流畅度和错别字风险。', 100, 20, 1, 'QUALITY', true, '[]'::jsonb, true, 50),
+    ('LOGIC', '逻辑性', '评价论文结构、论证链路、方法与结论之间的连贯性。', 100, 15, 1, 'QUALITY', true, '[]'::jsonb, true, 40),
+    ('LANGUAGE', '语言质量', '评价表达准确性、学术规范性、语句流畅度和错别字风险。', 100, 15, 1, 'QUALITY', true, '[]'::jsonb, true, 50),
     ('REFERENCE', '参考文献规范', '检查参考文献格式、引用完整性和明显缺失问题。', 100, 10, 1, 'FORMAT', true, '[]'::jsonb, true, 60)
 on conflict (code) do update set
     name = excluded.name,

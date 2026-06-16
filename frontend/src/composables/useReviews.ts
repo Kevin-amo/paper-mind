@@ -383,26 +383,42 @@ export function useReviews() {
       return scoreItem.code === code ? { ...scoreItem, score } : scoreItem;
     });
     report.scores = nextScores;
-    reportForm.totalScore = calculateAverageScore(nextScores);
+    reportForm.totalScore = calculateWeightedScore(nextScores, criteria.value);
   }
 
   function syncReportForm(report: ReviewReport | null) {
-    reportForm.totalScore = report?.totalScore ?? calculateAverageScore(report?.scores);
+    reportForm.totalScore = report?.totalScore ?? calculateWeightedScore(report?.scores, criteria.value);
     reportForm.finalRecommendation = report?.finalRecommendation ?? '';
     reportForm.status = report?.status === 'CONFIRMED' || report?.status === 'COMPLETED' ? report.status : 'ADJUSTED';
   }
 
-  function calculateAverageScore(scores: unknown) {
+  function calculateWeightedScore(scores: unknown, criteriaList: ReviewCriterion[]) {
     if (!Array.isArray(scores) || scores.length === 0) {
       return 0;
     }
-    const values = scores
-      .map((item) => Number((item as ReviewScoreItem).score))
-      .filter((value) => Number.isFinite(value));
-    if (!values.length) {
+    // Build weight map from criteria
+    const weightMap = new Map<string, number>();
+    if (Array.isArray(criteriaList)) {
+      for (const c of criteriaList) {
+        if (c.code && c.weight != null) {
+          weightMap.set(c.code, c.weight);
+        }
+      }
+    }
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const item of scores) {
+      const scoreItem = item as ReviewScoreItem;
+      const score = Number(scoreItem.score);
+      if (!Number.isFinite(score)) continue;
+      const weight = scoreItem.code ? (weightMap.get(scoreItem.code) ?? 1) : 1;
+      weightedSum += score * weight;
+      totalWeight += weight;
+    }
+    if (totalWeight === 0) {
       return 0;
     }
-    return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+    return Math.round(weightedSum / totalWeight);
   }
 
   return {

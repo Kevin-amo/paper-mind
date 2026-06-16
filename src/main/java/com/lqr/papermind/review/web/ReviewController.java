@@ -14,6 +14,7 @@ import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewCriterionRequest;
 import com.lqr.papermind.review.dto.ReviewCriterionResponse;
+import com.lqr.papermind.review.dto.ReviewCriterionWeightBatchRequest;
 import com.lqr.papermind.review.dto.ReviewReportResponse;
 import com.lqr.papermind.review.dto.ReviewReportUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewRiskItemResponse;
@@ -369,6 +370,20 @@ public class ReviewController {
                                                    @Valid @RequestBody ReviewCriterionRequest request) {
         requireAdmin(principal);
         return reviewService.updateCriterion(id, request);
+    }
+
+    /**
+     * 批量更新评审指标权重（管理员专用）
+     *
+     * @param principal 当前认证用户
+     * @param request   批量权重更新请求
+     * @return 更新后的评审指标列表
+     */
+    @PutMapping("/criteria/weights")
+    public List<ReviewCriterionResponse> batchUpdateWeights(@AuthenticationPrincipal SecurityUserPrincipal principal,
+                                                             @Valid @RequestBody ReviewCriterionWeightBatchRequest request) {
+        requireAdmin(principal);
+        return reviewService.batchUpdateWeights(request);
     }
 
     /**

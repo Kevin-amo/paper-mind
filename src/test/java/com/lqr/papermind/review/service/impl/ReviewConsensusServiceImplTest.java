@@ -13,11 +13,13 @@ import com.lqr.papermind.review.entity.ReviewReportEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
 import com.lqr.papermind.review.mapper.ReviewConsensusMapper;
+import com.lqr.papermind.review.mapper.ReviewCriterionMapper;
 import com.lqr.papermind.review.mapper.ReviewGroupMapper;
 import com.lqr.papermind.review.mapper.ReviewReportMapper;
 import com.lqr.papermind.review.mapper.ReviewTaskMapper;
 import com.lqr.papermind.review.model.ReviewConsensusStatuses;
 import com.lqr.papermind.review.model.ReviewTaskStatuses;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.server.ResponseStatusException;
@@ -43,6 +45,7 @@ class ReviewConsensusServiceImplTest {
     private final ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
     private final ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
     private final ReviewGroupMapper groupMapper = mock(ReviewGroupMapper.class);
+    private final ReviewCriterionMapper criterionMapper = mock(ReviewCriterionMapper.class);
     private final SysUserMapper userMapper = mock(SysUserMapper.class);
     private final ReviewAuditService reviewAuditService = mock(ReviewAuditService.class);
     private final ReviewConsensusServiceImpl service = new ReviewConsensusServiceImpl(
@@ -51,10 +54,16 @@ class ReviewConsensusServiceImplTest {
             assignmentMapper,
             taskMapper,
             groupMapper,
+            criterionMapper,
             userMapper,
             new ConsensusCalculator(),
             reviewAuditService
     );
+
+    @BeforeEach
+    void setUp() {
+        when(criterionMapper.selectList(any())).thenReturn(List.of());
+    }
 
     @Test
     void recalculateShouldCreateDraftConsensusWithAverageScore() {

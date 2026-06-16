@@ -56,6 +56,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         if (Boolean.TRUE.equals(redisTemplate.hasKey(registerEmailCooldownKey(normalizedEmail)))) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "验证码发送过于频繁，请稍后再试");
         }
+        // 限制注册邮箱验证码发送频控
         requireWithinLimit(registerEmailDailyKey(normalizedEmail), DAILY_COUNTER_TTL, config.emailDailyLimit(), "该邮箱今日验证码发送次数已达上限");
         requireWithinLimit(registerIpMinuteKey(normalizedIp), MINUTE_COUNTER_TTL, config.ipMinuteLimit(), "当前 IP 验证码请求过于频繁，请稍后再试");
         requireWithinLimit(registerIpDailyKey(normalizedIp), DAILY_COUNTER_TTL, config.ipDailyLimit(), "当前 IP 今日验证码发送次数已达上限");

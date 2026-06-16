@@ -14,6 +14,7 @@ import com.lqr.papermind.review.dto.ReviewRiskUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewTaskCreateRequest;
 import com.lqr.papermind.review.dto.ReviewTaskResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
+import com.lqr.papermind.review.dto.ReviewCriterionWeightBatchRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -196,4 +197,12 @@ public interface ReviewService {
      * @return 审计日志列表
      */
     List<ReviewAuditLogResponse> listAuditLogs(UUID currentUserId, boolean admin, UUID taskId);
+
+    /**
+     * 批量更新评审指标权重（管理员专用）
+     *
+     * @param request 批量权重更新请求
+     * @return 更新后的评审指标列表
+     */
+    List<ReviewCriterionResponse> batchUpdateWeights(ReviewCriterionWeightBatchRequest request);
 }

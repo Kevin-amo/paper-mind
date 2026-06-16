@@ -3,17 +3,20 @@ package com.lqr.papermind.review.service.impl;
 import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.review.audit.ReviewAuditService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lqr.papermind.review.consensus.ConsensusCalculator;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewReportResponse;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
 import com.lqr.papermind.review.entity.ReviewConsensusEntity;
+import com.lqr.papermind.review.entity.ReviewCriterionEntity;
 import com.lqr.papermind.review.entity.ReviewGroupEntity;
 import com.lqr.papermind.review.entity.ReviewReportEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
 import com.lqr.papermind.review.mapper.ReviewConsensusMapper;
+import com.lqr.papermind.review.mapper.ReviewCriterionMapper;
 import com.lqr.papermind.review.mapper.ReviewGroupMapper;
 import com.lqr.papermind.review.mapper.ReviewReportMapper;
 import com.lqr.papermind.review.mapper.ReviewTaskMapper;
@@ -43,6 +46,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
     private final ReviewAssignmentMapper assignmentMapper;
     private final ReviewTaskMapper taskMapper;
     private final ReviewGroupMapper groupMapper;
+    private final ReviewCriterionMapper criterionMapper;
     private final SysUserMapper userMapper;
     private final ConsensusCalculator consensusCalculator;
     private final ReviewAuditService reviewAuditService;
@@ -299,7 +303,10 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
         requireAllAssignmentsSubmitted(taskId);
 
         Map<String, Object> beforeSnapshot = consensus == null ? Map.of("status", "MISSING") : consensusSnapshot(consensus);
-        ConsensusCalculator.Result result = consensusCalculator.calculate(reports);
+        Map<String, Integer> weightByCode = buildWeightByCode();
+        ConsensusCalculator.Result result = weightByCode.isEmpty()
+                ? consensusCalculator.calculate(reports)
+                : consensusCalculator.calculate(reports, weightByCode);
         boolean creating = consensus == null;
         OffsetDateTime now = OffsetDateTime.now();
         if (creating) {
@@ -334,6 +341,22 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
                 clientInfo
         );
         return toResponse(consensus, reports);
+    }
+
+    /**
+     * 构建启用评审指标的权重映射（code -> weight）
+     *
+     * @return 权重映射
+     */
+    private Map<String, Integer> buildWeightByCode() {
+        LambdaQueryWrapper<ReviewCriterionEntity> wrapper = new LambdaQueryWrapper<ReviewCriterionEntity>()
+                .eq(ReviewCriterionEntity::getEnabled, true);
+        List<ReviewCriterionEntity> enabled = criterionMapper.selectList(wrapper);
+        Map<String, Integer> weightByCode = new LinkedHashMap<>();
+        for (ReviewCriterionEntity c : enabled) {
+            weightByCode.put(c.getCode(), c.getWeight() == null ? 20 : c.getWeight());
+        }
+        return weightByCode;
     }
 
     /**

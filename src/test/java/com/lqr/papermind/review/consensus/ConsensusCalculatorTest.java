@@ -131,6 +131,83 @@ class ConsensusCalculatorTest {
         assertThat(result.disagreementItems()).isEmpty();
     }
 
+    @Test
+    void calculateWithWeightsShouldComputeWeightedAverage() {
+        // POLICY weight=20, score=80 => 80*20=1600
+        // INNOVATION weight=30, score=60 => 60*30=1800
+        // Weighted average = (1600+1800)/(20+30) = 3400/50 = 68
+        ReviewReportEntity report = report(UUID.randomUUID(), UUID.randomUUID(), 70, "建议通过",
+                List.of(
+                        Map.of("code", "POLICY", "score", 80),
+                        Map.of("code", "INNOVATION", "score", 60)
+                ));
+        Map<String, Integer> weights = Map.of("POLICY", 20, "INNOVATION", 30);
+
+        ConsensusCalculator.Result result = calculator.calculate(List.of(report), weights);
+
+        assertThat(result.finalScore()).isEqualTo(68);
+    }
+
+    @Test
+    void calculateWithWeightsShouldAverageMultipleReports() {
+        // Report 1: POLICY=80*20=1600, INNOVATION=60*30=1800 => weighted=3400/50=68
+        // Report 2: POLICY=90*20=1800, INNOVATION=70*30=2100 => weighted=3900/50=78
+        // Average of 68 and 78 = 73
+        ReviewReportEntity first = report(UUID.randomUUID(), UUID.randomUUID(), 70, "建议通过",
+                List.of(
+                        Map.of("code", "POLICY", "score", 80),
+                        Map.of("code", "INNOVATION", "score", 60)
+                ));
+        ReviewReportEntity second = report(UUID.randomUUID(), UUID.randomUUID(), 80, "建议修改后通过",
+                List.of(
+                        Map.of("code", "POLICY", "score", 90),
+                        Map.of("code", "INNOVATION", "score", 70)
+                ));
+        Map<String, Integer> weights = Map.of("POLICY", 20, "INNOVATION", 30);
+
+        ConsensusCalculator.Result result = calculator.calculate(List.of(first, second), weights);
+
+        assertThat(result.finalScore()).isEqualTo(73);
+    }
+
+    @Test
+    void calculateWithWeightsShouldFallBackToTotalScoreWhenNoScores() {
+        ReviewReportEntity report = report(UUID.randomUUID(), UUID.randomUUID(), 75, "建议通过", List.of());
+        Map<String, Integer> weights = Map.of("POLICY", 20);
+
+        ConsensusCalculator.Result result = calculator.calculate(List.of(report), weights);
+
+        assertThat(result.finalScore()).isEqualTo(75);
+    }
+
+    @Test
+    void calculateWithEmptyWeightsShouldFallBackToTotalScore() {
+        ReviewReportEntity report = report(UUID.randomUUID(), UUID.randomUUID(), 85, "建议通过",
+                List.of(Map.of("code", "POLICY", "score", 85)));
+        Map<String, Integer> weights = Map.of();
+
+        ConsensusCalculator.Result result = calculator.calculate(List.of(report), weights);
+
+        assertThat(result.finalScore()).isEqualTo(85);
+    }
+
+    @Test
+    void calculateWithWeightsShouldDetectDisagreement() {
+        ReviewReportEntity first = report(UUID.randomUUID(), UUID.randomUUID(), 60, "建议通过",
+                List.of(Map.of("code", "POLICY", "score", 60)));
+        ReviewReportEntity second = report(UUID.randomUUID(), UUID.randomUUID(), 90, "建议复核",
+                List.of(Map.of("code", "POLICY", "score", 90)));
+        Map<String, Integer> weights = Map.of("POLICY", 100);
+
+        ConsensusCalculator.Result result = calculator.calculate(List.of(first, second), weights);
+
+        assertThat(result.disagreementItems())
+                .anySatisfy(item -> assertThat(item)
+                        .containsEntry("type", "OVERALL_SCORE")
+                        .containsEntry("minScore", 60)
+                        .containsEntry("maxScore", 90));
+    }
+
     private ReviewReportEntity report(UUID id, UUID reviewerUserId, Integer totalScore, String finalRecommendation, Object scores) {
         ReviewReportEntity report = new ReviewReportEntity();
         report.setId(id);

@@ -174,6 +174,7 @@ onMounted(async () => {
                 :saving="reviews.saving.value"
                 :submitting-assignment="reviews.submittingAssignment.value"
                 :report-form="reviews.reportForm"
+                :criteria="reviews.criteria.value"
                 @update-score="handleScoreInput"
                 @save-report="reviews.saveReport"
                 @submit-assignment="reviews.submitCurrentAssignment"

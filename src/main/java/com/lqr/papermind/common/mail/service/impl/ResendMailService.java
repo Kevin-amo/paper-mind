@@ -37,7 +37,6 @@ public class ResendMailService implements MailService {
      * 换绑邮箱验证码邮件主题。
      */
     private static final String CHANGE_EMAIL_CODE_SUBJECT = "PaperMind 换绑邮箱验证码";
-
     /**
      * Spring REST 客户端构建器。
      */

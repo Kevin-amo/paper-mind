@@ -1,14 +1,19 @@
 <script setup lang="ts">
-import type { ReviewReport, ReviewReportStatus, ReviewScoreItem } from '../../../types';
+import type { ReviewReport, ReviewReportStatus, ReviewScoreItem, ReviewCriterion } from '../../../types';
 
-defineProps<{
+const props = defineProps<{
   scoreItems: ReviewScoreItem[];
   selectedReport: ReviewReport | null;
   assignmentSubmitted: boolean;
   saving: boolean;
   submittingAssignment: boolean;
   reportForm: { totalScore: number; finalRecommendation: string; status: ReviewReportStatus };
+  criteria: ReviewCriterion[];
 }>();
+
+function getWeight(code: string): number {
+  return props.criteria?.find((c) => c.code === code)?.weight ?? 0;
+}
 
 defineEmits<{
   'update-score': [code: string, score: number];
@@ -27,6 +32,7 @@ defineEmits<{
       <article v-for="item in scoreItems" :key="item.code" class="score-card">
         <div class="score-card-header">
           <strong class="score-name">{{ item.name }}</strong>
+          <el-tag v-if="getWeight(item.code)" size="small" type="info" class="weight-tag">权重{{ getWeight(item.code) }}%</el-tag>
           <span class="score-value">{{ item.score }}<span class="score-max">/{{ item.maxScore }}</span></span>
         </div>
         <el-slider
@@ -134,6 +140,11 @@ defineEmits<{
   color: var(--app-text);
   font-size: 14px;
   font-weight: 600;
+}
+
+.weight-tag {
+  margin-left: 6px;
+  font-size: 11px;
 }
 
 .score-value {

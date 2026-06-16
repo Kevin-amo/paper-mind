@@ -138,3 +138,13 @@ export async function listAuditLogs(taskId: string) {
   const { data } = await http.get<ReviewAuditLog[]>(`/reviews/tasks/${taskId}/audit-logs`);
   return data;
 }
+
+export interface ReviewCriterionWeightItem {
+  id: string;
+  weight: number;
+}
+
+export async function batchUpdateCriterionWeights(weights: ReviewCriterionWeightItem[]) {
+  const { data } = await http.put<ReviewCriterion[]>('/reviews/criteria/weights', { weights });
+  return data;
+}

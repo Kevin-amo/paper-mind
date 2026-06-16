@@ -100,6 +100,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             if (job.getTitle() != null && !job.getTitle().isBlank()) {
                 metadata.put(MetadataKeys.TITLE, job.getTitle());
             }
+            // 读取上传的文件
             byte[] content = documentUploadStorageService.read(job.getFilePath());
             log.info("document.ingest.read.done ownerUserId={} jobId={} sourceId={} fileName={} fileSize={} costMs={}",
                     job.getOwnerUserId(), job.getId(), job.getSourceId(), job.getFileName(), contentLength(content), elapsedMs(startNanos));

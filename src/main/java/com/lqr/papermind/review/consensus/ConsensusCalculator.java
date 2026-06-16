@@ -71,6 +71,86 @@ public class ConsensusCalculator {
     }
 
     /**
+     * 对多份评审报告进行加权共识计算。
+     * 使用权重对每个评审人的各指标分数进行加权平均，再取各评审人加权总分的平均值。
+     *
+     * @param reports       评审报告列表
+     * @param weightByCode  各评审标准的权重映射（code -> weight）
+     * @return 共识计算结果
+     */
+    public Result calculate(List<ReviewReportEntity> reports, Map<String, Integer> weightByCode) {
+        List<ReviewReportEntity> safeReports = reports == null
+                ? List.of()
+                : reports.stream().filter(Objects::nonNull).toList();
+
+        // Calculate weighted total score for each report
+        List<Integer> weightedOverallScores = new ArrayList<>();
+        for (ReviewReportEntity report : safeReports) {
+            int weightedScore = calculateWeightedScore(report, weightByCode);
+            if (weightedScore > 0) {
+                weightedOverallScores.add(weightedScore);
+            } else if (report.getTotalScore() != null) {
+                weightedOverallScores.add(report.getTotalScore());
+            }
+        }
+
+        int overallAverage = roundedAverage(weightedOverallScores);
+        Map<String, Object> scoreSummary = new LinkedHashMap<>();
+        scoreSummary.put("overallAverage", overallAverage);
+        scoreSummary.put("participantCount", safeReports.size());
+
+        List<Map<String, Object>> disagreementItems = new ArrayList<>();
+        if (!weightedOverallScores.isEmpty()) {
+            int min = weightedOverallScores.stream().mapToInt(Integer::intValue).min().orElse(0);
+            int max = weightedOverallScores.stream().mapToInt(Integer::intValue).max().orElse(0);
+            scoreSummary.put("overallMin", min);
+            scoreSummary.put("overallMax", max);
+            if (max - min >= OVERALL_DISAGREEMENT_THRESHOLD) {
+                disagreementItems.add(disagreement("OVERALL_SCORE", null, min, max, OVERALL_DISAGREEMENT_THRESHOLD));
+            }
+        }
+
+        List<Map<String, Object>> criteria = summarizeCriteria(safeReports, disagreementItems);
+        scoreSummary.put("criteria", criteria);
+
+        Map<String, Object> commentSummary = new LinkedHashMap<>();
+        commentSummary.put("recommendations", recommendations(safeReports));
+
+        return new Result(scoreSummary, commentSummary, disagreementItems, overallAverage);
+    }
+
+    /**
+     * 计算单份报告的加权总分
+     */
+    private int calculateWeightedScore(ReviewReportEntity report, Map<String, Integer> weightByCode) {
+        if (weightByCode == null || weightByCode.isEmpty()) {
+            return 0;
+        }
+        if (!(report.getScores() instanceof List<?> scores) || scores.isEmpty()) {
+            return 0;
+        }
+        double weightedSum = 0.0;
+        int totalWeight = 0;
+        for (Object item : scores) {
+            if (!(item instanceof Map<?, ?> scoreItem)) {
+                continue;
+            }
+            Object code = scoreItem.get("code");
+            Integer score = numericScore(scoreItem.get("score"));
+            if (code == null || score == null) {
+                continue;
+            }
+            int weight = weightByCode.getOrDefault(String.valueOf(code), 1);
+            weightedSum += score * weight;
+            totalWeight += weight;
+        }
+        if (totalWeight == 0) {
+            return 0;
+        }
+        return (int) Math.round(weightedSum / totalWeight);
+    }
+
+    /**
      * 汇总各评审标准的分数统计信息，并检测标准级别的评分分歧。
      *
      * @param reports           评审报告列表

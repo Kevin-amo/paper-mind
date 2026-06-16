@@ -22,6 +22,7 @@ import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewCriterionRequest;
 import com.lqr.papermind.review.dto.ReviewCriterionResponse;
+import com.lqr.papermind.review.dto.ReviewCriterionWeightBatchRequest;
 import com.lqr.papermind.review.dto.ReviewReportResponse;
 import com.lqr.papermind.review.dto.ReviewReportUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewRiskItemResponse;
@@ -299,7 +300,7 @@ public class ReviewServiceImpl implements ReviewService {
         report.setComments(mapValue(parsed.get("comments")));
         report.setRisks(mergeRisks(valueOrDefault(parsed.get("risks"), List.of()), referenceRisks));
         report.setRawModelOutput(rawOutput(parsed, modelText));
-        report.setTotalScore(intValue(parsed.get("totalScore"), calculateTotalScore(parsed.get("scores"))));
+        report.setTotalScore(intValue(parsed.get("totalScore"), calculateTotalScore(parsed.get("scores"), criteria)));
         report.setFinalRecommendation(stringValue(parsed.get("finalRecommendation"), "建议人工复核后进入下一评审环节"));
         report.setStatus("AI_GENERATED");
         report.setModelVersion(chatModelName);
@@ -584,6 +585,7 @@ public class ReviewServiceImpl implements ReviewService {
         ReviewCriterionEntity entity = new ReviewCriterionEntity();
         entity.setId(UUID.randomUUID());
         applyCriterionRequest(entity, request);
+        validateWeightSum(null, entity);
         OffsetDateTime now = OffsetDateTime.now();
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
@@ -606,9 +608,66 @@ public class ReviewServiceImpl implements ReviewService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审指标不存在");
         }
         applyCriterionRequest(entity, request);
+        validateWeightSum(id, entity);
         entity.setUpdatedAt(OffsetDateTime.now());
         criterionMapper.updateById(entity);
         return ReviewCriterionResponse.from(criterionMapper.selectById(id));
+    }
+
+    /**
+     * 批量更新评审指标权重（管理员专用）
+     *
+     * @param request 批量权重更新请求
+     * @return 更新后的评审指标列表
+     */
+    @Override
+    @Transactional
+    public List<ReviewCriterionResponse> batchUpdateWeights(ReviewCriterionWeightBatchRequest request) {
+        // First validate all IDs exist
+        for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
+            ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
+            if (entity == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审指标不存在: " + item.id());
+            }
+            if (item.weight() < 1 || item.weight() > 100) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "权重必须在1-100之间");
+            }
+        }
+
+        // Calculate total weight sum for all enabled criteria after update
+        // Get all enabled criteria that are NOT in the update list
+        List<UUID> updateIds = request.weights().stream().map(ReviewCriterionWeightBatchRequest.WeightItem::id).toList();
+        LambdaQueryWrapper<ReviewCriterionEntity> wrapper = new LambdaQueryWrapper<ReviewCriterionEntity>()
+                .eq(ReviewCriterionEntity::getEnabled, true)
+                .notIn(ReviewCriterionEntity::getId, updateIds);
+        List<ReviewCriterionEntity> otherEnabled = criterionMapper.selectList(wrapper);
+        int otherWeightSum = otherEnabled.stream().mapToInt(e -> e.getWeight() == null ? 20 : e.getWeight()).sum();
+
+        // Add weights from the update list for enabled criteria
+        int updateWeightSum = 0;
+        for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
+            ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
+            if (entity.getEnabled() == null || entity.getEnabled()) {
+                updateWeightSum += item.weight();
+            }
+        }
+
+        int totalSum = otherWeightSum + updateWeightSum;
+        if (totalSum != 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "启用指标权重之和必须等于100，当前总和为" + totalSum + "，请调整权重配置");
+        }
+
+        // Apply updates
+        OffsetDateTime now = OffsetDateTime.now();
+        for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
+            ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
+            entity.setWeight(item.weight());
+            entity.setUpdatedAt(now);
+            criterionMapper.updateById(entity);
+        }
+
+        return listCriteria(true);
     }
 
     /**
@@ -982,6 +1041,29 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     /**
+     * 校验启用指标权重之和是否等于100
+     *
+     * @param excludeId 排除的指标ID（更新时排除自身）
+     * @param entity    当前操作的指标实体
+     */
+    private void validateWeightSum(UUID excludeId, ReviewCriterionEntity entity) {
+        LambdaQueryWrapper<ReviewCriterionEntity> wrapper = new LambdaQueryWrapper<ReviewCriterionEntity>()
+                .eq(ReviewCriterionEntity::getEnabled, true);
+        if (excludeId != null) {
+            wrapper.ne(ReviewCriterionEntity::getId, excludeId);
+        }
+        List<ReviewCriterionEntity> otherEnabled = criterionMapper.selectList(wrapper);
+        int sum = otherEnabled.stream().mapToInt(e -> e.getWeight() == null ? 20 : e.getWeight()).sum();
+        if (entity.getEnabled() == null || entity.getEnabled()) {
+            sum += entity.getWeight() == null ? 20 : entity.getWeight();
+        }
+        if (sum != 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "启用指标权重之和必须等于100，当前总和为" + sum + "，请调整权重配置");
+        }
+    }
+
+    /**
      * 追加审计日志
      *
      * @param taskId         任务ID
@@ -1222,28 +1304,54 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     /**
-     * 计算总分（取各指标分数的平均值）
+     * 计算总分（取各指标分数的加权平均值）
+     *
+     * @param scores   各指标分数列表
+     * @param criteria 评审标准列表（用于获取权重）
+     * @return 计算后的总分
+     */
+    private int calculateTotalScore(Object scores, List<ReviewCriterionResponse> criteria) {
+        if (!(scores instanceof List<?> list) || list.isEmpty()) {
+            return 0;
+        }
+        // Build a map of code -> weight from criteria
+        Map<String, Integer> weightMap = new LinkedHashMap<>();
+        if (criteria != null) {
+            for (ReviewCriterionResponse c : criteria) {
+                weightMap.put(c.code(), c.weight());
+            }
+        }
+        double weightedSum = 0.0;
+        int totalWeight = 0;
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map) {
+                Integer score = intOrNull(map.get("score"));
+                if (score == null) {
+                    continue;
+                }
+                Object code = map.get("code");
+                int weight = 1; // default weight if no matching criterion
+                if (code != null && weightMap.containsKey(String.valueOf(code))) {
+                    weight = weightMap.get(String.valueOf(code));
+                }
+                weightedSum += score * weight;
+                totalWeight += weight;
+            }
+        }
+        if (totalWeight == 0) {
+            return 0;
+        }
+        return (int) Math.round(weightedSum / totalWeight);
+    }
+
+    /**
+     * 计算总分（简单平均，向后兼容）
      *
      * @param scores 各指标分数列表
      * @return 计算后的总分
      */
     private int calculateTotalScore(Object scores) {
-        if (!(scores instanceof List<?> list) || list.isEmpty()) {
-            return 0;
-        }
-        List<Integer> values = new ArrayList<>();
-        for (Object item : list) {
-            if (item instanceof Map<?, ?> map) {
-                Integer score = intOrNull(map.get("score"));
-                if (score != null) {
-                    values.add(score);
-                }
-            }
-        }
-        if (values.isEmpty()) {
-            return 0;
-        }
-        return (int) Math.round(values.stream().mapToInt(Integer::intValue).average().orElse(0));
+        return calculateTotalScore(scores, null);
     }
 
     /**
