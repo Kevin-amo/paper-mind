@@ -7,7 +7,7 @@ export default {
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { EditPen, MoreFilled, User, UserFilled, Avatar, CircleClose } from '@element-plus/icons-vue';
+import { Avatar, CircleClose, EditPen, MoreFilled, User, UserFilled } from '@element-plus/icons-vue';
 import StatusTag from '../common/StatusTag.vue';
 import RoleTag from '../common/RoleTag.vue';
 import { useAdminUsers } from '../../composables/useAdminUsers';

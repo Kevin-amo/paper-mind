@@ -9,10 +9,13 @@ import com.lqr.papermind.review.dto.AdminReviewTaskDetailResponse;
 import com.lqr.papermind.review.dto.AdminReviewTaskSummaryResponse;
 import com.lqr.papermind.review.dto.ReviewAssignmentRequest;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
+import com.lqr.papermind.review.dto.ReviewAuditLogResponse;
+import com.lqr.papermind.review.dto.ReviewAuditOperatorResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewerLoadResponse;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
+import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.entity.ReviewConsensusEntity;
 import com.lqr.papermind.review.entity.ReviewGroupEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
@@ -33,12 +36,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -189,6 +196,99 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     @Override
     public ReviewConsensusResponse confirmConsensus(UUID taskId, UUID operatorUserId) {
         return consensusService.confirm(taskId, operatorUserId);
+    }
+
+    /**
+     * 分页查询全局评审审计日志，支持按操作人、动作类型和时间范围筛选。
+     * 通过批量加载操作人信息避免 N+1 查询。
+     *
+     * @param operatorUserId 操作人用户ID筛选，可为 null
+     * @param action         动作类型筛选，可为 null 或空
+     * @param startTime      创建时间下界（含），可为 null
+     * @param endTime        创建时间上界（含），可为 null
+     * @param page           页码（从0开始）
+     * @param size           每页大小
+     * @return 分页后的审计日志响应列表
+     */
+    @Override
+    public PageResponse<ReviewAuditLogResponse> listAuditLogs(UUID operatorUserId,
+                                                              String action,
+                                                              OffsetDateTime startTime,
+                                                              OffsetDateTime endTime,
+                                                              int page,
+                                                              int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
+        IPage<ReviewAuditLogEntity> result = reviewAuditService.searchAuditLogs(
+                operatorUserId, action, startTime, endTime, safePage, safeSize);
+        Map<UUID, SysUser> userMap = loadOperatorUsers(result.getRecords());
+        List<ReviewAuditLogResponse> items = result.getRecords().stream()
+                .map(log -> toAuditResponse(log, userMap))
+                .toList();
+        return new PageResponse<>(items, safePage, safeSize, result.getTotal());
+    }
+
+    @Override
+    public List<ReviewAuditOperatorResponse> listAuditOperators() {
+        List<ReviewAuditLogEntity> logs = reviewAuditService.listOperators();
+        Map<UUID, SysUser> userMap = loadOperatorUsers(logs);
+        return logs.stream()
+                .map(ReviewAuditLogEntity::getOperatorUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(userMap::get)
+                .filter(Objects::nonNull)
+                .map(user -> new ReviewAuditOperatorResponse(user.getId(), user.getUsername(), user.getDisplayName()))
+                .toList();
+    }
+
+    /**
+     * 查询指定评审任务的审计日志列表，按创建时间倒序排列。
+     * 利用 idx_review_audit_log_task_created_at 索引加速按任务查询。
+     *
+     * @param taskId 评审任务ID
+     * @return 审计日志响应列表
+     */
+    @Override
+    public List<ReviewAuditLogResponse> listTaskAuditLogs(UUID taskId) {
+        List<ReviewAuditLogEntity> logs = reviewAuditService.listByTaskId(taskId);
+        Map<UUID, SysUser> userMap = loadOperatorUsers(logs);
+        return logs.stream()
+                .map(log -> toAuditResponse(log, userMap))
+                .toList();
+    }
+
+    /**
+     * 批量加载审计日志涉及的操作人用户信息，构建用户ID到用户的映射。
+     *
+     * @param logs 审计日志列表
+     * @return 用户ID到用户实体的映射，无操作人时返回空 Map
+     */
+    private Map<UUID, SysUser> loadOperatorUsers(List<ReviewAuditLogEntity> logs) {
+        List<UUID> userIds = logs.stream()
+                .map(ReviewAuditLogEntity::getOperatorUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(SysUser::getId, Function.identity(), (a, b) -> a));
+    }
+
+    /**
+     * 将审计日志实体转换为响应DTO，补充操作人用户名和昵称。
+     *
+     * @param log     审计日志实体
+     * @param userMap 操作人用户映射
+     * @return 审计日志响应DTO
+     */
+    private ReviewAuditLogResponse toAuditResponse(ReviewAuditLogEntity log, Map<UUID, SysUser> userMap) {
+        SysUser user = log.getOperatorUserId() == null ? null : userMap.get(log.getOperatorUserId());
+        String username = user == null ? null : user.getUsername();
+        String displayName = user == null ? null : user.getDisplayName();
+        return ReviewAuditLogResponse.from(log, username, displayName);
     }
 
     private ReviewTaskEntity requireTask(UUID taskId) {

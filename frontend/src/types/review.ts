@@ -276,6 +276,12 @@ export interface ReviewAuditLog {
   createdAt: string;
 }
 
+export interface ReviewAuditOperator {
+  userId: string;
+  username: string | null;
+  displayName: string | null;
+}
+
 export interface ReviewTask {
   id: string;
   documentId: string;

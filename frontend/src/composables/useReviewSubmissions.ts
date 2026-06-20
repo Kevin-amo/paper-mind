@@ -1,18 +1,24 @@
 import { reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import {
-  getReviewSubmissionUploadJob,
   listReviewSubmissions,
   uploadReviewSubmission,
 } from '../api/reviewSubmissions';
 import { getErrorMessage } from '../api/http';
 import type { ReviewSubmission } from '../types';
 
+const PENDING_STATUSES: Set<string> = new Set(['PENDING', 'PROCESSING']);
+
 export function useReviewSubmissions() {
   const submissions = ref<ReviewSubmission[]>([]);
   const loading = ref(false);
   const uploading = ref(false);
   const pagination = reactive({ page: 0, size: 20, total: 0 });
+
+  let pollingTimer: ReturnType<typeof setTimeout> | null = null;
+  let pollingAttempts = 0;
+  const maxPollingAttempts = 30;
+  const pollingInterval = 3000;
 
   async function loadSubmissions(page = pagination.page) {
     loading.value = true;
@@ -38,32 +44,72 @@ export function useReviewSubmissions() {
     }
     uploading.value = true;
     try {
-      const result = await uploadReviewSubmission({
+      await uploadReviewSubmission({
         file,
         title: file.name.replace(/\.[^.]+$/, ''),
       });
-      await waitForUploadSettled(result.jobId);
-      await loadSubmissions(0);
-      ElMessage.success('评审投稿已提交');
-    } catch (error) {
-      ElMessage.error(getErrorMessage(error));
-    } finally {
       uploading.value = false;
+      ElMessage.success('评审投稿已提交');
+      await loadSubmissions(0);
+      startStatusPolling();
+    } catch (error) {
+      uploading.value = false;
+      ElMessage.error(getErrorMessage(error));
     }
   }
 
-  async function waitForUploadSettled(jobId: string) {
-    const maxAttempts = 20;
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const job = await getReviewSubmissionUploadJob(jobId);
-      if (job.status === 'INDEXED') {
+  function hasPendingSubmissions(): boolean {
+    return submissions.value.some(
+      (s) => PENDING_STATUSES.has(s.documentStatus),
+    );
+  }
+
+  function notifyFailedSubmissions() {
+    for (const s of submissions.value) {
+      if (s.documentStatus === 'FAILED' && s.errorMessage) {
+        ElMessage.error(`${s.title || s.fileName}: ${s.errorMessage}`);
+      }
+    }
+  }
+
+  function startStatusPolling() {
+    if (pollingTimer) {
+      return;
+    }
+    pollingAttempts = 0;
+    scheduleNextPoll();
+  }
+
+  function scheduleNextPoll() {
+    pollingTimer = setTimeout(async () => {
+      pollingTimer = null;
+      pollingAttempts++;
+
+      if (pollingAttempts > maxPollingAttempts) {
+        stopStatusPolling();
         return;
       }
-      if (job.status === 'FAILED') {
-        throw new Error(job.errorMessage || '投稿入库失败');
+
+      try {
+        await loadSubmissions(pagination.page);
+        notifyFailedSubmissions();
+        if (hasPendingSubmissions()) {
+          scheduleNextPoll();
+        } else {
+          stopStatusPolling();
+        }
+      } catch {
+        stopStatusPolling();
       }
-      await new Promise((resolve) => { setTimeout(resolve, 1500); });
+    }, pollingInterval);
+  }
+
+  function stopStatusPolling() {
+    if (pollingTimer) {
+      clearTimeout(pollingTimer);
+      pollingTimer = null;
     }
+    pollingAttempts = 0;
   }
 
   return {
@@ -73,5 +119,7 @@ export function useReviewSubmissions() {
     pagination,
     loadSubmissions,
     submitFile,
+    startStatusPolling,
+    stopStatusPolling,
   };
 }

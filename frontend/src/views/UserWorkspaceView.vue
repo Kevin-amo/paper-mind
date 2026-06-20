@@ -277,6 +277,7 @@ onMounted(async () => {
       @upload="handleReviewSubmissionUpload"
       @refresh="reviewSubmissionsState.loadSubmissions(0)"
       @page-change="reviewSubmissionsState.loadSubmissions"
+      @stop-polling="reviewSubmissionsState.stopStatusPolling"
     />
 
     <AccountManagementDialog

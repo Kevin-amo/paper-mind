@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Document, List, UserFilled, TrendCharts } from '@element-plus/icons-vue';
+import { Document, List, TrendCharts, UserFilled } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import AdminReviewTaskTable from '../../components/admin/review/AdminReviewTaskTable.vue';
 import ReviewBatchGroupPanel from '../../components/admin/review/ReviewBatchGroupPanel.vue';

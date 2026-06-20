@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { AdminReviewTaskDetail, ReviewAssignment, ReviewReport } from '../../../types';
+import { computed, ref, watch } from 'vue';
+import { listAdminTaskAuditLogs } from '../../../api/adminReviews';
+import { getErrorMessage } from '../../../api/http';
+import { reviewAuditActionLabel } from '../../../constants/reviewAudit';
+import { ElMessage } from 'element-plus';
+import type { AdminReviewTaskDetail, ReviewAssignment, ReviewAuditLog, ReviewReport } from '../../../types';
 
 const props = defineProps<{
   modelValue: boolean;
@@ -17,6 +21,9 @@ const visible = computed({
   set: (value: boolean) => emit('update:modelValue', value),
 });
 
+const auditLogs = ref<ReviewAuditLog[]>([]);
+const auditLoading = ref(false);
+
 function formatDate(value: string | null | undefined) {
   return value ? new Date(value).toLocaleString() : '-';
 }
@@ -28,6 +35,34 @@ function assignmentReviewer(assignment: ReviewAssignment) {
 function reportReviewer(report: ReviewReport) {
   return report.reviewerDisplayName || report.reviewerUsername || report.reviewerUserId || '-';
 }
+
+function operatorLabel(log: ReviewAuditLog) {
+  return log.operatorDisplayName || log.operatorUsername || log.operatorUserId || '系统';
+}
+
+async function loadAuditLogs(taskId: string | null | undefined) {
+  if (!taskId) {
+    auditLogs.value = [];
+    return;
+  }
+  auditLoading.value = true;
+  try {
+    auditLogs.value = await listAdminTaskAuditLogs(taskId);
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error));
+    auditLogs.value = [];
+  } finally {
+    auditLoading.value = false;
+  }
+}
+
+watch(
+  () => props.taskDetail?.task.id ?? null,
+  (taskId) => {
+    loadAuditLogs(taskId);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -111,6 +146,33 @@ function reportReviewer(report: ReviewReport) {
           </el-descriptions-item>
         </el-descriptions>
       </section>
+
+      <section class="detail-section">
+        <div class="section-title-row">
+          <h4>操作历史</h4>
+          <span class="section-hint">按时间倒序展示该任务的审计日志</span>
+        </div>
+        <div v-loading="auditLoading" class="audit-timeline-wrap">
+          <el-empty v-if="!auditLoading && auditLogs.length === 0" description="暂无操作记录" :image-size="60" />
+          <el-timeline v-else>
+            <el-timeline-item
+              v-for="log in auditLogs"
+              :key="log.id"
+              :timestamp="formatDate(log.createdAt)"
+              placement="top"
+              type="primary"
+            >
+              <div class="audit-item">
+                <div class="audit-item-header">
+                  <el-tag size="small" effect="plain">{{ reviewAuditActionLabel(log.action) }}</el-tag>
+                  <span class="audit-operator">{{ operatorLabel(log) }}</span>
+                </div>
+                <p v-if="log.note" class="audit-note">{{ log.note }}</p>
+              </div>
+            </el-timeline-item>
+          </el-timeline>
+        </div>
+      </section>
     </div>
   </el-drawer>
 </template>
@@ -163,6 +225,41 @@ h4 {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.section-hint {
+  color: var(--app-text-subtle);
+  font-size: 12px;
+}
+
+.audit-timeline-wrap {
+  min-height: 60px;
+}
+
+.audit-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.audit-operator {
+  color: var(--app-text-muted);
+  font-size: 13px;
+}
+
+.audit-note {
+  margin: 6px 0 0;
+  color: var(--app-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 @media (max-width: 720px) {

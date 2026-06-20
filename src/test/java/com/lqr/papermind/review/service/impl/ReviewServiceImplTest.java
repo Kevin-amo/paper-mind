@@ -171,11 +171,12 @@ class ReviewServiceImplTest {
         ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
         DocumentMapper documentMapper = mock(DocumentMapper.class);
         DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
+        ReviewAuditLogMapper auditLogMapper = mock(ReviewAuditLogMapper.class);
         ReviewServiceImpl service = serviceWithDependencies(
                 taskMapper,
                 mock(ReviewReportMapper.class),
                 mock(ReviewCriterionMapper.class),
-                mock(ReviewAuditLogMapper.class),
+                auditLogMapper,
                 documentMapper,
                 documentPersistenceService,
                 mock(PaperStructuredParseService.class),
@@ -216,16 +217,27 @@ class ReviewServiceImplTest {
         when(documentMapper.selectOne(any())).thenReturn(entity);
         when(taskMapper.existsByDocumentId(documentId)).thenReturn(false);
         ArgumentCaptor<ReviewTaskEntity> taskCaptor = ArgumentCaptor.forClass(ReviewTaskEntity.class);
+        ArgumentCaptor<ReviewAuditLogEntity> auditCaptor = ArgumentCaptor.forClass(ReviewAuditLogEntity.class);
 
         service.createTaskForIndexedReviewDocument(ownerUserId, "source-review");
 
         verify(taskMapper).insert(taskCaptor.capture());
+        verify(auditLogMapper).insert(auditCaptor.capture());
         ReviewTaskEntity task = taskCaptor.getValue();
         assertThat(task.getDocumentId()).isEqualTo(documentId);
         assertThat(task.getSubmitterUserId()).isEqualTo(ownerUserId);
         assertThat(task.getSourceId()).isEqualTo("source-review");
         assertThat(task.getTitle()).isEqualTo("Review Paper");
         assertThat(task.getStatus()).isEqualTo(ReviewTaskStatuses.PENDING_ASSIGNMENT);
+        ReviewAuditLogEntity auditLog = auditCaptor.getValue();
+        assertThat(auditLog.getTaskId()).isEqualTo(task.getId());
+        assertThat(auditLog.getOperatorUserId()).isNull();
+        assertThat(auditLog.getAction()).isEqualTo("CREATE_TASK");
+        assertThat(auditLog.getNote()).isEqualTo("评审文档入库完成后自动创建任务");
+        assertThat(auditLog.getSnapshot())
+                .containsEntry("sourceId", "source-review")
+                .containsEntry("submitterUserId", ownerUserId.toString())
+                .containsEntry("scope", "document-indexed-auto-create");
     }
 
     @Test

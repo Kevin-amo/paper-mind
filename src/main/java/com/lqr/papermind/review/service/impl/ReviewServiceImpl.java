@@ -224,7 +224,11 @@ public class ReviewServiceImpl implements ReviewService {
         task.setCreatedAt(now);
         task.setUpdatedAt(now);
         taskMapper.insert(task);
-        appendAudit(task.getId(), ownerUserId, "CREATE_TASK", "评审文档入库完成后自动创建任务", Map.of("sourceId", sourceId));
+        appendAudit(task.getId(), null, "CREATE_TASK", "评审文档入库完成后自动创建任务", Map.of(
+                "sourceId", sourceId,
+                "submitterUserId", ownerUserId == null ? null : ownerUserId.toString(),
+                "scope", "document-indexed-auto-create"
+        ));
     }
 
     /**

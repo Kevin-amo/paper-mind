@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
+  Clock,
   DataAnalysis,
   Files,
   Setting,
@@ -10,7 +11,7 @@ import {
 } from '@element-plus/icons-vue';
 import { useAuth } from '../../composables/useAuth';
 
-type AdminSection = 'users' | 'config' | 'tasks' | 'criteria';
+type AdminSection = 'users' | 'config' | 'tasks' | 'criteria' | 'audit-logs';
 
 const props = defineProps<{
   active: AdminSection;
@@ -60,6 +61,13 @@ const navItems: Array<{
     path: '/admin/reviews',
     query: { tab: 'criteria' },
     icon: DataAnalysis,
+  },
+  {
+    key: 'audit-logs',
+    title: '审计日志',
+    description: '操作历史追溯',
+    path: '/admin/audit-logs',
+    icon: Clock,
   },
 ];
 
@@ -154,6 +162,7 @@ async function handleLogout() {
   grid-template-columns: 240px minmax(0, 1fr);
   background: var(--app-bg);
   color: var(--app-text);
+  overflow-x: hidden;
 }
 
 .admin-sidebar {

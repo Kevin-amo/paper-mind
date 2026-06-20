@@ -1,6 +1,6 @@
 import type { PageResponse } from './common';
 
-export type DocumentStatus = 'PENDING' | 'PROCESSING' | 'INDEXED' | 'READY' | 'FAILED' | string;
+export type DocumentStatus = 'PENDING' | 'QUEUED' | 'PARSING' | 'CHUNKING' | 'EMBEDDING' | 'INDEXING' | 'INDEXED' | 'READY' | 'FAILED' | 'DELETED' | string;
 
 export interface DocumentSource {
   sourceId: string;

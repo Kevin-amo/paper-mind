@@ -5,6 +5,8 @@ import type {
   AdminReviewTaskSummary,
   DispatchReviewTaskPayload,
   PageResponse,
+  ReviewAuditLog,
+  ReviewAuditOperator,
   ReviewBatch,
   ReviewBatchPayload,
   ReviewGroup,
@@ -90,5 +92,38 @@ export async function dispatchReviewTask(taskId: string, payload: DispatchReview
 
 export async function listReviewerLoads() {
   const { data } = await http.get<ReviewerLoad[]>('/admin/reviews/reviewer-loads');
+  return data;
+}
+
+export interface ListAdminAuditLogsParams {
+  operatorUserId?: string;
+  action?: string;
+  startTime?: string;
+  endTime?: string;
+  page?: number;
+  size?: number;
+}
+
+export async function listAdminAuditLogs(params: ListAdminAuditLogsParams = {}) {
+  const { data } = await http.get<PageResponse<ReviewAuditLog>>('/admin/reviews/audit-logs', {
+    params: compactParams({
+      operatorUserId: params.operatorUserId,
+      action: params.action,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      page: params.page ?? 0,
+      size: params.size ?? 20,
+    }),
+  });
+  return data;
+}
+
+export async function listAdminAuditOperators() {
+  const { data } = await http.get<ReviewAuditOperator[]>('/admin/reviews/audit-logs/operators');
+  return data;
+}
+
+export async function listAdminTaskAuditLogs(taskId: string) {
+  const { data } = await http.get<ReviewAuditLog[]>(`/admin/reviews/tasks/${taskId}/audit-logs`);
   return data;
 }
