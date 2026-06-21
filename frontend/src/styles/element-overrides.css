@@ -194,7 +194,7 @@
 
 .el-input__wrapper.is-focus,
 .el-select__wrapper:focus-within {
-  box-shadow: 0 0 0 1px var(--app-primary) inset, var(--app-shadow-focus) !important;
+  box-shadow: 0 0 0 1px var(--app-border-strong) inset, 0 0 0 3px rgba(201, 206, 212, 0.5) !important;
 }
 
 /* ── Table ── */
@@ -301,7 +301,7 @@
 }
 
 .el-slider__button {
-  border-color: var(--app-primary);
+  border-color: var(--app-border-strong);
 }
 
 /* ── Checkbox Button / Radio Button ── */

@@ -119,7 +119,7 @@ class ReviewServiceImplWeightedScoreTest {
         try {
             var objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
             return new ReviewServiceImpl(
-                    null, null, null, null, null,
+                    null, null, null, null,
                     null, null, null, null, null, null,
                     new com.lqr.papermind.review.assessment.ReviewOutputParser(objectMapper),
                     new com.lqr.papermind.review.risk.ReferenceFormatChecker(),

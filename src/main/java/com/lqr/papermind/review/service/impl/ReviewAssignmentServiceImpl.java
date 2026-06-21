@@ -4,7 +4,9 @@ import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.auth.mapper.SysRoleMapper;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.auth.security.RoleCodes;
-import com.lqr.papermind.review.audit.ReviewAuditService;
+import com.lqr.papermind.review.audit.AuditContext;
+import com.lqr.papermind.review.audit.ReviewAudit;
+import com.lqr.papermind.review.audit.ReviewAuditAction;
 import com.lqr.papermind.review.dto.LeaderReviewAssignmentRequest;
 import com.lqr.papermind.review.dto.ReviewAssignmentRequest;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
@@ -49,7 +51,6 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
     private final ReviewGroupMapper groupMapper;
     private final ReviewGroupMemberMapper memberMapper;
     private final SysRoleMapper roleMapper;
-    private final ReviewAuditService reviewAuditService;
 
     /**
      * 管理员兜底分配评审人
@@ -61,6 +62,7 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.ASSIGN_BY_ADMIN_OVERRIDE)
     public List<ReviewAssignmentResponse> assignReviewers(UUID taskId, UUID operatorUserId, ReviewAssignmentRequest request) {
         ReviewTaskEntity task = taskMapper.selectByIdIncludingDeleted(taskId);
         if (task == null) {
@@ -92,15 +94,12 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
                 .toList();
         assignments.forEach(assignmentMapper::insert);
         taskMapper.markAssignedByAdminOverride(taskId, group.getBatchId(), group.getId(), operatorUserId, group.getLeaderUserId(), reviewerIds.getFirst(), request.dueAt());
-        reviewAuditService.append(
-                taskId,
-                operatorUserId,
-                "ASSIGN_BY_ADMIN_OVERRIDE",
-                "管理员兜底分配评审任务",
-                assignmentBeforeSnapshot(task),
-                assignmentAfterSnapshot(task, group.getId(), operatorUserId, group.getLeaderUserId(), reviewerIds, assignments, request.dueAt()),
-                Map.of("scope", "admin-override")
-        );
+        AuditContext.set(new AuditContext()
+                .taskId(taskId)
+                .operatorUserId(operatorUserId)
+                .beforeSnapshot(assignmentBeforeSnapshot(task))
+                .afterSnapshot(assignmentAfterSnapshot(task, group.getId(), operatorUserId, group.getLeaderUserId(), reviewerIds, assignments, request.dueAt()))
+                .clientInfo(Map.of("scope", "admin-override")));
         return assignments.stream()
                 .map(this::toResponse)
                 .toList();
@@ -117,6 +116,7 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
      */
     @Override
     @Transactional(isolation = Isolation.SERIALIZABLE)
+    @ReviewAudit(action = ReviewAuditAction.ASSIGN_BY_LEADER)
     public List<ReviewAssignmentResponse> assignReviewersByLeader(UUID currentUserId, UUID groupId, UUID taskId, LeaderReviewAssignmentRequest request) {
         ReviewGroupEntity group = requireManagedGroup(currentUserId, groupId);
         ReviewTaskEntity task = taskMapper.selectByIdIncludingDeleted(taskId);
@@ -147,15 +147,12 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
                 .toList();
         assignments.forEach(assignmentMapper::insert);
         taskMapper.markAssignedByLeader(taskId, groupId, currentUserId, currentUserId, reviewerIds.getFirst(), dueAt);
-        reviewAuditService.append(
-                taskId,
-                currentUserId,
-                "ASSIGN_BY_LEADER",
-                "组长分配本组评审任务",
-                assignmentBeforeSnapshot(task),
-                assignmentAfterSnapshot(task, groupId, currentUserId, currentUserId, reviewerIds, assignments, dueAt),
-                Map.of("scope", "review-leader")
-        );
+        AuditContext.set(new AuditContext()
+                .taskId(taskId)
+                .operatorUserId(currentUserId)
+                .beforeSnapshot(assignmentBeforeSnapshot(task))
+                .afterSnapshot(assignmentAfterSnapshot(task, groupId, currentUserId, currentUserId, reviewerIds, assignments, dueAt))
+                .clientInfo(Map.of("scope", "review-leader")));
         return assignments.stream()
                 .map(this::toResponse)
                 .toList();
@@ -163,6 +160,7 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
 
     @Override
     @Transactional(isolation = Isolation.SERIALIZABLE)
+    @ReviewAudit(action = ReviewAuditAction.JOIN_REVIEW_BY_LEADER)
     public ReviewAssignmentResponse joinReviewAsLeader(UUID currentUserId, UUID groupId, UUID taskId) {
         ReviewGroupEntity group = requireManagedGroup(currentUserId, groupId);
         ReviewTaskEntity task = taskMapper.selectByIdIncludingDeleted(taskId);
@@ -187,15 +185,12 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
         ReviewAssignmentEntity assignment = newReviewerAssignment(taskId, groupId, currentUserId, currentUserId, task.getDueAt(), now);
         assignmentMapper.insert(assignment);
         taskMapper.markAssignedByLeader(taskId, groupId, currentUserId, currentUserId, currentUserId, task.getDueAt());
-        reviewAuditService.append(
-                taskId,
-                currentUserId,
-                "JOIN_REVIEW_BY_LEADER",
-                "组长加入本组评审任务",
-                assignmentBeforeSnapshot(task),
-                assignmentAfterSnapshot(task, groupId, currentUserId, currentUserId, List.of(currentUserId), List.of(assignment), task.getDueAt()),
-                Map.of("scope", "review-leader")
-        );
+        AuditContext.set(new AuditContext()
+                .taskId(taskId)
+                .operatorUserId(currentUserId)
+                .beforeSnapshot(assignmentBeforeSnapshot(task))
+                .afterSnapshot(assignmentAfterSnapshot(task, groupId, currentUserId, currentUserId, List.of(currentUserId), List.of(assignment), task.getDueAt()))
+                .clientInfo(Map.of("scope", "review-leader")));
         return toResponse(assignment);
     }
 
@@ -221,6 +216,7 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
      */
     @Override
     @Transactional(isolation = Isolation.SERIALIZABLE)
+    @ReviewAudit(action = ReviewAuditAction.SUBMIT_ASSIGNMENT)
     public ReviewAssignmentResponse submitAssignment(UUID currentUserId, UUID assignmentId) {
         ReviewAssignmentEntity assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
@@ -246,15 +242,12 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
         assignment.setStatus(ReviewAssignmentStatuses.SUBMITTED);
         assignment.setSubmittedAt(OffsetDateTime.now());
         assignment.setUpdatedAt(OffsetDateTime.now());
-        reviewAuditService.append(
-                assignment.getTaskId(),
-                currentUserId,
-                "SUBMIT_ASSIGNMENT",
-                "提交个人评审任务",
-                beforeSnapshot,
-                assignmentStatusSnapshot(assignment, allSubmitted ? ReviewTaskStatuses.SUBMITTED : null, activeCount, submittedCount),
-                Map.of("scope", "reviewer")
-        );
+        AuditContext.set(new AuditContext()
+                .taskId(assignment.getTaskId())
+                .operatorUserId(currentUserId)
+                .beforeSnapshot(beforeSnapshot)
+                .afterSnapshot(assignmentStatusSnapshot(assignment, allSubmitted ? ReviewTaskStatuses.SUBMITTED : null, activeCount, submittedCount))
+                .clientInfo(Map.of("scope", "reviewer")));
         return toResponse(assignment);
     }
 

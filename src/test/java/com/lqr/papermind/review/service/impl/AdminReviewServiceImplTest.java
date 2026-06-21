@@ -92,15 +92,6 @@ class AdminReviewServiceImplTest {
         var response = service.dispatchTaskToGroup(taskId, adminId, new AdminTaskDispatchRequest(groupId, dueAt));
 
         verify(taskMapper).dispatchToGroup(taskId, batchId, groupId, adminId, leaderId, dueAt);
-        verify(reviewAuditService).append(
-                eq(taskId),
-                eq(adminId),
-                eq("DISPATCH_TO_GROUP"),
-                eq("管理员派发评审任务到小组"),
-                any(Map.class),
-                any(Map.class),
-                eq(Map.of("scope", "admin-dispatch"))
-        );
         assertThat(response.id()).isEqualTo(taskId);
         assertThat(response.status()).isEqualTo(ReviewTaskStatuses.PENDING_ASSIGNMENT);
         assertThat(response.assignmentCount()).isZero();
@@ -122,7 +113,6 @@ class AdminReviewServiceImplTest {
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
 
         verify(taskMapper, never()).dispatchToGroup(any(), any(), any(), any(), any(), any());
-        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test

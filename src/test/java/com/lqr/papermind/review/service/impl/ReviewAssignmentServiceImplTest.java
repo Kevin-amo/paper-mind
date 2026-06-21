@@ -4,7 +4,6 @@ import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.auth.mapper.SysRoleMapper;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.auth.security.RoleCodes;
-import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.dto.LeaderReviewAssignmentRequest;
 import com.lqr.papermind.review.dto.ReviewAssignmentRequest;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
@@ -31,7 +30,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -46,7 +44,6 @@ class ReviewAssignmentServiceImplTest {
     private ReviewGroupMapper groupMapper;
     private ReviewGroupMemberMapper memberMapper;
     private SysRoleMapper roleMapper;
-    private ReviewAuditService reviewAuditService;
     private ReviewAssignmentServiceImpl service;
 
     @BeforeEach
@@ -57,8 +54,7 @@ class ReviewAssignmentServiceImplTest {
         groupMapper = mock(ReviewGroupMapper.class);
         memberMapper = mock(ReviewGroupMemberMapper.class);
         roleMapper = mock(SysRoleMapper.class);
-        reviewAuditService = mock(ReviewAuditService.class);
-        service = new ReviewAssignmentServiceImpl(assignmentMapper, taskMapper, userMapper, groupMapper, memberMapper, roleMapper, reviewAuditService);
+        service = new ReviewAssignmentServiceImpl(assignmentMapper, taskMapper, userMapper, groupMapper, memberMapper, roleMapper);
     }
 
     @Test
@@ -149,22 +145,6 @@ class ReviewAssignmentServiceImplTest {
         assertThat(assignmentCaptor.getAllValues()).extracting(ReviewAssignmentEntity::getRole).containsExactly(ReviewAssignmentRoles.REVIEWER, ReviewAssignmentRoles.LEAD);
         assertThat(assignments).hasSize(2);
         verify(taskMapper).markAssignedByAdminOverride(taskId, batchId, groupId, adminId, groupLeaderId, reviewerAId, dueAt);
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), eq(adminId), eq("ASSIGN_BY_ADMIN_OVERRIDE"), eq("管理员兜底分配评审任务"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue()).containsEntry("taskStatus", ReviewTaskStatuses.PENDING_ASSIGNMENT);
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("taskStatus", ReviewTaskStatuses.ASSIGNED)
-                .containsEntry("groupId", groupId)
-                .containsEntry("assignedByUserId", adminId)
-                .containsEntry("leaderUserId", groupLeaderId)
-                .containsEntry("reviewerUserId", reviewerAId)
-                .containsEntry("reviewerUserIds", List.of(reviewerAId, reviewerBId))
-                .containsEntry("dueAt", dueAt)
-                .containsEntry("previousTaskStatus", ReviewTaskStatuses.PENDING_ASSIGNMENT);
-        assertThat((List<?>) afterSnapshotCaptor.getValue().get("assignmentIds")).hasSize(2);
-        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "admin-override");
     }
 
     @Test
@@ -212,22 +192,6 @@ class ReviewAssignmentServiceImplTest {
         assertThat(assignmentCaptor.getAllValues()).extracting(ReviewAssignmentEntity::getRole).containsOnly(ReviewAssignmentRoles.REVIEWER);
         assertThat(assignments).hasSize(2);
         verify(taskMapper).markAssignedByLeader(taskId, groupId, leaderId, leaderId, reviewerAId, dueAt);
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), eq(leaderId), eq("ASSIGN_BY_LEADER"), eq("组长分配本组评审任务"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue()).containsEntry("taskStatus", ReviewTaskStatuses.PENDING_ASSIGNMENT);
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("taskStatus", ReviewTaskStatuses.ASSIGNED)
-                .containsEntry("groupId", groupId)
-                .containsEntry("assignedByUserId", leaderId)
-                .containsEntry("leaderUserId", leaderId)
-                .containsEntry("reviewerUserId", reviewerAId)
-                .containsEntry("reviewerUserIds", List.of(reviewerAId, reviewerBId))
-                .containsEntry("dueAt", dueAt)
-                .containsEntry("previousTaskStatus", ReviewTaskStatuses.PENDING_ASSIGNMENT);
-        assertThat((List<?>) afterSnapshotCaptor.getValue().get("assignmentIds")).hasSize(2);
-        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "review-leader");
     }
 
     @Test
@@ -297,7 +261,6 @@ class ReviewAssignmentServiceImplTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("评审小组不可用");
         verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
-        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -315,7 +278,6 @@ class ReviewAssignmentServiceImplTest {
                 .hasMessageContaining("只能分配给本组有效评审员");
         verify(userMapper, never()).selectById(reviewerId);
         verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
-        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -333,7 +295,6 @@ class ReviewAssignmentServiceImplTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("评审员用户不可用");
         verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
-        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -352,7 +313,6 @@ class ReviewAssignmentServiceImplTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("评审员用户不可用");
         verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
-        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -379,9 +339,6 @@ class ReviewAssignmentServiceImplTest {
         assertThat(assignment.reviewerUserId()).isEqualTo(leaderId);
         assertThat(assignment.role()).isEqualTo(ReviewAssignmentRoles.REVIEWER);
         verify(taskMapper).markAssignedByLeader(taskId, groupId, leaderId, leaderId, leaderId, null);
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), eq(leaderId), eq("JOIN_REVIEW_BY_LEADER"), eq("组长加入本组评审任务"), any(), any(), clientInfoCaptor.capture());
-        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "review-leader");
     }
 
     @Test
@@ -404,7 +361,6 @@ class ReviewAssignmentServiceImplTest {
         assertThat(assignment.status()).isEqualTo(ReviewAssignmentStatuses.REVIEWING);
         verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
         verify(taskMapper, never()).markAssignedByLeader(any(), any(), any(), any(), any(), any());
-        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -459,7 +415,6 @@ class ReviewAssignmentServiceImplTest {
                 .hasMessageContaining("评审分配已取消");
         verify(assignmentMapper, never()).updateStatus(any(), any());
         verify(taskMapper, never()).updateTaskStatus(any(), any());
-        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -476,25 +431,6 @@ class ReviewAssignmentServiceImplTest {
 
         verify(assignmentMapper).updateStatus(assignmentId, ReviewAssignmentStatuses.SUBMITTED);
         verify(taskMapper).updateTaskStatus(taskId, ReviewTaskStatuses.SUBMITTED);
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), eq(reviewerId), eq("SUBMIT_ASSIGNMENT"), eq("提交个人评审任务"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue())
-                .containsEntry("assignmentId", assignmentId)
-                .containsEntry("taskId", taskId)
-                .containsEntry("reviewerUserId", reviewerId)
-                .containsEntry("assignmentStatus", ReviewAssignmentStatuses.ASSIGNED);
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("assignmentId", assignmentId)
-                .containsEntry("taskId", taskId)
-                .containsEntry("reviewerUserId", reviewerId)
-                .containsEntry("assignmentStatus", ReviewAssignmentStatuses.SUBMITTED)
-                .containsEntry("taskStatus", ReviewTaskStatuses.SUBMITTED)
-                .containsEntry("activeAssignmentCount", 2L)
-                .containsEntry("submittedAssignmentCount", 2L);
-        assertThat(afterSnapshotCaptor.getValue().get("submittedAt")).isNotNull();
-        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "reviewer");
     }
 
     @Test
@@ -530,11 +466,6 @@ class ReviewAssignmentServiceImplTest {
         assertThat(assignments).hasSize(1);
         assertThat(assignments.getFirst().reviewerUsername()).isEqualTo("reviewer-a");
         assertThat(assignments.getFirst().reviewerDisplayName()).isEqualTo("评审员A");
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private ArgumentCaptor<Map<String, Object>> mapCaptor() {
-        return (ArgumentCaptor) ArgumentCaptor.forClass(Map.class);
     }
 
     private ReviewTaskEntity task(UUID taskId) {

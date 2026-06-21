@@ -235,7 +235,7 @@ onMounted(async () => {
 
 .toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
 .toolbar :deep([class~="el-select__wrapper"]:focus-within) {
-  border-color: var(--app-primary);
+  border-color: var(--app-border-strong);
 }
 
 .audit-table {

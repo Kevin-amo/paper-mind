@@ -3,6 +3,9 @@ package com.lqr.papermind.review.service.impl;
 import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.document.dto.PageResponse;
+import com.lqr.papermind.review.audit.AuditContext;
+import com.lqr.papermind.review.audit.ReviewAudit;
+import com.lqr.papermind.review.audit.ReviewAuditAction;
 import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.dto.AdminTaskDispatchRequest;
 import com.lqr.papermind.review.dto.AdminReviewTaskDetailResponse;
@@ -107,6 +110,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.DISPATCH_TO_GROUP)
     public AdminReviewTaskSummaryResponse dispatchTaskToGroup(UUID taskId, UUID operatorUserId, AdminTaskDispatchRequest request) {
         ReviewTaskEntity task = requireTask(taskId);
         ReviewGroupEntity group = requireActiveGroup(request == null ? null : request.groupId());
@@ -126,15 +130,12 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         task.setDueAt(dueAt);
         task.setAssignedAt(task.getAssignedAt() == null ? OffsetDateTime.now() : task.getAssignedAt());
         task.setUpdatedAt(OffsetDateTime.now());
-        reviewAuditService.append(
-                taskId,
-                operatorUserId,
-                "DISPATCH_TO_GROUP",
-                "管理员派发评审任务到小组",
-                beforeSnapshot,
-                taskScopeSnapshot(task),
-                Map.of("scope", "admin-dispatch")
-        );
+        AuditContext.set(new AuditContext()
+                .taskId(taskId)
+                .operatorUserId(operatorUserId)
+                .beforeSnapshot(beforeSnapshot)
+                .afterSnapshot(taskScopeSnapshot(task))
+                .clientInfo(Map.of("scope", "admin-dispatch")));
         return toSummaryResponse(task);
     }
 

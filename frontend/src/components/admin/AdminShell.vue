@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   Clock,
@@ -10,6 +10,7 @@ import {
   User,
 } from '@element-plus/icons-vue';
 import { useAuth } from '../../composables/useAuth';
+import LogoutConfirmDialog from '../common/LogoutConfirmDialog.vue';
 
 type AdminSection = 'users' | 'config' | 'tasks' | 'criteria' | 'audit-logs';
 
@@ -22,6 +23,7 @@ const props = defineProps<{
 const router = useRouter();
 const route = useRoute();
 const auth = useAuth();
+const logoutDialogVisible = ref(false);
 
 const navItems: Array<{
   key: AdminSection;
@@ -144,9 +146,11 @@ async function handleLogout() {
         <div class="topbar-right">
           <el-button v-if="auth.hasRole('USER')" size="small" @click="router.push('/user')">用户端</el-button>
           <el-divider v-if="auth.hasRole('USER')" direction="vertical" />
-          <el-button :icon="SwitchButton" text @click="handleLogout">退出</el-button>
+          <el-button :icon="SwitchButton" text @click="logoutDialogVisible = true">退出</el-button>
         </div>
       </header>
+
+      <LogoutConfirmDialog v-model="logoutDialogVisible" @confirm="handleLogout" />
 
       <main class="admin-content">
         <slot />

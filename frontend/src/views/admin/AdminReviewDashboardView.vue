@@ -119,67 +119,65 @@ onMounted(async () => {
     </section>
 
     <section class="dashboard-card">
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="批次与小组" name="config">
-          <div class="section-header">
-            <h3>批次与小组</h3>
-            <p>配置评审批次、评审小组、组长和组内成员；普通评审任务分配后续交由组长处理。</p>
-          </div>
-          <ReviewBatchGroupPanel />
-        </el-tab-pane>
+      <div v-if="activeTab === 'config'">
+        <div class="section-header">
+          <h3>批次与小组</h3>
+          <p>配置评审批次、评审小组、组长和组内成员；普通评审任务分配后续交由组长处理。</p>
+        </div>
+        <ReviewBatchGroupPanel />
+      </div>
 
-        <el-tab-pane label="全局进度" name="tasks">
-          <div class="section-header">
-            <h3>全局进度</h3>
-            <p>查看所有评审任务进度；普通分配与共识确认由评审组长处理。</p>
-          </div>
-          <div class="toolbar">
-            <el-input
-              v-model="adminReviews.keyword.value"
-              clearable
-              placeholder="搜索标题 / 任务"
-              @keyup.enter="adminReviews.loadTasks(0)"
-            />
-            <el-select v-model="adminReviews.status.value" clearable placeholder="任务状态" class="status-select">
-              <el-option label="待分配" value="PENDING_ASSIGNMENT" />
-              <el-option label="已分配" value="ASSIGNED" />
-              <el-option label="评审中" value="IN_REVIEW" />
-              <el-option label="已提交" value="SUBMITTED" />
-              <el-option label="共识已确认" value="CONSENSUS_CONFIRMED" />
-            </el-select>
-            <el-button @click="adminReviews.loadTasks(0)">搜索</el-button>
-            <el-button type="primary" @click="adminReviews.loadTasks(adminReviews.page.value)">刷新</el-button>
-          </div>
-
-          <AdminReviewTaskTable
-            :tasks="adminReviews.tasks.value"
-            :loading="adminReviews.loading.value"
-            @open="openTask"
-            @dispatch="openDispatch"
+      <div v-if="activeTab === 'tasks'">
+        <div class="section-header">
+          <h3>全局进度</h3>
+          <p>查看所有评审任务进度；普通分配与共识确认由评审组长处理。</p>
+        </div>
+        <div class="toolbar">
+          <el-input
+            v-model="adminReviews.keyword.value"
+            clearable
+            placeholder="搜索标题 / 任务"
+            @keyup.enter="adminReviews.loadTasks(0)"
           />
+          <el-select v-model="adminReviews.status.value" clearable placeholder="任务状态" class="status-select">
+            <el-option label="待分配" value="PENDING_ASSIGNMENT" />
+            <el-option label="已分配" value="ASSIGNED" />
+            <el-option label="评审中" value="IN_REVIEW" />
+            <el-option label="已提交" value="SUBMITTED" />
+            <el-option label="共识已确认" value="CONSENSUS_CONFIRMED" />
+          </el-select>
+          <el-button @click="adminReviews.loadTasks(0)">搜索</el-button>
+          <el-button type="primary" @click="adminReviews.loadTasks(adminReviews.page.value)">刷新</el-button>
+        </div>
 
-          <div class="pagination-wrap">
-            <el-pagination
-              background
-              layout="total, sizes, prev, pager, next"
-              :total="adminReviews.total.value"
-              :page-size="adminReviews.size.value"
-              :current-page="adminReviews.page.value + 1"
-              :page-sizes="[10, 20, 50]"
-              @size-change="handlePageSizeChange"
-              @current-change="handlePageChange"
-            />
-          </div>
-        </el-tab-pane>
+        <AdminReviewTaskTable
+          :tasks="adminReviews.tasks.value"
+          :loading="adminReviews.loading.value"
+          @open="openTask"
+          @dispatch="openDispatch"
+        />
 
-        <el-tab-pane label="评审指标" name="criteria">
-          <div class="section-header">
-            <h3>评审指标</h3>
-            <p>查看当前评审标准、评分维度和权重说明。</p>
-          </div>
-          <ReviewCriteriaPanel />
-        </el-tab-pane>
-      </el-tabs>
+        <div class="pagination-wrap">
+          <el-pagination
+            background
+            layout="total, sizes, prev, pager, next"
+            :total="adminReviews.total.value"
+            :page-size="adminReviews.size.value"
+            :current-page="adminReviews.page.value + 1"
+            :page-sizes="[10, 20, 50]"
+            @size-change="handlePageSizeChange"
+            @current-change="handlePageChange"
+          />
+        </div>
+      </div>
+
+      <div v-if="activeTab === 'criteria'">
+        <div class="section-header">
+          <h3>评审指标</h3>
+          <p>查看当前评审标准、评分维度和权重说明。</p>
+        </div>
+        <ReviewCriteriaPanel />
+      </div>
     </section>
 
     <ReviewDispatchDrawer
@@ -324,7 +322,7 @@ onMounted(async () => {
 
 .toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
 .toolbar :deep([class~="el-select__wrapper"]:focus-within) {
-  border-color: var(--app-primary);
+  border-color: var(--app-border-strong);
 }
 
 .pagination-wrap {

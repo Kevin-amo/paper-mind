@@ -29,6 +29,9 @@ import com.lqr.papermind.review.dto.ReviewRiskItemResponse;
 import com.lqr.papermind.review.dto.ReviewRiskUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewTaskCreateRequest;
 import com.lqr.papermind.review.dto.ReviewTaskResponse;
+import com.lqr.papermind.review.audit.AuditContext;
+import com.lqr.papermind.review.audit.ReviewAudit;
+import com.lqr.papermind.review.audit.ReviewAuditAction;
 import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.assessment.ReviewOutputParser;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
@@ -38,7 +41,6 @@ import com.lqr.papermind.review.entity.ReviewReportEntity;
 import com.lqr.papermind.review.entity.ReviewRiskItemEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
-import com.lqr.papermind.review.mapper.ReviewAuditLogMapper;
 import com.lqr.papermind.review.mapper.ReviewCriterionMapper;
 import com.lqr.papermind.review.mapper.ReviewReportMapper;
 import com.lqr.papermind.review.mapper.ReviewTaskMapper;
@@ -84,7 +86,6 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewReportMapper reportMapper;
     private final ReviewAssignmentMapper assignmentMapper;
     private final ReviewCriterionMapper criterionMapper;
-    private final ReviewAuditLogMapper auditLogMapper;
     private final ReviewAssignmentService assignmentService;
     private final DocumentMapper documentMapper;
     private final DocumentPersistenceService documentPersistenceService;
@@ -173,6 +174,7 @@ public class ReviewServiceImpl implements ReviewService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.CREATE_TASK)
     public ReviewTaskResponse createTask(UUID currentUserId, ReviewTaskCreateRequest request) {
         String sourceId = requireText(request.sourceId(), "文档标识不能为空");
         DocumentPersistenceService.DocumentDetail document = documentPersistenceService.findReviewDocument(currentUserId, sourceId)
@@ -188,7 +190,7 @@ public class ReviewServiceImpl implements ReviewService {
         task.setCreatedAt(now);
         task.setUpdatedAt(now);
         taskMapper.insert(task);
-        appendAudit(task.getId(), currentUserId, "CREATE_TASK", "创建评审任务", Map.of("sourceId", sourceId));
+        AuditContext.set(new AuditContext().taskId(task.getId()).operatorUserId(currentUserId).afterSnapshot(Map.of("sourceId", sourceId)));
         return toTaskResponse(task, true, currentUserId, true);
     }
 
@@ -200,6 +202,7 @@ public class ReviewServiceImpl implements ReviewService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.CREATE_TASK, message = "评审文档入库完成后自动创建任务")
     public void createTaskForIndexedReviewDocument(UUID ownerUserId, String sourceId) {
         if (ownerUserId == null || sourceId == null || sourceId.isBlank()) {
             return;
@@ -224,11 +227,11 @@ public class ReviewServiceImpl implements ReviewService {
         task.setCreatedAt(now);
         task.setUpdatedAt(now);
         taskMapper.insert(task);
-        appendAudit(task.getId(), null, "CREATE_TASK", "评审文档入库完成后自动创建任务", Map.of(
+        AuditContext.set(new AuditContext().taskId(task.getId()).operatorUserId(null).afterSnapshot(Map.of(
                 "sourceId", sourceId,
                 "submitterUserId", ownerUserId == null ? null : ownerUserId.toString(),
                 "scope", "document-indexed-auto-create"
-        ));
+        )));
     }
 
     /**
@@ -241,6 +244,7 @@ public class ReviewServiceImpl implements ReviewService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.AI_REVIEW)
     public ReviewReportResponse generateAiReview(UUID currentUserId, boolean admin, UUID taskId) {
         ReviewTaskEntity task = requireTask(taskId);
         DocumentPersistenceService.DocumentDetail document = requireDocument(task);
@@ -319,7 +323,7 @@ public class ReviewServiceImpl implements ReviewService {
             reportMapper.updateById(report);
         }
         reviewRiskService.replaceReportRisks(report.getId(), task.getId(), report.getRisks());
-        appendAudit(task.getId(), currentUserId, "AI_REVIEW", "生成 AI 辅助评审报告", Map.of("reportId", report.getId().toString()));
+        AuditContext.set(new AuditContext().taskId(task.getId()).operatorUserId(currentUserId).afterSnapshot(Map.of("reportId", report.getId().toString())));
         return ReviewReportResponse.from(assignment == null
                 ? reportMapper.selectLatestByTaskId(task.getId())
                 : reportMapper.selectByAssignmentId(assignment.getId()));
@@ -371,6 +375,7 @@ public class ReviewServiceImpl implements ReviewService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.ADJUST_REPORT)
     public ReviewReportResponse updateReport(UUID currentUserId, boolean admin, UUID reportId, ReviewReportUpdateRequest request) {
         ReviewReportEntity report = reportMapper.selectById(reportId);
         if (report == null) {
@@ -442,7 +447,7 @@ public class ReviewServiceImpl implements ReviewService {
         if (risksProvided) {
             reviewRiskService.replaceReportRisks(report.getId(), task.getId(), report.getRisks());
         }
-        reviewAuditService.append(task.getId(), currentUserId, "ADJUST_REPORT", "人工调整评审报告", beforeSnapshot, afterSnapshot, Map.of());
+        AuditContext.set(new AuditContext().taskId(task.getId()).operatorUserId(currentUserId).beforeSnapshot(beforeSnapshot).afterSnapshot(afterSnapshot));
         return ReviewReportResponse.from(reportMapper.selectById(reportId));
     }
 
@@ -1065,27 +1070,6 @@ public class ReviewServiceImpl implements ReviewService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "启用指标权重之和必须等于100，当前总和为" + sum + "，请调整权重配置");
         }
-    }
-
-    /**
-     * 追加审计日志
-     *
-     * @param taskId         任务ID
-     * @param operatorUserId 操作用户ID
-     * @param action         操作类型
-     * @param note           操作备注
-     * @param snapshot       操作快照
-     */
-    private void appendAudit(UUID taskId, UUID operatorUserId, String action, String note, Map<String, Object> snapshot) {
-        ReviewAuditLogEntity log = new ReviewAuditLogEntity();
-        log.setId(UUID.randomUUID());
-        log.setTaskId(taskId);
-        log.setOperatorUserId(operatorUserId);
-        log.setAction(action);
-        log.setNote(note);
-        log.setSnapshot(snapshot);
-        log.setCreatedAt(OffsetDateTime.now());
-        auditLogMapper.insert(log);
     }
 
     /**

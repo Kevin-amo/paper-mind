@@ -2,7 +2,6 @@ package com.lqr.papermind.review.service.impl;
 
 import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
-import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.consensus.ConsensusCalculator;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
@@ -31,8 +30,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -47,7 +44,6 @@ class ReviewConsensusServiceImplTest {
     private final ReviewGroupMapper groupMapper = mock(ReviewGroupMapper.class);
     private final ReviewCriterionMapper criterionMapper = mock(ReviewCriterionMapper.class);
     private final SysUserMapper userMapper = mock(SysUserMapper.class);
-    private final ReviewAuditService reviewAuditService = mock(ReviewAuditService.class);
     private final ReviewConsensusServiceImpl service = new ReviewConsensusServiceImpl(
             consensusMapper,
             reportMapper,
@@ -56,8 +52,7 @@ class ReviewConsensusServiceImplTest {
             groupMapper,
             criterionMapper,
             userMapper,
-            new ConsensusCalculator(),
-            reviewAuditService
+            new ConsensusCalculator()
     );
 
     @BeforeEach
@@ -100,21 +95,6 @@ class ReviewConsensusServiceImplTest {
         assertThat(response.submittedReports()).hasSize(2);
         assertThat(response.submittedReports().getFirst().reviewerUsername()).isEqualTo("reviewer-a");
         assertThat(response.submittedReports().getFirst().reviewerDisplayName()).isEqualTo("评审员A");
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), isNull(), eq("RECALCULATE_CONSENSUS"), eq("重新计算最终评分与共识草稿"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue()).containsEntry("status", "MISSING");
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("leadReviewerUserId", leadUserId)
-                .containsEntry("status", ReviewConsensusStatuses.DRAFT)
-                .containsEntry("finalScore", 85);
-        assertThat(afterSnapshotCaptor.getValue().get("id")).isNotNull();
-        assertThat(clientInfoCaptor.getValue())
-                .containsEntry("scope", "legacy")
-                .containsEntry("reportCount", 2)
-                .containsEntry("creating", true);
     }
     @Test
     void recalculateShouldPreferTaskLeaderSnapshotOverLegacyLeadAssignment() {
@@ -215,21 +195,6 @@ class ReviewConsensusServiceImplTest {
         assertThat(consensus.getFinalRecommendation()).isEqualTo("建议通过");
         assertThat(consensus.getUpdatedAt()).isNotNull();
         verify(consensusMapper).updateById(consensus);
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), isNull(), eq("UPDATE_CONSENSUS"), eq("保存最终评分与共识意见"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("status", ReviewConsensusStatuses.DRAFT)
-                .containsEntry("finalScore", 80)
-                .containsEntry("finalRecommendation", "建议修改后通过");
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("status", ReviewConsensusStatuses.DRAFT)
-                .containsEntry("finalScore", 92)
-                .containsEntry("finalRecommendation", "建议通过");
-        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "legacy");
     }
 
 
@@ -266,21 +231,6 @@ class ReviewConsensusServiceImplTest {
         assertThat(response.confirmedAt()).isNotNull();
         verify(consensusMapper).updateById(consensus);
         verify(taskMapper).updateTaskStatus(taskId, ReviewTaskStatuses.CONSENSUS_CONFIRMED);
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), eq(operatorUserId), eq("CONFIRM_CONSENSUS"), eq("确认最终评分与共识意见"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("status", ReviewConsensusStatuses.DRAFT)
-                .containsEntry("confirmedByUserId", null)
-                .containsEntry("confirmedAt", null);
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("status", ReviewConsensusStatuses.CONFIRMED)
-                .containsEntry("confirmedByUserId", operatorUserId);
-        assertThat(afterSnapshotCaptor.getValue().get("confirmedAt")).isNotNull();
-        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "review-consensus");
     }
 
     @Test
@@ -468,20 +418,6 @@ class ReviewConsensusServiceImplTest {
         verify(consensusMapper).insert(captor.capture());
         assertThat(captor.getValue().getLeadReviewerUserId()).isEqualTo(leaderUserId);
         assertThat(response.leadReviewerUserId()).isEqualTo(leaderUserId);
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), eq(leaderUserId), eq("RECALCULATE_CONSENSUS"), eq("重新计算最终评分与共识草稿"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue()).containsEntry("status", "MISSING");
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("leadReviewerUserId", leaderUserId)
-                .containsEntry("status", ReviewConsensusStatuses.DRAFT)
-                .containsEntry("finalScore", 90);
-        assertThat(clientInfoCaptor.getValue())
-                .containsEntry("scope", "review-consensus")
-                .containsEntry("reportCount", 1)
-                .containsEntry("creating", true);
     }
 
     @Test
@@ -515,21 +451,6 @@ class ReviewConsensusServiceImplTest {
         assertThat(response.finalScore()).isEqualTo(91);
         assertThat(response.finalRecommendation()).isEqualTo("组长建议通过");
         verify(consensusMapper).updateById(consensus);
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), eq(leaderUserId), eq("UPDATE_CONSENSUS"), eq("保存最终评分与共识意见"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("status", ReviewConsensusStatuses.DRAFT)
-                .containsEntry("finalScore", 80)
-                .containsEntry("finalRecommendation", "建议修改后通过");
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("status", ReviewConsensusStatuses.DRAFT)
-                .containsEntry("finalScore", 91)
-                .containsEntry("finalRecommendation", "组长建议通过");
-        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "review-consensus");
     }
 
     @Test
@@ -548,26 +469,6 @@ class ReviewConsensusServiceImplTest {
         assertThat(response.status()).isEqualTo(ReviewConsensusStatuses.CONFIRMED);
         assertThat(response.confirmedByUserId()).isEqualTo(leaderUserId);
         verify(taskMapper).updateTaskStatus(taskId, ReviewTaskStatuses.CONSENSUS_CONFIRMED);
-        ArgumentCaptor<Map<String, Object>> beforeSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> afterSnapshotCaptor = mapCaptor();
-        ArgumentCaptor<Map<String, Object>> clientInfoCaptor = mapCaptor();
-        verify(reviewAuditService).append(eq(taskId), eq(leaderUserId), eq("CONFIRM_CONSENSUS"), eq("确认最终评分与共识意见"), beforeSnapshotCaptor.capture(), afterSnapshotCaptor.capture(), clientInfoCaptor.capture());
-        assertThat(beforeSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("status", ReviewConsensusStatuses.DRAFT)
-                .containsEntry("confirmedByUserId", null)
-                .containsEntry("confirmedAt", null);
-        assertThat(afterSnapshotCaptor.getValue())
-                .containsEntry("taskId", taskId)
-                .containsEntry("status", ReviewConsensusStatuses.CONFIRMED)
-                .containsEntry("confirmedByUserId", leaderUserId);
-        assertThat(afterSnapshotCaptor.getValue().get("confirmedAt")).isNotNull();
-        assertThat(clientInfoCaptor.getValue()).containsEntry("scope", "review-consensus");
-    }
-
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    private ArgumentCaptor<Map<String, Object>> mapCaptor() {
-        return (ArgumentCaptor) ArgumentCaptor.forClass(Map.class);
     }
 
     private ReviewReportEntity report(UUID taskId, UUID reviewerUserId, int totalScore, String recommendation) {
