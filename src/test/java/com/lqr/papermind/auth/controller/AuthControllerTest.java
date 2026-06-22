@@ -1,4 +1,4 @@
-package com.lqr.papermind.auth.web;
+package com.lqr.papermind.auth.controller;
 
 import com.lqr.papermind.auth.service.AuthService;
 import com.lqr.papermind.auth.service.UserAvatarService;

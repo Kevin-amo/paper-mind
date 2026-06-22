@@ -1,4 +1,4 @@
-package com.lqr.papermind.agent.web;
+package com.lqr.papermind.agent.controller;
 
 import com.lqr.papermind.agent.service.AgentChatService;
 import com.lqr.papermind.agent.dto.AgentAskRequest;

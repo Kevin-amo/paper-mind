@@ -295,22 +295,18 @@ onUnmounted(() => {
 
 <style scoped>
 .login-shell {
-  --auth-accent: #007aff;
-  --auth-accent-strong: #0a84ff;
-  --auth-ink: #1d1d1f;
-  --auth-muted: #6e6e73;
+  --auth-accent: var(--app-primary);
+  --auth-accent-strong: var(--app-primary-active);
+  --auth-ink: var(--app-text);
+  --auth-muted: var(--app-text-muted);
   width: min(1080px, 100%);
   display: grid;
   grid-template-columns: minmax(0, 1.02fr) minmax(390px, 0.98fr);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 36px;
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow:
-    0 34px 90px rgba(15, 23, 42, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-xl);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-xl);
 }
 
 .brand-panel {
@@ -322,37 +318,41 @@ onUnmounted(() => {
   gap: 38px;
   overflow: hidden;
   padding: clamp(38px, 5vw, 62px);
-  color: var(--auth-ink);
-  background:
-    radial-gradient(circle at 22% 16%, rgba(0, 122, 255, 0.2), transparent 18rem),
-    radial-gradient(circle at 84% 72%, rgba(175, 82, 222, 0.14), transparent 20rem),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(244, 247, 255, 0.62));
+  color: var(--app-on-dark);
+  background: var(--app-dark);
 }
 
 .brand-panel::before {
   position: absolute;
-  top: 22px;
-  left: 24px;
-  width: 52px;
-  height: 12px;
+  top: 34px;
+  left: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 6px 6px, #ff5f57 0, #ff5f57 5px, transparent 5.5px),
-    radial-gradient(circle at 26px 6px, #ffbd2e 0, #ffbd2e 5px, transparent 5.5px),
-    radial-gradient(circle at 46px 6px, #28c840 0, #28c840 5px, transparent 5.5px);
+    linear-gradient(var(--app-text), var(--app-text)) center / 2px 24px no-repeat,
+    linear-gradient(90deg, var(--app-text), var(--app-text)) center / 24px 2px no-repeat,
+    linear-gradient(45deg, transparent 47%, var(--app-text) 48%, var(--app-text) 52%, transparent 53%) center / 24px 24px no-repeat,
+    linear-gradient(-45deg, transparent 47%, var(--app-text) 48%, var(--app-text) 52%, transparent 53%) center / 24px 24px no-repeat,
+    var(--app-surface);
   content: '';
-  opacity: 0.95;
 }
 
 .brand-panel::after {
   position: absolute;
-  right: -110px;
-  bottom: -120px;
-  width: 300px;
-  height: 300px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.5);
+  right: 38px;
+  bottom: 42px;
+  width: 210px;
+  height: 150px;
+  border: 1px solid var(--app-dark-elevated);
+  border-radius: var(--app-radius-lg);
+  background:
+    linear-gradient(90deg, var(--app-primary) 0 22%, transparent 22% 100%) 24px 36px / 120px 10px no-repeat,
+    linear-gradient(90deg, var(--app-on-dark-soft) 0 72%, transparent 72% 100%) 24px 58px / 150px 8px no-repeat,
+    linear-gradient(90deg, var(--app-on-dark-soft) 0 52%, transparent 52% 100%) 24px 78px / 150px 8px no-repeat,
+    var(--app-dark-soft);
   content: '';
+  opacity: 0.8;
 }
 
 .brand-panel > * {
@@ -364,24 +364,25 @@ onUnmounted(() => {
   margin: 18px 0 12px;
   color: var(--auth-accent);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.16em;
+  font-weight: 500;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
 }
 
 .brand-panel h1 {
   max-width: 540px;
   margin: 0;
-  color: var(--auth-ink);
-  font-size: clamp(36px, 5vw, 56px);
-  letter-spacing: -0.055em;
+  color: var(--app-on-dark);
+  font-size: clamp(38px, 5vw, 64px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
   line-height: 1.05;
 }
 
 .brand-desc {
   max-width: 520px;
   margin: 22px 0 0;
-  color: #515154;
+  color: var(--app-on-dark-soft);
   font-size: 16px;
   line-height: 1.85;
 }
@@ -393,25 +394,22 @@ onUnmounted(() => {
 
 .feature-card {
   padding: 17px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.56);
-  box-shadow:
-    0 12px 32px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid var(--app-dark-elevated);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-dark-soft);
+  box-shadow: none;
 }
 
 .feature-card strong {
   display: block;
   margin-bottom: 6px;
-  color: var(--auth-ink);
+  color: var(--app-on-dark);
   font-size: 15px;
+  font-weight: 500;
 }
 
 .feature-card span {
-  color: var(--auth-muted);
+  color: var(--app-on-dark-soft);
   font-size: 13px;
   line-height: 1.65;
 }
@@ -421,9 +419,9 @@ onUnmounted(() => {
   align-items: center;
   padding: clamp(34px, 4.5vw, 52px);
   border: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.58);
+  border-left: 1px solid var(--app-border);
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--app-surface);
   box-shadow: none;
 }
 
@@ -440,16 +438,17 @@ onUnmounted(() => {
   margin: 0 0 8px;
   color: var(--auth-accent);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  font-weight: 500;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
 }
 
 .form-heading h2 {
   margin: 0;
   color: var(--auth-ink);
-  font-size: 31px;
-  letter-spacing: -0.035em;
+  font-size: 36px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 
 .form-heading span {
@@ -484,9 +483,9 @@ onUnmounted(() => {
 .auth-tabs :deep([class~="el-tabs__nav-scroll"]) {
   overflow: hidden;
   padding: 4px;
-  border: 1px solid rgba(209, 209, 214, 0.72);
+  border: 1px solid var(--app-border);
   border-radius: 999px;
-  background: rgba(242, 242, 247, 0.82);
+  background: var(--app-surface-soft);
 }
 
 .auth-tabs :deep([class~="el-tabs__nav"]) {
@@ -500,8 +499,8 @@ onUnmounted(() => {
   z-index: 0;
   width: 50%;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  background: var(--app-surface);
+  box-shadow: 0 1px 3px rgba(20, 20, 19, 0.08);
   content: '';
   transform: translateX(var(--auth-tab-offset));
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
@@ -512,15 +511,15 @@ onUnmounted(() => {
   height: 38px;
   border-radius: 999px;
   color: var(--auth-muted);
-  font-weight: 800;
-  transition: color 0.18s ease, transform 0.18s ease;
+  font-weight: 500;
+  transition: color 0.18s ease;
 }
 
 .auth-tabs :deep([class~="el-tabs__item"][class~="is-active"]) {
   background: transparent;
   box-shadow: none;
   color: var(--auth-ink);
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .auth-form-frame {
@@ -565,46 +564,43 @@ onUnmounted(() => {
   padding-bottom: 7px;
   color: var(--auth-ink);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .form-card :deep([class~="el-input__wrapper"]) {
   min-height: 48px;
-  border-radius: 16px;
-  background: rgba(247, 247, 250, 0.86);
-  box-shadow:
-    inset 0 0 0 1px rgba(209, 209, 214, 0.72),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
-  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  box-shadow: 0 0 0 1px var(--app-border) inset;
+  transition: box-shadow 0.18s ease;
 }
 
 .form-card :deep([class~="el-input__wrapper"]:hover) {
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--app-surface);
+  box-shadow: 0 0 0 1px var(--app-border-strong) inset;
 }
 
 .form-card :deep([class~="el-input__wrapper"][class~="is-focus"]) {
-  background: #ffffff;
+  background: var(--app-surface);
   box-shadow:
-    0 0 0 4px rgba(0, 122, 255, 0.13),
-    inset 0 0 0 1px rgba(0, 122, 255, 0.48);
+    0 0 0 1px var(--app-primary) inset,
+    var(--app-shadow-focus);
 }
 
 .form-card :deep([class~="el-input__inner"]) {
   color: var(--auth-ink);
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .form-card :deep([class~="el-input__inner"]::placeholder) {
-  color: #a1a1a6;
+  color: var(--app-text-subtle);
   font-weight: 500;
 }
 
 .form-card :deep([class~="el-input-group__append"]) {
-  border-radius: 0 16px 16px 0;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow:
-    inset 0 0 0 1px rgba(209, 209, 214, 0.72),
-    inset 1px 0 0 rgba(209, 209, 214, 0.65);
+  border-radius: 0 var(--app-radius-md) var(--app-radius-md) 0;
+  background: var(--app-surface-soft);
+  box-shadow: inset 1px 0 0 var(--app-border);
 }
 
 .form-card :deep([class~="el-input-group__append"] [class~="el-button"]) {
@@ -618,19 +614,19 @@ onUnmounted(() => {
   height: 48px;
   margin-top: 10px;
   border: none;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--auth-accent), var(--auth-accent-strong));
-  box-shadow: 0 12px 26px rgba(0, 122, 255, 0.24);
+  border-radius: var(--app-radius-md);
+  background: var(--app-primary);
+  box-shadow: none;
   color: #ffffff;
-  font-weight: 850;
-  letter-spacing: 0.02em;
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .primary-button:hover,
 .primary-button:focus {
   border: none;
-  background: linear-gradient(135deg, #0a84ff, #409cff);
-  box-shadow: 0 15px 30px rgba(0, 122, 255, 0.28);
+  background: var(--app-primary-hover);
+  box-shadow: none;
   color: #ffffff;
 }
 

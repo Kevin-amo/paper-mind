@@ -94,7 +94,7 @@ defineExpose({ fillQuestion });
       </div>
     </div>
 
-    <el-dialog v-model="advancedVisible" title="高级设置" width="420px" class="advanced-dialog" append-to-body align-center>
+    <el-dialog v-model="advancedVisible" title="高级设置" width="420px" class="advanced-dialog claude-workspace-dialog" append-to-body align-center>
       <div class="advanced-setting-card">
         <div class="advanced-setting-header">
           <div>
@@ -130,7 +130,7 @@ defineExpose({ fillQuestion });
   bottom: 0;
   z-index: 5;
   padding: 0 0 20px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(247, 248, 252, 0.72) 42%, rgba(247, 248, 252, 0.9));
+  background: linear-gradient(180deg, rgba(250, 249, 245, 0), rgba(250, 249, 245, 0.84) 46%, var(--app-bg));
 }
 
 .composer-box {
@@ -138,30 +138,40 @@ defineExpose({ fillQuestion });
   gap: 10px;
   width: min(960px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 14px 14px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.78);
-  box-shadow:
-    0 18px 44px rgba(15, 23, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(24px) saturate(170%);
-  -webkit-backdrop-filter: blur(24px) saturate(170%);
+  padding: 18px 18px 14px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--app-surface);
+  box-shadow: none;
 }
 
 .composer-box :deep([class~="el-textarea__inner"]) {
   min-height: 56px !important;
-  border: 0;
+  border: 0 !important;
   background: transparent;
-  box-shadow: none;
+  box-shadow: none !important;
   color: var(--app-text);
   font-size: 15px;
   line-height: 1.7;
   padding: 2px 4px;
+  outline: none !important;
+  resize: none;
+  -webkit-appearance: none;
 }
 
 .composer-box :deep([class~="el-textarea__inner"]:focus) {
-  box-shadow: none;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.composer-box :deep([class~="el-textarea__inner"]:focus-visible) {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.composer-box :deep([class~="el-textarea__inner"]:hover) {
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 .composer-box :deep([class~="el-textarea__inner"]::placeholder) {
@@ -185,17 +195,17 @@ defineExpose({ fillQuestion });
 .composer-pill {
   height: 30px;
   padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--app-border);
   border-radius: 999px;
-  background: rgba(242, 242, 247, 0.74);
+  background: var(--app-surface-soft);
   color: var(--app-text-muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .composer-pill:hover {
-  border-color: rgba(0, 122, 255, 0.26);
-  background: rgba(255, 255, 255, 0.88);
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-muted);
   color: var(--app-primary);
 }
 
@@ -203,20 +213,20 @@ defineExpose({ fillQuestion });
   width: 40px;
   height: 40px;
   border: 0;
-  background: linear-gradient(135deg, var(--app-primary), #5ac8fa);
-  box-shadow: 0 12px 24px rgba(0, 122, 255, 0.24);
+  background: var(--app-primary);
+  box-shadow: none;
 }
 
 .send-button:hover,
 .send-button:focus {
-  background: linear-gradient(135deg, #0a84ff, #64d2ff);
-  box-shadow: 0 14px 28px rgba(0, 122, 255, 0.28);
+  background: var(--app-primary-hover);
+  box-shadow: none;
 }
 
 .send-button[class~="is-disabled"],
 .send-button[class~="is-disabled"]:hover {
-  background: rgba(174, 174, 178, 0.82);
-  color: #ffffff;
+  background: var(--app-border);
+  color: var(--app-text-muted);
   box-shadow: none;
 }
 
@@ -224,10 +234,10 @@ defineExpose({ fillQuestion });
   display: grid;
   gap: 18px;
   padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  box-shadow: none;
 }
 
 .advanced-setting-header {
@@ -262,26 +272,26 @@ defineExpose({ fillQuestion });
 
 .topk-option {
   height: 38px;
-  border: 1px solid rgba(209, 209, 214, 0.72);
+  border: 1px solid var(--app-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--app-surface);
   color: var(--app-text);
   cursor: pointer;
   font: inherit;
-  font-weight: 750;
+  font-weight: 500;
   transition: all 0.16s ease;
 }
 
 .topk-option:hover {
-  border-color: rgba(0, 122, 255, 0.28);
+  border-color: var(--app-border-strong);
   color: var(--app-primary);
 }
 
 .topk-option.active {
-  border-color: rgba(0, 122, 255, 0.28);
-  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(204, 120, 92, 0.32);
+  background: var(--app-primary-soft);
   color: var(--app-primary);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  box-shadow: none;
 }
 
 :global([class~="advanced-dialog"] [class~="el-dialog"]) {
@@ -300,7 +310,7 @@ defineExpose({ fillQuestion });
 
   .composer-box {
     width: calc(100% - 24px);
-    border-radius: 24px;
+    border-radius: var(--app-radius-lg);
   }
  
   .composer-actions {

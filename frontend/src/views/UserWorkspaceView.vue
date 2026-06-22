@@ -329,38 +329,10 @@ onMounted(async () => {
   isolation: isolate;
   height: 100vh;
   display: flex;
-  gap: 18px;
+  gap: 20px;
   overflow: hidden;
-  padding: 18px;
-  background:
-    radial-gradient(circle at 12% 8%, rgba(0, 122, 255, 0.13), transparent 28rem),
-    radial-gradient(circle at 88% 92%, rgba(175, 82, 222, 0.11), transparent 30rem),
-    linear-gradient(135deg, #f5f5f7 0%, #fbfbfd 46%, #eef3ff 100%);
-}
-
-.user-app-shell::before,
-.user-app-shell::after {
-  position: absolute;
-  z-index: -1;
-  border-radius: 999px;
-  content: '';
-  pointer-events: none;
-}
-
-.user-app-shell::before {
-  width: 420px;
-  height: 420px;
-  top: -180px;
-  left: -130px;
-  background: rgba(255, 255, 255, 0.62);
-}
-
-.user-app-shell::after {
-  width: 520px;
-  height: 520px;
-  right: -210px;
-  bottom: -230px;
-  background: rgba(255, 255, 255, 0.5);
+  padding: 20px;
+  background: var(--app-bg);
 }
 
 @media (max-width: 900px) {

@@ -146,10 +146,10 @@ function handleCurrentChange(value: number) {
   grid-template-columns: minmax(220px, 1fr) auto auto;
   gap: 10px;
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  box-shadow: none;
 }
 
 .empty-hint {
@@ -167,7 +167,7 @@ function handleCurrentChange(value: number) {
 }
 
 .library-toolbar :deep([class~="el-input__wrapper"]) {
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--app-surface);
 }
 
 .library-content {
@@ -185,19 +185,18 @@ function handleCurrentChange(value: number) {
   align-items: center;
   gap: 12px;
   padding: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
-  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  box-shadow: none;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
 
 .paper-card:hover {
-  border-color: rgba(0, 122, 255, 0.28);
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
-  transform: translateY(-1px);
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-soft);
+  box-shadow: var(--app-shadow-sm);
 }
 
 .paper-main {

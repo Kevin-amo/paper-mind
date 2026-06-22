@@ -1,4 +1,4 @@
-package com.lqr.papermind.document.web;
+package com.lqr.papermind.document.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lqr.papermind.auth.entity.SysUser;

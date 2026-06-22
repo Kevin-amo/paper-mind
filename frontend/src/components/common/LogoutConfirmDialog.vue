@@ -25,7 +25,7 @@ function confirm() {
     :model-value="props.modelValue"
     title=""
     width="min(420px, 92vw)"
-    class="logout-confirm-dialog"
+    class="logout-confirm-dialog claude-workspace-dialog"
     append-to-body
     align-center
     :close-on-click-modal="false"
@@ -83,9 +83,9 @@ function confirm() {
 .logout-confirm-title {
   margin: 0;
   color: var(--app-text);
-  font-family: 'Lexend', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.35;
 }
 
@@ -125,18 +125,18 @@ function confirm() {
   --el-button-hover-border-color: var(--app-danger-hover);
   --el-button-active-bg-color: #a03028;
   --el-button-active-border-color: #a03028;
-  transition: transform var(--app-transition-fast), box-shadow var(--app-transition-fast);
+  transition: background var(--app-transition-fast), border-color var(--app-transition-fast);
 }
 
 .logout-confirm-footer .logout-confirm-button:hover,
 .logout-confirm-footer .logout-confirm-button:focus {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(209, 69, 59, 0.22);
+  transform: none;
+  box-shadow: none;
 }
 
 .logout-confirm-footer .logout-confirm-button:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 4px 10px rgba(209, 69, 59, 0.18);
+  transform: none;
+  box-shadow: none;
 }
 
 @media (max-width: 640px) {

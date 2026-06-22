@@ -1,9 +1,8 @@
-package com.lqr.papermind.review.audit.impl;
+package com.lqr.papermind.review.audit;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.mapper.ReviewAuditLogMapper;
 import lombok.RequiredArgsConstructor;

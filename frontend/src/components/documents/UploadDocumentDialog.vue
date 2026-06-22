@@ -160,7 +160,7 @@ function formatFileSize(size: number) {
 </script>
 
 <template>
-  <el-dialog v-model="visible" title="上传论文" width="min(720px, 92vw)" class="upload-dialog" destroy-on-close>
+  <el-dialog v-model="visible" title="上传论文" width="min(720px, 92vw)" class="upload-dialog claude-workspace-dialog" destroy-on-close>
     <div class="upload-intro">
       <strong>把论文加入个人知识库</strong>
       <span>支持批量选择或拖拽上传。上传后系统会解析并建立索引，完成后即可在问答中引用。</span>
@@ -195,13 +195,13 @@ function formatFileSize(size: number) {
   gap: 6px;
   margin-bottom: 16px;
   padding: 14px 16px;
-  border: 1px solid rgba(37, 99, 235, 0.12);
-  border-radius: 16px;
-  background: #f8fbff;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
 }
 
 .upload-intro strong {
-  color: #172554;
+  color: var(--app-text);
   font-size: 16px;
 }
 
@@ -217,8 +217,14 @@ function formatFileSize(size: number) {
 
 .compact-upload :deep([class~="el-upload-dragger"]) {
   padding: 22px;
-  border-radius: 18px;
-  background: #fbfdff;
+  border-color: var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+}
+
+.compact-upload :deep([class~="el-upload-dragger"]:hover) {
+  border-color: var(--app-primary);
+  background: var(--app-primary-soft);
 }
 
 

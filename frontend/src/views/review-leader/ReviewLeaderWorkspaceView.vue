@@ -526,7 +526,7 @@ onMounted(async () => {
       </article>
     </section>
 
-    <el-dialog v-model="assignDialogVisible" title="分配本组评审任务" width="520px">
+    <el-dialog v-model="assignDialogVisible" title="分配本组评审任务" width="520px" class="claude-workspace-dialog">
       <div v-if="assignmentTask" class="assign-task-card">
         <strong>{{ assignmentTask.title }}</strong>
         <span>{{ assignmentTask.sourceId }}</span>
@@ -562,24 +562,30 @@ onMounted(async () => {
 
 <style scoped>
 .leader-page {
-  gap: 20px;
-  padding: 24px;
+  gap: 24px;
+  padding: 28px;
   background: var(--app-bg);
 }
 
 .leader-page :deep([class~="page-header"]) {
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  padding: 24px 28px;
+  border-radius: var(--app-radius-lg);
+  padding: 32px;
   background: var(--app-surface);
 }
 
 .leader-page :deep([class~="page-eyebrow"]) {
   color: var(--app-primary);
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .leader-page :deep([class~="page-header"] h1) {
   color: var(--app-text);
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 500;
+  line-height: 1.08;
 }
 
 .leader-page :deep([class~="el-button"]) {
@@ -591,9 +597,9 @@ onMounted(async () => {
   align-items: center;
   gap: 0;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
+  border-radius: var(--app-radius-lg);
   padding: 14px 24px;
-  background: var(--app-surface);
+  background: var(--app-surface-soft);
 }
 
 .stat-item {
@@ -619,8 +625,9 @@ onMounted(async () => {
 
 .stat-item strong {
   color: var(--app-text);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .stat-divider {
@@ -640,9 +647,9 @@ onMounted(async () => {
 .task-panel,
 .detail-card {
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
+  border-radius: var(--app-radius-lg);
   background: var(--app-surface);
-  padding: 20px;
+  padding: 22px;
 }
 
 .panel-header {
@@ -658,8 +665,8 @@ onMounted(async () => {
 .panel-header h2 {
   margin: 0;
   color: var(--app-text);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 500;
 }
 
 .full-width {
@@ -674,7 +681,7 @@ onMounted(async () => {
   gap: 4px;
   margin-top: 12px;
   padding: 12px;
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-md);
   background: var(--app-surface-soft);
 }
 
@@ -704,8 +711,8 @@ onMounted(async () => {
 .member-list h3 {
   margin: 0 0 10px;
   color: var(--app-text);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .member-item {
@@ -776,9 +783,9 @@ onMounted(async () => {
   overflow: auto;
   margin: 0;
   padding: 12px;
-  border-radius: var(--app-radius-sm);
-  background: var(--app-surface-soft);
-  color: var(--app-text-muted);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-dark);
+  color: var(--app-on-dark-soft);
   font-size: 12px;
   line-height: 1.6;
 }

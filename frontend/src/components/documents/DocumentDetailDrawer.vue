@@ -111,7 +111,7 @@ function handleChunkSizeChange(size: number) {
 </script>
 
 <template>
-  <el-drawer v-model="visible" title="文档详情" size="min(760px, 94vw)" destroy-on-close class="document-detail-drawer">
+  <el-drawer v-model="visible" title="文档详情" size="min(760px, 94vw)" destroy-on-close class="document-detail-drawer claude-workspace-drawer">
     <el-skeleton :loading="props.loading" animated :rows="9">
       <template v-if="props.detail">
         <section class="detail-hero">
@@ -280,8 +280,8 @@ function handleChunkSizeChange(size: number) {
   margin-bottom: 18px;
   padding: 18px;
   border: 1px solid var(--app-border);
-  border-radius: 22px;
-  background: #f7f8fa;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
 }
 
 .detail-hero > div {
@@ -324,8 +324,8 @@ function handleChunkSizeChange(size: number) {
   margin-top: 18px;
   padding: 16px;
   border: 1px solid var(--app-border);
-  border-radius: 20px;
-  background: #ffffff;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
 }
 
 .detail-section h3,
@@ -357,21 +357,21 @@ function handleChunkSizeChange(size: number) {
 .info-grid div {
   min-width: 0;
   padding: 12px;
-  border: 1px solid #edf0f4;
-  border-radius: 14px;
-  background: #f9fafb;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
 }
 
 dt {
   margin-bottom: 6px;
-  color: #9ca3af;
+  color: var(--app-text-subtle);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 dd {
   margin: 0;
-  color: #374151;
+  color: var(--app-text);
   line-height: 1.7;
   word-break: break-word;
 }
@@ -389,10 +389,11 @@ dd {
   overflow: auto;
   margin: 0;
   padding: 14px 16px;
-  border: 1px solid #edf0f4;
-  border-radius: 15px;
-  background: #f7f8fa;
-  color: #374151;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-dark);
+  color: var(--app-on-dark);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
   line-height: 1.8;
   white-space: pre-wrap;
   word-break: break-word;
@@ -405,9 +406,9 @@ dd {
 
 .chunk-card {
   padding: 14px;
-  border: 1px solid #edf0f4;
-  border-radius: 18px;
-  background: #f9fafb;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
 }
 
 .chunk-header {
@@ -425,13 +426,13 @@ dd {
 .chunk-header small {
   padding: 2px 8px;
   border-radius: 999px;
-  background: #ffffff;
-  color: #9ca3af;
+  background: var(--app-surface);
+  color: var(--app-text-subtle);
 }
 
 .chunk-content {
   margin: 10px 0 0;
-  color: #374151;
+  color: var(--app-text);
   line-height: 1.78;
   white-space: pre-wrap;
 }
@@ -462,14 +463,14 @@ dd {
   overflow: hidden;
   border: 1px solid var(--app-border);
   border-radius: 14px;
-  background: #fff;
+  background: var(--app-surface);
 }
 
 .asset-preview-image {
   display: block;
   width: 166px;
   height: 112px;
-  background: #f3f4f6;
+  background: var(--app-surface-soft);
 }
 
 .asset-preview-meta {
@@ -483,7 +484,7 @@ dd {
 
 .asset-preview-meta strong {
   overflow: hidden;
-  color: #374151;
+  color: var(--app-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

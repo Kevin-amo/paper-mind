@@ -101,8 +101,8 @@ defineEmits<{
 .section-header h3 {
   margin: 0;
   color: var(--app-text);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 500;
 }
 
 .section-header p {
@@ -119,9 +119,9 @@ defineEmits<{
 
 .score-card {
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-lg);
   padding: 16px;
-  background: var(--app-surface);
+  background: var(--app-surface-soft);
   transition: border-color 0.15s ease;
 }
 
@@ -149,8 +149,9 @@ defineEmits<{
 
 .score-value {
   color: var(--app-primary);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -170,7 +171,7 @@ defineEmits<{
 .manual-section {
   margin-top: 20px;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-lg);
   padding: 16px;
   background: var(--app-surface);
 }

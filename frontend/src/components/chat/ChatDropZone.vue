@@ -97,10 +97,8 @@ function handleDrop(event: DragEvent) {
   align-items: center;
   justify-content: center;
   border: 2px dashed var(--app-primary);
-  border-radius: 28px;
-  background: rgba(0, 122, 255, 0.08);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  border-radius: var(--app-radius-lg);
+  background: rgba(204, 120, 92, 0.12);
   animation: drop-in 0.2s ease both;
 }
 
@@ -121,10 +119,10 @@ function handleDrop(event: DragEvent) {
   align-items: center;
   gap: 10px;
   padding: 32px 44px;
-  border: 1px solid rgba(0, 122, 255, 0.18);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 18px 44px rgba(0, 122, 255, 0.12);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-lg);
 }
 
 .drop-icon {

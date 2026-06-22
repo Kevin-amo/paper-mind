@@ -63,10 +63,10 @@ function scorePercent(score: number) {
   gap: 10px;
   margin-top: 18px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.56);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  box-shadow: none;
 }
 
 .citation-heading {
@@ -76,7 +76,7 @@ function scorePercent(score: number) {
   gap: 10px;
   color: var(--app-text);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .citation-title {
@@ -88,14 +88,14 @@ function scorePercent(score: number) {
 .citation-count {
   color: var(--app-text-muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .citation-card {
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
 }
 
 .citation-topline {
@@ -120,17 +120,17 @@ function scorePercent(score: number) {
   height: 24px;
   padding: 0 8px;
   border-radius: 999px;
-  background: rgba(0, 122, 255, 0.1);
+  background: var(--app-primary-soft);
   color: var(--app-primary);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .citation-card p {
   display: -webkit-box;
   overflow: hidden;
   margin: 9px 0 8px;
-  color: #4b5563;
+  color: var(--app-text-muted);
   font-size: 13px;
   line-height: 1.7;
   -webkit-box-orient: vertical;
@@ -141,7 +141,7 @@ function scorePercent(score: number) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  color: #9ca3af;
+  color: var(--app-text-subtle);
   font-size: 12px;
 }
 </style>

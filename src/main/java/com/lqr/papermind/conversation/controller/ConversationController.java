@@ -1,4 +1,4 @@
-package com.lqr.papermind.conversation.web;
+package com.lqr.papermind.conversation.controller;
 
 import com.lqr.papermind.auth.security.SecurityUserPrincipal;
 import com.lqr.papermind.conversation.dto.CreateConversationRequest;

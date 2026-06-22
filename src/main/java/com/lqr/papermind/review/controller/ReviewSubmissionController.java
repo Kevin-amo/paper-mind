@@ -1,4 +1,4 @@
-package com.lqr.papermind.review.web;
+package com.lqr.papermind.review.controller;
 
 import com.lqr.papermind.auth.security.SecurityUserPrincipal;
 import com.lqr.papermind.common.constant.MetadataKeys;
