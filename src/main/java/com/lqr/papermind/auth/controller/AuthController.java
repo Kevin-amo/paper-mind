@@ -1,4 +1,4 @@
-package com.lqr.papermind.auth.web;
+package com.lqr.papermind.auth.controller;
 
 import com.lqr.papermind.auth.dto.ChangeDisplayNameRequest;
 import com.lqr.papermind.auth.dto.ChangeEmailCodeRequest;

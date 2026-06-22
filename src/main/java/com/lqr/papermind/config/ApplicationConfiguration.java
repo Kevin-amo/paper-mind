@@ -13,8 +13,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * 应用级 Bean 配置。
- *
- * <p>这里集中注册跨模块复用的基础组件，业务服务只依赖接口或明确的基础 Bean。</p>
+ * 这里集中注册跨模块复用的基础组件，业务服务只依赖接口或明确的基础 Bean。
  */
 @Configuration
 @EnableConfigurationProperties({RagProperties.class, SecurityProperties.class, OssProperties.class, DocumentIngestionProperties.class, LiteratureSearchProperties.class, ResendProperties.class})

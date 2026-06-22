@@ -1,4 +1,4 @@
-package com.lqr.papermind.document.web;
+package com.lqr.papermind.document.controller;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

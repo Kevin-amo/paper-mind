@@ -1,6 +1,5 @@
 package com.lqr.papermind.review.audit;
 
-import com.lqr.papermind.review.audit.impl.ReviewAuditServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -19,7 +18,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ReviewAuditAspect {
 
-    private final ReviewAuditServiceImpl reviewAuditService;
+    private final ReviewAuditService reviewAuditService;
 
     @Around("@annotation(reviewAudit)")
     public Object audit(ProceedingJoinPoint pjp, ReviewAudit reviewAudit) throws Throwable {
