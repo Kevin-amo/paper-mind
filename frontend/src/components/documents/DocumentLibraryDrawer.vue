@@ -39,7 +39,7 @@ const visible = computed({
 </script>
 
 <template>
-  <el-drawer v-model="visible" size="min(760px, 94vw)" destroy-on-close class="document-library-drawer">
+  <el-drawer v-model="visible" size="min(760px, 94vw)" destroy-on-close class="document-library-drawer claude-workspace-drawer">
     <template #header>
       <div class="drawer-heading">
         <p>Document Library</p>

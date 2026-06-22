@@ -55,7 +55,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <el-drawer v-model="visible" size="min(520px, 94vw)" destroy-on-close>
+  <el-drawer v-model="visible" size="min(520px, 94vw)" destroy-on-close class="claude-workspace-drawer">
     <template #header>
       <div>
         <span class="eyebrow">Dispatch</span>

@@ -186,7 +186,7 @@ watch(
   gap: 22px;
   padding: clamp(24px, 4vw, 44px) 0 154px;
   background: transparent;
-  scrollbar-color: rgba(0, 122, 255, 0.28) transparent;
+  scrollbar-color: rgba(204, 120, 92, 0.32) transparent;
 }
 
 .message-list.is-empty {
@@ -199,13 +199,9 @@ watch(
 .message-list.is-empty :deep([class~="empty-state"]) {
   width: min(820px, calc(100% - 48px));
   min-height: 230px;
-  border-color: rgba(255, 255, 255, 0.76);
-  background: rgba(255, 255, 255, 0.64);
-  box-shadow:
-    0 18px 44px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(18px) saturate(165%);
-  -webkit-backdrop-filter: blur(18px) saturate(165%);
+  border-color: var(--app-border);
+  background: var(--app-surface-soft);
+  box-shadow: none;
 }
 
 .message-list.is-empty :deep([class~="empty-state"] p) {
@@ -213,7 +209,7 @@ watch(
 }
 
 .message-list.is-empty :deep([class~="empty-icon"]) {
-  background: rgba(0, 122, 255, 0.1);
+  background: var(--app-primary-soft);
 }
 
 .example-prompts {
@@ -226,22 +222,21 @@ watch(
 
 .example-prompts button {
   padding: 9px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
+  border: 1px solid var(--app-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.66);
+  background: var(--app-surface);
   color: var(--app-text);
   cursor: pointer;
   font-size: 13px;
-  font-weight: 750;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease, transform 0.16s ease;
+  font-weight: 500;
+  box-shadow: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
 }
 
 .example-prompts button:hover {
-  border-color: rgba(0, 122, 255, 0.28);
-  box-shadow: var(--app-shadow-glow);
+  border-color: var(--app-primary);
+  box-shadow: var(--app-shadow-sm);
   color: var(--app-primary);
-  transform: translateY(-1px);
 }
 
 .message-row {
@@ -268,12 +263,10 @@ watch(
 .from-user .message-body {
   justify-self: end;
   max-width: 72%;
-  border-color: rgba(0, 122, 255, 0.22);
-  background: linear-gradient(135deg, rgba(0, 122, 255, 0.14), rgba(90, 200, 250, 0.12));
+  border-color: rgba(204, 120, 92, 0.26);
+  background: var(--app-primary-soft);
   color: var(--app-text);
-  box-shadow:
-    0 12px 28px rgba(0, 122, 255, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  box-shadow: none;
 }
 
 .from-assistant .message-body {
@@ -292,11 +285,9 @@ watch(
   width: fit-content;
   max-width: 100%;
   padding: 15px 17px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.66);
-  backdrop-filter: blur(18px) saturate(160%);
-  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
 }
 
 .from-assistant .message-body {
@@ -340,8 +331,8 @@ watch(
 .markdown-content :deep(code) {
   padding: 0.15em 0.36em;
   border-radius: 7px;
-  background: rgba(242, 242, 247, 0.86);
-  color: #3a3a3c;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
   font-size: 0.92em;
 }
 
@@ -350,10 +341,10 @@ watch(
   overflow-x: auto;
   margin: 1em 0;
   padding: 42px 16px 16px;
-  border: 1px solid #111827;
+  border: 1px solid transparent;
   border-radius: 14px;
-  background: #111827;
-  color: #e5e7eb;
+  background: var(--app-dark);
+  color: var(--app-on-dark);
 }
 
 .markdown-content :deep(pre::before) {
@@ -366,8 +357,8 @@ watch(
   display: flex;
   align-items: center;
   padding: 0 14px;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.1);
-  color: #9ca3af;
+  border-bottom: 1px solid rgba(250, 249, 245, 0.1);
+  color: var(--app-on-dark-soft);
   font-size: 12px;
 }
 
@@ -380,15 +371,15 @@ watch(
 .markdown-content :deep(blockquote) {
   margin: 0.85em 0;
   padding: 10px 14px;
-  border-left: 3px solid rgba(0, 122, 255, 0.28);
+  border-left: 3px solid var(--app-primary);
   border-radius: 0 14px 14px 0;
-  background: rgba(255, 255, 255, 0.56);
-  color: #515154;
+  background: var(--app-surface-soft);
+  color: var(--app-text-muted);
 }
 
 .markdown-content :deep(a) {
   color: var(--app-primary);
-  font-weight: 700;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -398,10 +389,10 @@ watch(
 
 .agent-steps {
   margin: 12px 0 4px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.76);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  box-shadow: none;
 }
 
 .agent-steps details {
@@ -410,9 +401,9 @@ watch(
 
 .agent-steps summary {
   cursor: pointer;
-  color: #475569;
+  color: var(--app-text);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 500;
 }
 
 .agent-steps ol {
@@ -423,7 +414,7 @@ watch(
 }
 
 .agent-steps li {
-  color: #475569;
+  color: var(--app-text-muted);
   line-height: 1.6;
 }
 
@@ -441,7 +432,7 @@ watch(
 .agent-steps em {
   display: block;
   margin-top: 3px;
-  color: #64748b;
+  color: var(--app-text-subtle);
   font-style: normal;
   font-size: 12px;
 }

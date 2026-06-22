@@ -194,7 +194,7 @@ defineExpose({ clearPasswordForm });
     v-model="visible"
     title="账号管理"
     width="min(620px, 94vw)"
-    class="account-dialog"
+    class="account-dialog claude-workspace-dialog"
     destroy-on-close
     align-center
     :close-on-click-modal="!busy"
@@ -289,9 +289,9 @@ defineExpose({ clearPasswordForm });
   gap: 18px;
   margin-bottom: 18px;
   padding: 18px;
-  border: 1px solid rgba(37, 99, 235, 0.12);
-  border-radius: 22px;
-  background: linear-gradient(135deg, #f8fbff, #ffffff);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
 }
 
 .account-avatar-button {
@@ -318,7 +318,7 @@ defineExpose({ clearPasswordForm });
 }
 
 .account-avatar-button:hover {
-  box-shadow: var(--app-focus-ring);
+  box-shadow: var(--app-shadow-focus);
 }
 
 .avatar-file-input {
@@ -351,7 +351,7 @@ defineExpose({ clearPasswordForm });
   display: grid;
   gap: 14px;
   padding: 18px 0;
-  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  border-top: 1px solid var(--app-border);
 }
 
 .section-heading {

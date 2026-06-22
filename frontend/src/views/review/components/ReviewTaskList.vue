@@ -93,9 +93,9 @@ defineEmits<{
   display: flex;
   flex-direction: column;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
+  border-radius: var(--app-radius-lg);
   background: var(--app-surface);
-  padding: 16px;
+  padding: 18px;
   gap: 12px;
 }
 
@@ -110,8 +110,8 @@ defineEmits<{
 .panel-header h2 {
   margin: 0;
   color: var(--app-text);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 500;
 }
 
 .task-toolbar {
@@ -131,7 +131,7 @@ defineEmits<{
 .task-item {
   width: 100%;
   border: 1px solid transparent;
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-md);
   padding: 12px 14px;
   background: transparent;
   color: inherit;
@@ -146,7 +146,7 @@ defineEmits<{
 }
 
 .task-item.active {
-  background: var(--app-primary-soft);
+  background: var(--app-surface-soft);
   border-color: var(--app-primary);
 }
 
@@ -175,12 +175,7 @@ defineEmits<{
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
-  transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out;
-}
-
-.task-status-badge:hover {
-  transform: scale(1.05);
-  filter: brightness(1.08);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .task-status-badge.ASSIGNED {

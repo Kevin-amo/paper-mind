@@ -1,0 +1,759 @@
+.admin-layout,
+.review-page,
+.leader-page,
+.auth-layout,
+.login-shell,
+.user-app-shell,
+.claude-token-scope {
+  --app-bg: #faf9f5;
+  --app-sidebar-bg: #181715;
+  --app-surface: #faf9f5;
+  --app-surface-strong: #f5f0e8;
+  --app-surface-soft: #efe9de;
+  --app-surface-muted: #e8e0d2;
+  --app-border: #e6dfd8;
+  --app-border-strong: #d8cec0;
+  --app-border-light: #ebe6df;
+  --app-text: #141413;
+  --app-text-muted: #6c6a64;
+  --app-text-subtle: #8e8b82;
+  --app-text-on-primary: #ffffff;
+  --app-primary: #cc785c;
+  --app-primary-hover: #b8664d;
+  --app-primary-active: #a9583e;
+  --app-primary-soft: rgba(204, 120, 92, 0.11);
+  --app-primary-soft-hover: rgba(204, 120, 92, 0.18);
+  --app-primary-glow: rgba(204, 120, 92, 0.16);
+  --app-accent: #5db8a6;
+  --app-accent-soft: rgba(93, 184, 166, 0.12);
+  --app-accent-hover: #459f8f;
+  --app-danger: #c64545;
+  --app-danger-soft: rgba(198, 69, 69, 0.12);
+  --app-danger-hover: #a93a3a;
+  --app-success: #5db872;
+  --app-success-soft: rgba(93, 184, 114, 0.12);
+  --app-success-hover: #4b9f5f;
+  --app-warning: #d4a017;
+  --app-warning-soft: rgba(212, 160, 23, 0.13);
+  --app-warning-hover: #b68913;
+  --app-info: #cc785c;
+  --app-info-soft: rgba(204, 120, 92, 0.11);
+  --app-dark: #181715;
+  --app-dark-elevated: #252320;
+  --app-dark-soft: #1f1e1b;
+  --app-on-dark: #faf9f5;
+  --app-on-dark-soft: #a09d96;
+  --app-radius-xs: 4px;
+  --app-radius-sm: 6px;
+  --app-radius-md: 8px;
+  --app-radius-lg: 12px;
+  --app-radius-xl: 16px;
+  --app-shadow-xs: none;
+  --app-shadow-sm: 0 1px 3px rgba(20, 20, 19, 0.08);
+  --app-shadow-md: 0 1px 3px rgba(20, 20, 19, 0.08);
+  --app-shadow-lg: 0 8px 22px rgba(20, 20, 19, 0.1);
+  --app-shadow-xl: 0 16px 36px rgba(20, 20, 19, 0.12);
+  --app-shadow-focus: 0 0 0 3px var(--app-primary-glow);
+  --app-shadow-card: none;
+  --app-shadow-card-hover: 0 1px 3px rgba(20, 20, 19, 0.08);
+  --app-transition-fast: 0.12s ease;
+  --app-transition-base: 0.2s ease;
+  --app-transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--app-text);
+  background: var(--app-bg);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.admin-layout h1,
+.admin-layout h2,
+.admin-layout h3,
+.review-page h1,
+.review-page h2,
+.review-page h3,
+.leader-page h1,
+.leader-page h2,
+.leader-page h3,
+.auth-layout h1,
+.auth-layout h2,
+.auth-layout h3,
+.user-app-shell h1,
+.user-app-shell h2,
+.user-app-shell h3 {
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, "Times New Roman", serif;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.admin-layout h4,
+.review-page h4,
+.leader-page h4,
+.auth-layout h4,
+.user-app-shell h4 {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.admin-layout .el-button,
+.review-page .el-button,
+.leader-page .el-button,
+.auth-layout .el-button,
+.user-app-shell .el-button {
+  --el-button-border-color: var(--app-border);
+  --el-button-bg-color: var(--app-surface);
+  --el-button-text-color: var(--app-text);
+  --el-button-hover-bg-color: var(--app-surface-soft);
+  --el-button-hover-border-color: var(--app-border-strong);
+  --el-button-hover-text-color: var(--app-text);
+  --el-button-active-bg-color: var(--app-surface-muted);
+  --el-button-active-border-color: var(--app-border-strong);
+  height: 40px;
+  border-radius: var(--app-radius-md);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  transform: none;
+  box-shadow: none;
+}
+
+.admin-layout .el-button:hover,
+.admin-layout .el-button:active,
+.review-page .el-button:hover,
+.review-page .el-button:active,
+.leader-page .el-button:hover,
+.leader-page .el-button:active,
+.auth-layout .el-button:hover,
+.auth-layout .el-button:active,
+.user-app-shell .el-button:hover,
+.user-app-shell .el-button:active {
+  transform: none;
+}
+
+.admin-layout .el-button--small,
+.review-page .el-button--small,
+.leader-page .el-button--small,
+.auth-layout .el-button--small,
+.user-app-shell .el-button--small {
+  height: 32px;
+  border-radius: var(--app-radius-sm);
+}
+
+.admin-layout .el-button--primary,
+.review-page .el-button--primary,
+.leader-page .el-button--primary,
+.auth-layout .el-button--primary,
+.user-app-shell .el-button--primary {
+  --el-button-bg-color: var(--app-primary);
+  --el-button-border-color: var(--app-primary);
+  --el-button-text-color: var(--app-text-on-primary);
+  --el-button-hover-bg-color: var(--app-primary-hover);
+  --el-button-hover-border-color: var(--app-primary-hover);
+  --el-button-hover-text-color: var(--app-text-on-primary);
+  --el-button-active-bg-color: var(--app-primary-active);
+  --el-button-active-border-color: var(--app-primary-active);
+}
+
+.admin-layout .el-button--success,
+.review-page .el-button--success,
+.leader-page .el-button--success,
+.auth-layout .el-button--success,
+.user-app-shell .el-button--success {
+  --el-button-bg-color: var(--app-success);
+  --el-button-border-color: var(--app-success);
+  --el-button-hover-bg-color: var(--app-success-hover);
+  --el-button-hover-border-color: var(--app-success-hover);
+}
+
+.admin-layout .el-button.is-text,
+.review-page .el-button.is-text,
+.leader-page .el-button.is-text,
+.auth-layout .el-button.is-text,
+.user-app-shell .el-button.is-text {
+  color: var(--app-text);
+}
+
+.admin-layout .el-input__wrapper,
+.admin-layout .el-select__wrapper,
+.admin-layout .el-textarea__inner,
+.review-page .el-input__wrapper,
+.review-page .el-select__wrapper,
+.review-page .el-textarea__inner,
+.leader-page .el-input__wrapper,
+.leader-page .el-select__wrapper,
+.leader-page .el-textarea__inner,
+.auth-layout .el-input__wrapper,
+.auth-layout .el-select__wrapper,
+.auth-layout .el-textarea__inner,
+.user-app-shell .el-input__wrapper,
+.user-app-shell .el-select__wrapper,
+.user-app-shell .el-textarea__inner {
+  min-height: 40px;
+  border-radius: var(--app-radius-md) !important;
+  background: var(--app-surface) !important;
+  box-shadow: 0 0 0 1px var(--app-border) inset !important;
+}
+
+.admin-layout .el-input__wrapper:hover,
+.admin-layout .el-select__wrapper:hover,
+.admin-layout .el-textarea__inner:hover,
+.review-page .el-input__wrapper:hover,
+.review-page .el-select__wrapper:hover,
+.review-page .el-textarea__inner:hover,
+.leader-page .el-input__wrapper:hover,
+.leader-page .el-select__wrapper:hover,
+.leader-page .el-textarea__inner:hover,
+.auth-layout .el-input__wrapper:hover,
+.auth-layout .el-select__wrapper:hover,
+.auth-layout .el-textarea__inner:hover,
+.user-app-shell .el-input__wrapper:hover,
+.user-app-shell .el-select__wrapper:hover,
+.user-app-shell .el-textarea__inner:hover {
+  box-shadow: 0 0 0 1px var(--app-border-strong) inset !important;
+}
+
+.admin-layout .el-input__wrapper.is-focus,
+.admin-layout .el-select__wrapper:focus-within,
+.admin-layout .el-textarea__inner:focus,
+.review-page .el-input__wrapper.is-focus,
+.review-page .el-select__wrapper:focus-within,
+.review-page .el-textarea__inner:focus,
+.leader-page .el-input__wrapper.is-focus,
+.leader-page .el-select__wrapper:focus-within,
+.leader-page .el-textarea__inner:focus,
+.auth-layout .el-input__wrapper.is-focus,
+.auth-layout .el-select__wrapper:focus-within,
+.auth-layout .el-textarea__inner:focus,
+.user-app-shell .el-input__wrapper.is-focus,
+.user-app-shell .el-select__wrapper:focus-within,
+.user-app-shell .el-textarea__inner:focus {
+  box-shadow:
+    0 0 0 1px var(--app-primary) inset,
+    var(--app-shadow-focus) !important;
+}
+
+.admin-layout .el-table,
+.review-page .el-table,
+.leader-page .el-table,
+.user-app-shell .el-table {
+  --el-table-border-color: var(--app-border);
+  --el-table-header-bg-color: var(--app-surface-soft);
+  --el-table-row-hover-bg-color: var(--app-primary-soft);
+  --el-table-bg-color: var(--app-surface);
+  --el-table-tr-bg-color: var(--app-surface);
+  border-radius: var(--app-radius-lg);
+  color: var(--app-text);
+}
+
+.admin-layout .el-table th.el-table__cell,
+.review-page .el-table th.el-table__cell,
+.leader-page .el-table th.el-table__cell,
+.user-app-shell .el-table th.el-table__cell {
+  color: var(--app-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.admin-layout .el-table td.el-table__cell,
+.review-page .el-table td.el-table__cell,
+.leader-page .el-table td.el-table__cell,
+.user-app-shell .el-table td.el-table__cell {
+  color: var(--app-text);
+}
+
+.admin-layout .el-tag,
+.review-page .el-tag,
+.leader-page .el-tag,
+.user-app-shell .el-tag {
+  border-radius: 9999px;
+  font-weight: 500;
+  transform: none;
+  filter: none;
+}
+
+.admin-layout .el-tag:hover,
+.review-page .el-tag:hover,
+.leader-page .el-tag:hover,
+.user-app-shell .el-tag:hover {
+  transform: none;
+  filter: none;
+}
+
+.admin-layout .el-tag--primary,
+.review-page .el-tag--primary,
+.leader-page .el-tag--primary,
+.user-app-shell .el-tag--primary,
+.admin-layout .el-tag--info,
+.review-page .el-tag--info,
+.leader-page .el-tag--info,
+.user-app-shell .el-tag--info {
+  --el-tag-bg-color: var(--app-surface-soft);
+  --el-tag-border-color: var(--app-border);
+  --el-tag-text-color: var(--app-text);
+}
+
+.admin-layout .el-tag--success,
+.review-page .el-tag--success,
+.leader-page .el-tag--success,
+.user-app-shell .el-tag--success {
+  --el-tag-bg-color: var(--app-success-soft);
+  --el-tag-border-color: transparent;
+  --el-tag-text-color: var(--app-success-hover);
+}
+
+.admin-layout .el-tag--warning,
+.review-page .el-tag--warning,
+.leader-page .el-tag--warning,
+.user-app-shell .el-tag--warning {
+  --el-tag-bg-color: var(--app-warning-soft);
+  --el-tag-border-color: transparent;
+  --el-tag-text-color: var(--app-warning-hover);
+}
+
+.admin-layout .el-tag--danger,
+.review-page .el-tag--danger,
+.leader-page .el-tag--danger,
+.user-app-shell .el-tag--danger {
+  --el-tag-bg-color: var(--app-danger-soft);
+  --el-tag-border-color: transparent;
+  --el-tag-text-color: var(--app-danger);
+}
+
+.admin-layout .el-tabs__item,
+.review-page .el-tabs__item,
+.leader-page .el-tabs__item,
+.auth-layout .el-tabs__item,
+.user-app-shell .el-tabs__item {
+  border-radius: var(--app-radius-md);
+  color: var(--app-text-muted);
+  font-weight: 500;
+}
+
+.admin-layout .el-tabs__item:hover,
+.admin-layout .el-tabs__item.is-active,
+.review-page .el-tabs__item:hover,
+.review-page .el-tabs__item.is-active,
+.leader-page .el-tabs__item:hover,
+.leader-page .el-tabs__item.is-active,
+.auth-layout .el-tabs__item:hover,
+.auth-layout .el-tabs__item.is-active,
+.user-app-shell .el-tabs__item:hover,
+.user-app-shell .el-tabs__item.is-active {
+  color: var(--app-primary);
+  background: var(--app-primary-soft);
+}
+
+.admin-layout .el-tabs__active-bar,
+.review-page .el-tabs__active-bar,
+.leader-page .el-tabs__active-bar,
+.admin-layout .el-progress-bar__inner,
+.review-page .el-progress-bar__inner,
+.leader-page .el-progress-bar__inner,
+.admin-layout .el-slider__bar,
+.review-page .el-slider__bar,
+.leader-page .el-slider__bar {
+  background-color: var(--app-primary);
+}
+
+.auth-layout .el-tabs__active-bar,
+.user-app-shell .el-tabs__active-bar,
+.user-app-shell .el-progress-bar__inner,
+.user-app-shell .el-slider__bar {
+  background-color: var(--app-primary);
+}
+
+.admin-layout .el-pagination.is-background .el-pager li.is-active,
+.review-page .el-pagination.is-background .el-pager li.is-active,
+.leader-page .el-pagination.is-background .el-pager li.is-active,
+.user-app-shell .el-pagination.is-background .el-pager li.is-active {
+  background-color: var(--app-primary);
+}
+
+.admin-layout .el-collapse,
+.review-page .el-collapse,
+.leader-page .el-collapse,
+.user-app-shell .el-collapse {
+  --el-collapse-border-color: var(--app-border);
+  --el-collapse-header-bg-color: transparent;
+  --el-collapse-content-bg-color: transparent;
+}
+
+.admin-layout .el-collapse-item__header,
+.review-page .el-collapse-item__header,
+.leader-page .el-collapse-item__header,
+.user-app-shell .el-collapse-item__header {
+  color: var(--app-text);
+  font-weight: 500;
+}
+
+.admin-layout .el-descriptions__label,
+.review-page .el-descriptions__label,
+.leader-page .el-descriptions__label {
+  background: var(--app-surface-soft) !important;
+  color: var(--app-text-muted) !important;
+}
+
+.admin-layout .el-descriptions__content,
+.review-page .el-descriptions__content,
+.leader-page .el-descriptions__content {
+  background: var(--app-surface) !important;
+}
+
+.admin-layout .el-empty__description p,
+.review-page .el-empty__description p,
+.leader-page .el-empty__description p,
+.user-app-shell .el-empty__description p {
+  color: var(--app-text-muted);
+}
+
+.admin-layout .el-alert--info,
+.review-page .el-alert--info,
+.leader-page .el-alert--info,
+.user-app-shell .el-alert--info {
+  --el-alert-bg-color: var(--app-surface-soft);
+  --el-alert-text-color: var(--app-text);
+}
+
+.admin-layout .el-timeline-item__tail,
+.review-page .el-timeline-item__tail,
+.leader-page .el-timeline-item__tail {
+  border-left-color: var(--app-border);
+}
+
+.admin-layout .el-timeline-item__node--primary,
+.review-page .el-timeline-item__node--primary,
+.leader-page .el-timeline-item__node--primary {
+  background-color: var(--app-primary);
+}
+
+.admin-layout code,
+.admin-layout pre,
+.review-page code,
+.review-page pre,
+.leader-page code,
+.leader-page pre,
+.user-app-shell code,
+.user-app-shell pre {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.admin-layout .claude-dark-surface,
+.review-page .claude-dark-surface,
+.leader-page .claude-dark-surface,
+.user-app-shell .claude-dark-surface,
+.auth-layout .claude-dark-surface {
+  border-color: transparent;
+  background: var(--app-dark);
+  color: var(--app-on-dark);
+}
+
+.admin-layout .claude-dark-surface *,
+.review-page .claude-dark-surface *,
+.leader-page .claude-dark-surface * {
+  color: inherit;
+}
+
+.admin-layout .claude-dark-surface .muted,
+.review-page .claude-dark-surface .muted,
+.leader-page .claude-dark-surface .muted {
+  color: var(--app-on-dark-soft);
+}
+
+.el-popper.admin-inline-popover,
+.el-popper.user-actions-menu,
+.el-dialog.claude-workspace-dialog,
+.el-drawer.claude-workspace-drawer {
+  --app-bg: #faf9f5;
+  --app-surface: #faf9f5;
+  --app-surface-soft: #efe9de;
+  --app-surface-muted: #e8e0d2;
+  --app-border: #e6dfd8;
+  --app-border-strong: #d8cec0;
+  --app-border-light: #ebe6df;
+  --app-text: #141413;
+  --app-text-muted: #6c6a64;
+  --app-text-subtle: #8e8b82;
+  --app-text-on-primary: #ffffff;
+  --app-primary: #cc785c;
+  --app-primary-hover: #b8664d;
+  --app-primary-active: #a9583e;
+  --app-primary-soft: rgba(204, 120, 92, 0.11);
+  --app-primary-glow: rgba(204, 120, 92, 0.16);
+  --app-dark: #181715;
+  --app-dark-elevated: #252320;
+  --app-on-dark: #faf9f5;
+  --app-on-dark-soft: #a09d96;
+  --app-radius-xs: 4px;
+  --app-radius-sm: 6px;
+  --app-radius-md: 8px;
+  --app-radius-lg: 12px;
+  --app-shadow-lg: 0 8px 22px rgba(20, 20, 19, 0.1);
+  --app-shadow-xl: 0 16px 36px rgba(20, 20, 19, 0.12);
+  --app-shadow-focus: 0 0 0 3px var(--app-primary-glow);
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.el-dialog.claude-workspace-dialog,
+.el-drawer.claude-workspace-drawer,
+.el-popper.admin-inline-popover,
+.el-popper.user-actions-menu {
+  border-color: var(--app-border);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-shadow-xl);
+}
+
+.el-dialog.claude-workspace-dialog .el-dialog__header,
+.el-drawer.claude-workspace-drawer .el-drawer__header {
+  border-bottom: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.el-dialog.claude-workspace-dialog .el-dialog__title,
+.el-drawer.claude-workspace-drawer .el-drawer__title,
+.el-drawer.claude-workspace-drawer h3 {
+  color: var(--app-text);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.el-dialog.claude-workspace-dialog .el-dialog__body,
+.el-drawer.claude-workspace-drawer .el-drawer__body {
+  background: var(--app-surface);
+}
+
+.el-dialog.claude-workspace-dialog .el-dialog__footer,
+.el-drawer.claude-workspace-drawer .el-drawer__footer {
+  border-top: 1px solid var(--app-border);
+  background: var(--app-surface);
+}
+
+.el-dialog.claude-workspace-dialog .el-button,
+.el-drawer.claude-workspace-drawer .el-button {
+  border-radius: var(--app-radius-md);
+  transform: none;
+}
+
+.el-dialog.claude-workspace-dialog .el-button--primary,
+.el-drawer.claude-workspace-drawer .el-button--primary {
+  --el-button-bg-color: var(--app-primary);
+  --el-button-border-color: var(--app-primary);
+  --el-button-hover-bg-color: var(--app-primary-hover);
+  --el-button-hover-border-color: var(--app-primary-hover);
+  --el-button-active-bg-color: var(--app-primary-active);
+  --el-button-active-border-color: var(--app-primary-active);
+}
+
+.el-dialog.claude-workspace-dialog .el-input__wrapper,
+.el-dialog.claude-workspace-dialog .el-select__wrapper,
+.el-dialog.claude-workspace-dialog .el-textarea__inner,
+.el-drawer.claude-workspace-drawer .el-input__wrapper,
+.el-drawer.claude-workspace-drawer .el-select__wrapper,
+.el-drawer.claude-workspace-drawer .el-textarea__inner {
+  border-radius: var(--app-radius-md) !important;
+  background: var(--app-surface) !important;
+  box-shadow: 0 0 0 1px var(--app-border) inset !important;
+}
+
+.el-dialog.claude-workspace-dialog .el-input__wrapper.is-focus,
+.el-dialog.claude-workspace-dialog .el-select__wrapper:focus-within,
+.el-dialog.claude-workspace-dialog .el-textarea__inner:focus,
+.el-drawer.claude-workspace-drawer .el-input__wrapper.is-focus,
+.el-drawer.claude-workspace-drawer .el-select__wrapper:focus-within,
+.el-drawer.claude-workspace-drawer .el-textarea__inner:focus {
+  box-shadow:
+    0 0 0 1px var(--app-primary) inset,
+    var(--app-shadow-focus) !important;
+}
+
+.el-dialog.claude-workspace-dialog .el-form-item__label,
+.el-drawer.claude-workspace-drawer .el-form-item__label {
+  color: var(--app-text);
+  font-weight: 500;
+}
+
+.el-drawer.claude-workspace-drawer .eyebrow {
+  color: var(--app-primary);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.el-message,
+.el-select__popper,
+.el-picker__popper,
+.el-dropdown__popper,
+.el-popover.el-popper,
+.el-message-box {
+  --app-bg: #faf9f5;
+  --app-surface: #faf9f5;
+  --app-surface-soft: #efe9de;
+  --app-surface-muted: #e8e0d2;
+  --app-border: #e6dfd8;
+  --app-border-strong: #d8cec0;
+  --app-text: #141413;
+  --app-text-muted: #6c6a64;
+  --app-text-subtle: #8e8b82;
+  --app-primary: #cc785c;
+  --app-primary-hover: #b8664d;
+  --app-primary-active: #a9583e;
+  --app-primary-soft: rgba(204, 120, 92, 0.11);
+  --app-success: #5db872;
+  --app-warning: #d4a017;
+  --app-danger: #c64545;
+  --app-radius-xs: 4px;
+  --app-radius-sm: 6px;
+  --app-radius-md: 8px;
+  --app-radius-lg: 12px;
+  --app-shadow-lg: 0 8px 22px rgba(20, 20, 19, 0.1);
+  --app-shadow-xl: 0 16px 36px rgba(20, 20, 19, 0.12);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.el-message {
+  --el-message-bg-color: var(--app-surface);
+  --el-message-border-color: var(--app-border);
+  --el-message-text-color: var(--app-text);
+  min-width: min(420px, calc(100vw - 32px));
+  padding: 13px 18px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface) !important;
+  box-shadow: var(--app-shadow-lg);
+  color: var(--app-text);
+}
+
+.el-message .el-message__content {
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.el-message--success .el-message__icon {
+  color: var(--app-success);
+}
+
+.el-message--warning .el-message__icon {
+  color: var(--app-warning);
+}
+
+.el-message--error .el-message__icon {
+  color: var(--app-danger);
+}
+
+.el-message--info .el-message__icon {
+  color: var(--app-primary);
+}
+
+.el-select__popper.el-popper,
+.el-picker__popper.el-popper,
+.el-dropdown__popper.el-popper,
+.el-popover.el-popper {
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius-lg) !important;
+  background: var(--app-surface) !important;
+  box-shadow: var(--app-shadow-lg) !important;
+}
+
+.el-select__popper .el-popper__arrow,
+.el-picker__popper .el-popper__arrow,
+.el-dropdown__popper .el-popper__arrow,
+.el-popover.el-popper .el-popper__arrow {
+  display: none;
+}
+
+.el-select-dropdown {
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  padding: 6px;
+}
+
+.el-select-dropdown__item {
+  height: 36px;
+  border-radius: var(--app-radius-md);
+  color: var(--app-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 36px;
+}
+
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+.el-select-dropdown__item.selected,
+.el-select-dropdown__item.is-selected {
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+  font-weight: 600;
+}
+
+.el-dropdown-menu {
+  border: 0;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  padding: 6px;
+}
+
+.el-dropdown-menu__item {
+  height: 34px;
+  border-radius: var(--app-radius-md);
+  color: var(--app-text-muted);
+  font-weight: 500;
+}
+
+.el-dropdown-menu__item:not(.is-disabled):focus,
+.el-dropdown-menu__item:not(.is-disabled):hover {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+.el-picker-panel {
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  color: var(--app-text);
+}
+
+.el-date-table td.current:not(.disabled) .el-date-table-cell__text,
+.el-date-table td.today .el-date-table-cell__text,
+.el-time-panel__btn.confirm {
+  color: var(--app-primary);
+}
+
+.el-message-box {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-xl);
+}
+
+.el-message-box__title {
+  color: var(--app-text);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.el-message-box__content {
+  color: var(--app-text-muted);
+}
+
+.el-message-box .el-button {
+  border-radius: var(--app-radius-md);
+  transform: none;
+}
+
+.el-message-box .el-button--primary {
+  --el-button-bg-color: var(--app-primary);
+  --el-button-border-color: var(--app-primary);
+  --el-button-hover-bg-color: var(--app-primary-hover);
+  --el-button-hover-border-color: var(--app-primary-hover);
+  --el-button-active-bg-color: var(--app-primary-active);
+  --el-button-active-border-color: var(--app-primary-active);
+}

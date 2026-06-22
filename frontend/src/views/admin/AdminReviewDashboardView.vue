@@ -221,14 +221,9 @@ onMounted(async () => {
   align-items: center;
   gap: 14px;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  padding: 18px 20px;
-  background: var(--app-surface);
-  transition: box-shadow 0.2s ease;
-}
-
-.summary-card:hover {
-  box-shadow: var(--app-shadow-sm);
+  border-radius: var(--app-radius-lg);
+  padding: 20px;
+  background: var(--app-surface-soft);
 }
 
 .summary-icon {
@@ -237,7 +232,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-md);
   flex-shrink: 0;
 }
 
@@ -272,8 +267,9 @@ onMounted(async () => {
   display: block;
   margin-top: 4px;
   color: var(--app-text);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -286,8 +282,8 @@ onMounted(async () => {
 
 .dashboard-card {
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  padding: 20px;
+  border-radius: var(--app-radius-lg);
+  padding: 24px;
   background: var(--app-surface);
 }
 
@@ -300,8 +296,8 @@ onMounted(async () => {
 .section-header h3 {
   margin: 0;
   color: var(--app-text);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 500;
 }
 
 .section-header p {

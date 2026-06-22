@@ -222,31 +222,34 @@ onMounted(async () => {
 
 <style scoped>
 .review-page {
-  gap: 20px;
-  padding: 24px;
+  gap: 24px;
+  padding: 28px;
   background: var(--app-bg);
 }
 
 .review-page :deep([class~="page-header"]) {
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  padding: 24px 28px;
+  border-radius: var(--app-radius-lg);
+  padding: 32px;
   background: var(--app-surface);
-  box-shadow: var(--app-shadow-xs);
+  box-shadow: none;
 }
 
 .review-page :deep([class~="page-eyebrow"]) {
   margin-bottom: 6px;
   color: var(--app-primary);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .review-page :deep([class~="page-header"] h1) {
   color: var(--app-text);
-  font-size: clamp(22px, 2.2vw, 28px);
+  font-size: clamp(34px, 4vw, 48px);
+  font-weight: 500;
   letter-spacing: -0.02em;
+  line-height: 1.08;
 }
 
 .review-page :deep([class~="page-description"]) {
@@ -275,7 +278,7 @@ onMounted(async () => {
 .review-page .app-card,
 .review-detail {
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
+  border-radius: var(--app-radius-lg);
   background: var(--app-surface);
 }
 
@@ -284,9 +287,9 @@ onMounted(async () => {
   align-items: center;
   gap: 0;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  padding: 14px 24px;
-  background: var(--app-surface);
+  border-radius: var(--app-radius-lg);
+  padding: 16px 24px;
+  background: var(--app-surface-soft);
 }
 
 .stat-item {
@@ -335,8 +338,9 @@ onMounted(async () => {
 
 .stat-item strong {
   color: var(--app-text);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -350,12 +354,12 @@ onMounted(async () => {
 .review-layout {
   display: grid;
   grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-  gap: 20px;
+  gap: 24px;
   min-height: 640px;
 }
 
 .review-detail {
-  padding: 24px;
+  padding: 28px;
 }
 
 .detail-header {
@@ -370,8 +374,8 @@ onMounted(async () => {
 .detail-title h2 {
   margin: 0;
   color: var(--app-text);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 500;
   line-height: 1.3;
 }
 

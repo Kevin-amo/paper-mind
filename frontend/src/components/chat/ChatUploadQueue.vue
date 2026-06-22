@@ -109,12 +109,10 @@ function statusLabel(status: UploadQueueItem['status']) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.1);
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-lg);
 }
 
 .queue-header {
@@ -123,7 +121,7 @@ function statusLabel(status: UploadQueueItem['status']) {
   justify-content: space-between;
   gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .queue-title {
@@ -132,26 +130,26 @@ function statusLabel(status: UploadQueueItem['status']) {
   gap: 8px;
   color: var(--app-text);
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .queue-title small {
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(0, 122, 255, 0.08);
+  background: var(--app-primary-soft);
   color: var(--app-primary);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .queue-title small.all-success {
-  background: rgba(103, 194, 58, 0.1);
-  color: #67c23a;
+  background: var(--app-success-soft);
+  color: var(--app-success);
 }
 
 .queue-title small.has-failed {
-  background: rgba(245, 108, 108, 0.1);
-  color: #f56c6c;
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
 }
 
 .queue-list {
@@ -166,8 +164,9 @@ function statusLabel(status: UploadQueueItem['status']) {
   display: grid;
   gap: 6px;
   padding: 8px 10px;
-  border-radius: 12px;
-  background: rgba(247, 248, 252, 0.72);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-soft);
   transition: background 0.16s ease;
 }
 
@@ -211,11 +210,11 @@ function statusLabel(status: UploadQueueItem['status']) {
 }
 
 .status-icon.success {
-  color: #67c23a;
+  color: var(--app-success);
 }
 
 .status-icon.failed {
-  color: #f56c6c;
+  color: var(--app-danger);
 }
 
 .is-loading {
@@ -231,18 +230,18 @@ function statusLabel(status: UploadQueueItem['status']) {
   height: 4px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--app-border);
 }
 
 .queue-progress-bar {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--app-primary), #5ac8fa);
+  background: var(--app-primary);
   transition: width 0.3s ease;
 }
 
 .queue-error {
-  color: #f56c6c;
+  color: var(--app-danger);
   font-size: 11px;
   line-height: 1.45;
 }

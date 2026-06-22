@@ -210,9 +210,9 @@ function closeAbstract() {
 .literature-results.is-empty :deep([class~="empty-state"]) {
   width: min(820px, calc(100% - 48px));
   min-height: 220px;
-  border-color: rgba(255, 255, 255, 0.76);
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  border-color: var(--app-border);
+  background: var(--app-surface-soft);
+  box-shadow: none;
 }
 
 .literature-results.is-empty :deep([class~="empty-state"] p) {
@@ -220,7 +220,7 @@ function closeAbstract() {
 }
 
 .literature-results.is-empty :deep([class~="empty-icon"]) {
-  background: rgba(0, 122, 255, 0.1);
+  background: var(--app-primary-soft);
 }
 
 .literature-inline-panel {
@@ -235,12 +235,10 @@ function closeAbstract() {
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 14px;
   padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow:
-    0 10px 28px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  box-shadow: none;
 }
 
 .inline-paper-card {
@@ -255,10 +253,10 @@ function closeAbstract() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  background: rgba(0, 122, 255, 0.1);
+  border-radius: var(--app-radius-md);
+  background: var(--app-primary-soft);
   color: var(--app-primary);
-  font-weight: 900;
+  font-weight: 500;
 }
 
 .paper-body {
@@ -290,28 +288,27 @@ function closeAbstract() {
 
 .paper-meta {
   margin: 0;
-  color: #64748b;
+  color: var(--app-text-muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .abstract-button {
   justify-self: start;
   padding: 7px 11px;
-  border: 1px solid rgba(0, 122, 255, 0.22);
+  border: 1px solid rgba(204, 120, 92, 0.28);
   border-radius: 999px;
-  background: rgba(0, 122, 255, 0.09);
+  background: var(--app-primary-soft);
   color: var(--app-primary);
   cursor: pointer;
   font-size: 13px;
-  font-weight: 900;
-  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+  font-weight: 500;
+  transition: background 0.16s ease, border-color 0.16s ease;
 }
 
 .abstract-button:hover {
-  border-color: rgba(0, 122, 255, 0.32);
-  background: rgba(0, 122, 255, 0.13);
-  transform: translateY(-1px);
+  border-color: var(--app-primary);
+  background: var(--app-primary-soft-hover);
 }
 
 .paper-tags {
@@ -323,19 +320,19 @@ function closeAbstract() {
 .paper-tags span {
   padding: 5px 9px;
   border-radius: 999px;
-  background: rgba(242, 242, 247, 0.82);
-  color: #515154;
+  background: var(--app-surface-soft);
+  color: var(--app-text-muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 .literature-state {
   width: min(760px, calc(100% - 48px));
   margin: auto;
   padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
   color: var(--app-text-muted);
   text-align: center;
 }
@@ -366,8 +363,7 @@ function closeAbstract() {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.42);
-  backdrop-filter: blur(7px);
+  background: rgba(20, 20, 19, 0.42);
 }
 
 .abstract-dialog {
@@ -376,12 +372,10 @@ function closeAbstract() {
   overflow: hidden;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  border: 1px solid rgba(255, 255, 255, 0.74);
-  border-radius: 26px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.26);
-  backdrop-filter: blur(26px) saturate(175%);
-  -webkit-backdrop-filter: blur(26px) saturate(175%);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-xl);
 }
 
 .abstract-dialog-header {
@@ -390,7 +384,7 @@ function closeAbstract() {
   justify-content: space-between;
   gap: 18px;
   padding: 22px 24px 16px;
-  border-bottom: 1px solid rgba(209, 209, 214, 0.58);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .abstract-dialog-header span {
@@ -398,12 +392,12 @@ function closeAbstract() {
   margin-bottom: 6px;
   color: var(--app-primary);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 500;
 }
 
 .abstract-dialog-header h2 {
   margin: 0;
-  color: #111827;
+  color: var(--app-text);
   font-size: 18px;
   line-height: 1.55;
 }
@@ -414,23 +408,23 @@ function closeAbstract() {
   flex: 0 0 auto;
   border: 0;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--app-surface-soft);
+  color: var(--app-text-muted);
   cursor: pointer;
   font-size: 24px;
   line-height: 1;
 }
 
 .abstract-close:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--app-surface-muted);
+  color: var(--app-text);
 }
 
 .abstract-dialog-content {
   overflow-y: auto;
   margin: 0;
   padding: 20px 24px 24px;
-  color: #374151;
+  color: var(--app-text);
   line-height: 1.85;
   white-space: pre-wrap;
 }
@@ -462,9 +456,9 @@ function closeAbstract() {
   transform: translateY(0) scale(1);
 }
 .error-state {
-  border-color: #fecaca;
-  background: #fff7f7;
-  color: #b91c1c;
+  border-color: rgba(198, 69, 69, 0.28);
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
 }
 
 @media (max-width: 640px) {

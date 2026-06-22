@@ -336,7 +336,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
       />
     </div>
 
-    <el-dialog v-model="admin.formDialogVisible.value" :title="admin.dialogTitle.value" width="480px">
+    <el-dialog v-model="admin.formDialogVisible.value" :title="admin.dialogTitle.value" width="480px" class="claude-workspace-dialog">
       <el-form label-position="top">
         <el-form-item label="用户名" required>
           <el-input v-model="admin.userForm.username" :disabled="admin.formMode.value === 'edit'" placeholder="例如 alice" />
@@ -364,7 +364,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="admin.passwordDialogVisible.value" title="重置密码" width="400px">
+    <el-dialog v-model="admin.passwordDialogVisible.value" title="重置密码" width="400px" class="claude-workspace-dialog">
       <el-form label-position="top">
         <el-form-item :label="`新密码${admin.selectedUser.value ? ` · ${admin.selectedUser.value.username}` : ''}`" required>
           <el-input v-model="admin.passwordForm.password" type="password" show-password placeholder="请输入新密码" />
@@ -383,8 +383,8 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   display: grid;
   gap: 16px;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  padding: 20px;
+  border-radius: var(--app-radius-lg);
+  padding: 24px;
   background: var(--app-surface);
 }
 
@@ -400,8 +400,8 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
 .panel-heading h2 {
   margin: 0;
   color: var(--app-text);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 500;
 }
 
 .panel-heading p {
@@ -421,14 +421,9 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   align-items: center;
   gap: 12px;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-lg);
   padding: 14px 16px;
-  background: var(--app-surface);
-  transition: box-shadow 0.2s ease;
-}
-
-.summary-card:hover {
-  box-shadow: var(--app-shadow-sm);
+  background: var(--app-surface-soft);
 }
 
 .summary-icon {
@@ -437,7 +432,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-md);
   flex-shrink: 0;
 }
 
@@ -472,8 +467,9 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   display: block;
   margin-top: 2px;
   color: var(--app-text);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1;
   letter-spacing: -0.02em;
 }
@@ -508,7 +504,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
 
 .users-table {
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
+  border-radius: var(--app-radius-lg);
   overflow: hidden;
 }
 
@@ -648,8 +644,8 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
 
 :global([class~="admin-inline-popover"]) {
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
-  box-shadow: var(--app-shadow-md);
+  border-radius: var(--app-radius-md);
+  box-shadow: var(--app-shadow-lg);
 }
 
 :global([class~="user-actions-menu"]) {

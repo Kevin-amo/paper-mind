@@ -98,9 +98,10 @@ async function handleLogout() {
     <aside class="admin-sidebar" aria-label="管理后台导航">
       <div class="sidebar-brand">
         <div class="brand-logo">
-          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="7" fill="#2563EB"/>
-            <path d="M8 9h12M8 14h8M8 19h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" fill="none">
+            <circle cx="14" cy="14" r="13" fill="#faf9f5"/>
+            <path d="M14 4.5v19M4.5 14h19M7.3 7.3l13.4 13.4M20.7 7.3 7.3 20.7" stroke="#141413" stroke-width="1.8" stroke-linecap="round"/>
+            <circle cx="14" cy="14" r="2.8" fill="#cc785c"/>
           </svg>
         </div>
         <div class="brand-text">
@@ -163,7 +164,7 @@ async function handleLogout() {
 .admin-layout {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   background: var(--app-bg);
   color: var(--app-text);
   overflow-x: hidden;
@@ -175,25 +176,17 @@ async function handleLogout() {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--app-surface);
-  border-right: 1px solid var(--app-border);
+  background: var(--app-dark);
+  border-right: 1px solid var(--app-dark-elevated);
   overflow-y: auto;
 }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 20px 16px;
-  border-bottom: 1px solid var(--app-border);
-}
-
-.sidebar-brand:hover .brand-logo svg {
-  transform: scale(1.05);
-}
-
-.brand-logo svg {
-  transition: transform 0.2s ease;
+  gap: 12px;
+  padding: 22px 18px;
+  border-bottom: 1px solid var(--app-dark-elevated);
 }
 
 .brand-logo {
@@ -202,16 +195,18 @@ async function handleLogout() {
 
 .brand-text strong {
   display: block;
-  color: var(--app-text);
-  font-size: 15px;
-  font-weight: 700;
+  color: var(--app-on-dark);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
 .brand-text span {
   display: block;
-  color: var(--app-text-subtle);
-  font-size: 11px;
+  color: var(--app-on-dark-soft);
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -220,7 +215,7 @@ async function handleLogout() {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 12px 8px;
+  padding: 14px 10px;
 }
 
 .sidebar-menu-item {
@@ -229,23 +224,23 @@ async function handleLogout() {
   align-items: center;
   gap: 10px;
   border: 0;
-  border-radius: var(--app-radius-sm);
-  padding: 10px 12px;
+  border-radius: var(--app-radius-md);
+  padding: 11px 12px;
   background: transparent;
-  color: var(--app-text-muted);
+  color: var(--app-on-dark-soft);
   cursor: pointer;
   text-align: left;
   transition: color 0.25s ease-in-out, background-color 0.25s ease-in-out;
 }
 
 .sidebar-menu-item:hover {
-  background: var(--app-surface-soft);
-  color: var(--app-text);
+  background: var(--app-dark-elevated);
+  color: var(--app-on-dark);
 }
 
 .sidebar-menu-item.active {
-  background: var(--app-primary-soft-hover);
-  color: var(--app-primary);
+  background: var(--app-primary);
+  color: var(--app-text-on-primary);
 }
 
 .sidebar-menu-item .el-icon {
@@ -262,28 +257,29 @@ async function handleLogout() {
 
 .menu-item-text small {
   display: block;
-  color: var(--app-text-subtle);
+  color: var(--app-on-dark-soft);
   font-size: 11px;
   font-weight: 400;
   margin-top: 2px;
 }
 
 .sidebar-menu-item.active .menu-item-text small {
-  color: var(--app-primary);
-  opacity: 0.7;
+  color: rgba(255, 255, 255, 0.78);
+  opacity: 1;
 }
 
 .sidebar-footer {
-  padding: 12px 8px;
-  border-top: 1px solid var(--app-border);
+  padding: 14px 10px;
+  border-top: 1px solid var(--app-dark-elevated);
 }
 
 .sidebar-user {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  border-radius: var(--app-radius-sm);
+  padding: 10px 12px;
+  border-radius: var(--app-radius-md);
+  background: var(--app-dark-elevated);
 }
 
 .user-avatar {
@@ -292,9 +288,9 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--app-radius-sm);
-  background: var(--app-primary-soft);
-  color: var(--app-primary);
+  border-radius: var(--app-radius-full, 9999px);
+  background: var(--app-surface);
+  color: var(--app-text);
   font-size: 13px;
   font-weight: 700;
   flex-shrink: 0;
@@ -306,7 +302,7 @@ async function handleLogout() {
 
 .user-name {
   display: block;
-  color: var(--app-text);
+  color: var(--app-on-dark);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.2;
@@ -317,7 +313,7 @@ async function handleLogout() {
 
 .user-role {
   display: block;
-  color: var(--app-text-subtle);
+  color: var(--app-on-dark-soft);
   font-size: 11px;
 }
 
@@ -334,17 +330,18 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-height: 56px;
+  min-height: 64px;
   border-bottom: 1px solid var(--app-border);
-  background: var(--app-surface);
-  padding: 0 24px;
+  background: rgba(250, 249, 245, 0.92);
+  padding: 0 28px;
+  backdrop-filter: blur(14px);
 }
 
 .topbar-left h1 {
   margin: 0;
   color: var(--app-text);
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -365,7 +362,7 @@ async function handleLogout() {
   display: grid;
   gap: 20px;
   min-width: 0;
-  padding: 24px;
+  padding: 28px;
   overflow-x: auto;
 }
 

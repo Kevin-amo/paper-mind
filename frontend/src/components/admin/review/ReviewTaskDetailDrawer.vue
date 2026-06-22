@@ -66,7 +66,7 @@ watch(
 </script>
 
 <template>
-  <el-drawer v-model="visible" size="min(820px, 96vw)" destroy-on-close>
+  <el-drawer v-model="visible" size="min(820px, 96vw)" destroy-on-close class="claude-workspace-drawer">
     <template #header>
       <div>
         <span class="eyebrow">Review Task</span>
@@ -203,21 +203,26 @@ h4 {
   justify-content: space-between;
   gap: 16px;
   border: 1px solid var(--app-border);
-  border-radius: 10px;
-  padding: 16px;
-  background: #f8fafc;
+  border-radius: var(--app-radius-lg);
+  padding: 20px;
+  background: var(--app-surface-soft);
 }
 
 .task-hero span {
   display: block;
   margin-bottom: 6px;
-  color: #667085;
+  color: var(--app-text-muted);
   font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .task-hero h4 {
-  color: #101828;
-  font-size: 18px;
+  color: var(--app-text);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  font-size: 24px;
+  font-weight: 500;
   line-height: 1.4;
 }
 

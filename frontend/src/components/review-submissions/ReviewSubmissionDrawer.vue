@@ -34,6 +34,7 @@ function beforeUpload(file: File) {
     title="我的投稿"
     size="720px"
     destroy-on-close
+    class="review-submission-drawer claude-workspace-drawer"
     @update:model-value="emit('update:modelValue', $event)"
     @opened="emit('refresh')"
     @close="emit('stopPolling')"

@@ -381,7 +381,7 @@ function toPayloadDateTime(value: string) {
       v-model="batchDialogVisible"
       :title="batchDialogTitle"
       width="min(520px, calc(100vw - 32px))"
-      class="review-config-dialog"
+      class="review-config-dialog claude-workspace-dialog"
       append-to-body
       destroy-on-close
       align-center
@@ -420,7 +420,7 @@ function toPayloadDateTime(value: string) {
       v-model="groupDialogVisible"
       :title="groupDialogTitle"
       width="min(520px, calc(100vw - 32px))"
-      class="review-config-dialog"
+      class="review-config-dialog claude-workspace-dialog"
       append-to-body
       destroy-on-close
       align-center
@@ -459,6 +459,7 @@ function toPayloadDateTime(value: string) {
       v-model="memberDrawerVisible"
       title="小组成员"
       size="min(480px, 92vw)"
+      class="claude-workspace-drawer"
       append-to-body
       destroy-on-close
     >
@@ -518,10 +519,10 @@ function toPayloadDateTime(value: string) {
 
 .config-card,
 .config-section {
-  border: 1px solid #dde3ee;
-  border-radius: 10px;
-  background: #fff;
-  box-shadow: 0 10px 26px rgba(16, 24, 40, 0.04);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  box-shadow: none;
 }
 
 .config-card {
@@ -532,15 +533,17 @@ function toPayloadDateTime(value: string) {
 .primary-cell span,
 .section-header p,
 .drawer-heading span {
-  color: #667085;
+  color: var(--app-text-muted);
   font-size: 13px;
 }
 
 .config-card strong {
   display: block;
   margin-top: 8px;
-  color: #101828;
+  color: var(--app-text);
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-size: 24px;
+  font-weight: 500;
 }
 
 .config-layout {
@@ -558,14 +561,15 @@ function toPayloadDateTime(value: string) {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid #edf1f7;
+  border-bottom: 1px solid var(--app-border);
   padding: 16px;
 }
 
 .section-header h3 {
   margin: 0 0 6px;
-  color: #101828;
-  font-size: 16px;
+  color: var(--app-text);
+  font-size: 20px;
+  font-weight: 500;
 }
 
 .section-header p {
@@ -583,8 +587,8 @@ function toPayloadDateTime(value: string) {
 }
 
 .primary-cell strong {
-  color: #101828;
-  font-weight: 750;
+  color: var(--app-text);
+  font-weight: 600;
 }
 
 .full-select {
@@ -599,7 +603,7 @@ function toPayloadDateTime(value: string) {
 
 .option-meta {
   float: right;
-  color: #98a2b3;
+  color: var(--app-text-subtle);
 }
 
 .drawer-heading {
@@ -612,15 +616,15 @@ function toPayloadDateTime(value: string) {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  border-top: 1px solid #edf1f7;
+  border-top: 1px solid var(--app-border);
   margin-top: 16px;
   padding-top: 16px;
 }
 
 .member-list-title {
   width: 100%;
-  color: #344054;
-  font-weight: 700;
+  color: var(--app-text);
+  font-weight: 600;
 }
 
 .member-tag {

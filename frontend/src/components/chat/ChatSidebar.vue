@@ -15,6 +15,7 @@ import {
   MoreFilled,
   Plus,
   SwitchButton,
+  Star,
   User,
   Setting,
   Warning,
@@ -247,7 +248,9 @@ function conversationTitle(conversation: Conversation) {
           <button v-else type="button" class="conversation-select" @click="emit('selectConversation', conversation.id)">
             <span class="conversation-title-row">
               <span class="conversation-title">{{ conversationTitle(conversation) }}</span>
-              <span v-if="isPinned(conversation.id)" class="conversation-pin-badge" aria-label="已置顶" title="已置顶">📌</span>
+              <span v-if="isPinned(conversation.id)" class="conversation-pin-badge" aria-label="已置顶" title="已置顶">
+                <el-icon><Star /></el-icon>
+              </span>
             </span>
           </button>
 
@@ -268,7 +271,7 @@ function conversationTitle(conversation: Conversation) {
             <template #dropdown>
               <el-dropdown-menu class="conversation-action-menu">
                 <el-dropdown-item :command="isPinned(conversation.id) ? 'unpin' : 'pin'" class="conversation-action-item">
-                  <span class="action-icon">📌</span>
+                  <el-icon><Star /></el-icon>
                   <span>{{ isPinned(conversation.id) ? '取消置顶' : '置顶会话' }}</span>
                 </el-dropdown-item>
                 <el-dropdown-item command="rename" class="conversation-action-item">
@@ -301,7 +304,7 @@ function conversationTitle(conversation: Conversation) {
       v-model="logoutDialogVisible"
       title=""
       width="min(420px, 92vw)"
-      class="logout-confirm-dialog"
+      class="logout-confirm-dialog claude-workspace-dialog"
       append-to-body
       align-center
       :close-on-click-modal="false"
@@ -325,7 +328,7 @@ function conversationTitle(conversation: Conversation) {
       v-model="deleteDialogVisible"
       title="删除会话"
       width="400px"
-      class="conversation-dialog danger-dialog"
+      class="conversation-dialog danger-dialog claude-workspace-dialog"
       append-to-body
       align-center
       @closed="closeOperationDialog"
@@ -352,14 +355,10 @@ function conversationTitle(conversation: Conversation) {
   gap: 15px;
   overflow: hidden;
   padding: 18px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 30px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow:
-    0 22px 56px rgba(15, 23, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.84);
-  backdrop-filter: blur(24px) saturate(175%);
-  -webkit-backdrop-filter: blur(24px) saturate(175%);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+  box-shadow: none;
 }
 
 .brand-block {
@@ -374,12 +373,16 @@ function conversationTitle(conversation: Conversation) {
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 13px;
-  color: #fff;
-  background: linear-gradient(135deg, #007aff, #5ac8fa);
-  font-size: 15px;
-  font-weight: 900;
-  box-shadow: 0 10px 22px rgba(0, 122, 255, 0.24);
+  border-radius: 999px;
+  color: transparent;
+  background:
+    linear-gradient(var(--app-text), var(--app-text)) center / 2px 20px no-repeat,
+    linear-gradient(90deg, var(--app-text), var(--app-text)) center / 20px 2px no-repeat,
+    linear-gradient(45deg, transparent 46%, var(--app-text) 47%, var(--app-text) 53%, transparent 54%) center / 20px 20px no-repeat,
+    linear-gradient(-45deg, transparent 46%, var(--app-text) 47%, var(--app-text) 53%, transparent 54%) center / 20px 20px no-repeat,
+    var(--app-surface-soft);
+  font-size: 0;
+  box-shadow: none;
 }
 
 .brand-block strong,
@@ -405,22 +408,20 @@ function conversationTitle(conversation: Conversation) {
   width: 100%;
   height: 46px;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(242, 247, 255, 0.84));
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-soft);
   color: var(--app-text);
-  font-weight: 850;
-  box-shadow:
-    0 12px 24px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  box-shadow: none;
 }
 
 .new-chat-button:hover,
 .new-chat-button:focus {
-  border-color: rgba(0, 122, 255, 0.28);
-  background: #ffffff;
-  color: var(--app-primary);
-  box-shadow: var(--app-shadow-glow);
+  border-color: var(--app-primary);
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+  box-shadow: none;
 }
 
 .sidebar-nav {
@@ -435,7 +436,7 @@ function conversationTitle(conversation: Conversation) {
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid transparent;
-  border-radius: 15px;
+  border-radius: var(--app-radius-md);
   background: transparent;
   color: var(--app-text-muted);
   cursor: pointer;
@@ -445,9 +446,9 @@ function conversationTitle(conversation: Conversation) {
 
 .nav-item:hover,
 .nav-item.active {
-  border-color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  border-color: var(--app-border);
+  background: var(--app-surface-soft);
+  box-shadow: none;
   color: var(--app-text);
 }
 
@@ -464,9 +465,9 @@ function conversationTitle(conversation: Conversation) {
   align-items: center;
   justify-content: space-between;
   padding: 6px 8px 0;
-  color: var(--app-text-muted);
+  color: var(--app-text-subtle);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .conversation-list {
@@ -479,6 +480,10 @@ function conversationTitle(conversation: Conversation) {
   padding-right: 2px;
 }
 
+.conversation-list :deep(.el-empty) {
+  padding: 18px 0;
+}
+
 .conversation-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -487,20 +492,20 @@ function conversationTitle(conversation: Conversation) {
   min-height: 40px;
   padding: 4px 5px 4px 10px;
   border: 1px solid transparent;
-  border-radius: 15px;
+  border-radius: var(--app-radius-md);
   background: transparent;
-  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
 }
 
 .conversation-item:hover {
-  border-color: rgba(255, 255, 255, 0.68);
-  background: rgba(255, 255, 255, 0.56);
+  border-color: var(--app-border);
+  background: var(--app-surface-soft);
 }
 
 .conversation-item.active {
-  border-color: rgba(0, 122, 255, 0.24);
-  background: rgba(0, 122, 255, 0.1);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  border-color: rgba(204, 120, 92, 0.24);
+  background: rgba(204, 120, 92, 0.1);
+  box-shadow: none;
 }
 
 .conversation-select {
@@ -518,15 +523,15 @@ function conversationTitle(conversation: Conversation) {
   width: 100%;
   min-width: 0;
   height: 30px;
-  border: 1px solid #c7d2fe;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #1f2937;
+  border: 1px solid var(--app-primary);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface);
+  color: var(--app-text);
   outline: none;
   padding: 0 8px;
   font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 0 0 3px rgba(91, 124, 250, 0.12);
+  font-weight: 500;
+  box-shadow: 0 0 0 3px rgba(204, 120, 92, 0.16);
 }
 
 .conversation-title-row {
@@ -539,9 +544,9 @@ function conversationTitle(conversation: Conversation) {
 .conversation-title {
   display: block;
   overflow: hidden;
-  color: #1f2937;
+  color: var(--app-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -553,8 +558,9 @@ function conversationTitle(conversation: Conversation) {
   width: 20px;
   height: 20px;
   border-radius: 999px;
-  background: rgba(91, 124, 250, 0.12);
-  font-size: 11px;
+  background: rgba(204, 120, 92, 0.18);
+  color: var(--app-primary);
+  font-size: 12px;
   line-height: 1;
 }
 
@@ -562,7 +568,7 @@ function conversationTitle(conversation: Conversation) {
   flex: none;
   width: 28px;
   height: 28px;
-  color: #9ca3af;
+  color: var(--app-text-subtle);
   opacity: 0;
 }
 
@@ -572,18 +578,16 @@ function conversationTitle(conversation: Conversation) {
 }
 
 .conversation-menu-button:hover {
-  color: var(--app-text-muted);
-  background: rgba(17, 24, 39, 0.04);
+  color: var(--app-text);
+  background: var(--app-surface-soft);
 }
 
 :global([class~="conversation-action-popper"]) {
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.72) !important;
-  border-radius: 18px !important;
-  background: rgba(255, 255, 255, 0.88) !important;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12) !important;
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid var(--app-border) !important;
+  border-radius: var(--app-radius-lg) !important;
+  background: var(--app-surface) !important;
+  box-shadow: var(--app-shadow-lg) !important;
 }
 
 :global([class~="conversation-action-popper"] [class~="el-popper__arrow"]) {
@@ -601,32 +605,26 @@ function conversationTitle(conversation: Conversation) {
   gap: 9px;
   height: 36px;
   padding: 0 10px;
-  border-radius: 10px;
-  color: #374151;
+  border-radius: var(--app-radius-md);
+  color: var(--app-text-muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 :global([class~="conversation-action-menu"] [class~="el-dropdown-menu__item"]:not([class~="is-disabled"]):focus),
 :global([class~="conversation-action-menu"] [class~="el-dropdown-menu__item"]:not([class~="is-disabled"]):hover) {
-  background: #f7f8fa;
-  color: #111827;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
 }
 
 :global([class~="conversation-action-menu"] [class~="el-dropdown-menu__item"][class~="danger"]) {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 
 :global([class~="conversation-action-menu"] [class~="el-dropdown-menu__item"][class~="danger"]:not([class~="is-disabled"]):focus),
 :global([class~="conversation-action-menu"] [class~="el-dropdown-menu__item"][class~="danger"]:not([class~="is-disabled"]):hover) {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.action-icon {
-  width: 1em;
-  text-align: center;
-  line-height: 1;
+  background: var(--app-danger-soft);
+  color: var(--app-danger);
 }
 
 .conversation-dialog-body {
@@ -661,9 +659,9 @@ function conversationTitle(conversation: Conversation) {
 :global([class~="danger-dialog"] [class~="delete-confirm-button"]:focus) {
   background: var(--el-color-danger);
   border-color: var(--el-color-danger);
-  color: #ffffff;
-  transform: scale(1.02);
-  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.22);
+  color: var(--app-text-on-primary);
+  transform: none;
+  box-shadow: none;
 }
 
 .logout-confirm-dialog :deep(.el-dialog__header) {
@@ -701,9 +699,9 @@ function conversationTitle(conversation: Conversation) {
 .logout-confirm-title {
   margin: 0;
   color: var(--app-text);
-  font-family: 'Lexend', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.35;
 }
 
@@ -743,18 +741,18 @@ function conversationTitle(conversation: Conversation) {
   --el-button-hover-border-color: var(--app-danger-hover);
   --el-button-active-bg-color: #a03028;
   --el-button-active-border-color: #a03028;
-  transition: transform var(--app-transition-fast), box-shadow var(--app-transition-fast);
+  transition: background var(--app-transition-fast), border-color var(--app-transition-fast);
 }
 
 .logout-confirm-footer .logout-confirm-button:hover,
 .logout-confirm-footer .logout-confirm-button:focus {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(209, 69, 59, 0.22);
+  transform: none;
+  box-shadow: none;
 }
 
 .logout-confirm-footer .logout-confirm-button:active {
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 4px 10px rgba(209, 69, 59, 0.18);
+  transform: none;
+  box-shadow: none;
 }
 
 @media (max-width: 640px) {
@@ -792,12 +790,10 @@ function conversationTitle(conversation: Conversation) {
   gap: 10px;
   margin-top: auto;
   padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow:
-    0 10px 24px rgba(15, 23, 42, 0.07),
-    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  box-shadow: none;
 }
 
 .user-avatar {
@@ -809,7 +805,7 @@ function conversationTitle(conversation: Conversation) {
   border: 0;
   border-radius: 999px;
   color: var(--app-primary);
-  background: rgba(0, 122, 255, 0.1);
+  background: rgba(204, 120, 92, 0.14);
   cursor: pointer;
   padding: 0;
 }
@@ -821,7 +817,7 @@ function conversationTitle(conversation: Conversation) {
 }
 
 .user-avatar:hover {
-  box-shadow: var(--app-focus-ring);
+  box-shadow: var(--app-shadow-focus);
 }
 
 .user-meta {
@@ -832,6 +828,15 @@ function conversationTitle(conversation: Conversation) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+:global(.chat-sidebar .el-button.is-text) {
+  color: var(--app-text-muted);
+}
+
+:global(.chat-sidebar .el-button.is-text:hover) {
+  color: var(--app-text);
+  background: var(--app-surface-soft);
 }
 
 @media (max-width: 900px) {
