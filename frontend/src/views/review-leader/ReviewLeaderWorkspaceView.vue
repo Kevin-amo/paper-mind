@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import MainLayout from '../../layouts/MainLayout.vue';
 import PageHeader from '../../components/common/PageHeader.vue';
+import LogoutConfirmDialog from '../../components/common/LogoutConfirmDialog.vue';
 import { getErrorMessage } from '../../api/http';
 import {
   assignLeaderTask,
@@ -46,6 +47,7 @@ const consensusSaving = ref(false);
 const consensusRecalculating = ref(false);
 const consensusConfirming = ref(false);
 const assignDialogVisible = ref(false);
+const logoutDialogVisible = ref(false);
 const assignmentTask = ref<AdminReviewTaskSummary | null>(null);
 const selectedReviewerIds = ref<string[]>([]);
 const assignmentDueAt = ref<string | null>(null);
@@ -326,9 +328,11 @@ onMounted(async () => {
         <el-tag type="primary" size="large">{{ currentUserName }}</el-tag>
         <el-button @click="router.push('/review')">评审工作台</el-button>
         <el-button v-if="auth.isAdmin.value" @click="router.push('/admin/reviews')">管理后台</el-button>
-        <el-button @click="handleLogout">退出登录</el-button>
+        <el-button @click="logoutDialogVisible = true">退出登录</el-button>
       </template>
     </PageHeader>
+
+    <LogoutConfirmDialog v-model="logoutDialogVisible" @confirm="handleLogout" />
 
     <section class="stats-bar">
       <div class="stat-item">

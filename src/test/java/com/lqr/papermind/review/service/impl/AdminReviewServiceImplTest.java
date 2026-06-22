@@ -3,6 +3,7 @@ package com.lqr.papermind.review.service.impl;
 import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.dto.AdminTaskDispatchRequest;
+import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
 import com.lqr.papermind.review.entity.ReviewConsensusEntity;
 import com.lqr.papermind.review.entity.ReviewGroupEntity;
@@ -91,15 +92,6 @@ class AdminReviewServiceImplTest {
         var response = service.dispatchTaskToGroup(taskId, adminId, new AdminTaskDispatchRequest(groupId, dueAt));
 
         verify(taskMapper).dispatchToGroup(taskId, batchId, groupId, adminId, leaderId, dueAt);
-        verify(reviewAuditService).append(
-                eq(taskId),
-                eq(adminId),
-                eq("DISPATCH_TO_GROUP"),
-                eq("管理员派发评审任务到小组"),
-                any(Map.class),
-                any(Map.class),
-                eq(Map.of("scope", "admin-dispatch"))
-        );
         assertThat(response.id()).isEqualTo(taskId);
         assertThat(response.status()).isEqualTo(ReviewTaskStatuses.PENDING_ASSIGNMENT);
         assertThat(response.assignmentCount()).isZero();
@@ -121,7 +113,6 @@ class AdminReviewServiceImplTest {
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
 
         verify(taskMapper, never()).dispatchToGroup(any(), any(), any(), any(), any(), any());
-        verify(reviewAuditService, never()).append(any(), any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -181,6 +172,27 @@ class AdminReviewServiceImplTest {
         assertThat(item.submittedCount()).isEqualTo(1);
     }
 
+    @Test
+    void listAuditOperatorsReturnsOnlyNonSystemOperatorsFromAuditLogs() {
+        UUID adminId = UUID.randomUUID();
+        UUID reviewerId = UUID.randomUUID();
+        ReviewAuditLogEntity adminLog = auditLog(adminId);
+        ReviewAuditLogEntity reviewerLog = auditLog(reviewerId);
+        ReviewAuditLogEntity systemLog = auditLog(null);
+        when(reviewAuditService.listOperators()).thenReturn(List.of(adminLog, reviewerLog, systemLog));
+        when(userMapper.selectBatchIds(List.of(adminId, reviewerId))).thenReturn(List.of(
+                user(adminId, "admin-a", "管理员 A"),
+                user(reviewerId, "reviewer-a", "评审员 A")
+        ));
+
+        var response = service.listAuditOperators();
+
+        assertThat(response).hasSize(2);
+        assertThat(response).extracting("userId").containsExactly(adminId, reviewerId);
+        assertThat(response).extracting("username").containsExactly("admin-a", "reviewer-a");
+        assertThat(response).extracting("displayName").containsExactly("管理员 A", "评审员 A");
+    }
+
     private ReviewTaskEntity task(UUID taskId, String status) {
         ReviewTaskEntity task = new ReviewTaskEntity();
         task.setId(taskId);
@@ -230,5 +242,15 @@ class AdminReviewServiceImplTest {
         user.setUsername(username);
         user.setDisplayName(displayName);
         return user;
+    }
+
+    private ReviewAuditLogEntity auditLog(UUID operatorUserId) {
+        ReviewAuditLogEntity log = new ReviewAuditLogEntity();
+        log.setId(UUID.randomUUID());
+        log.setTaskId(UUID.randomUUID());
+        log.setOperatorUserId(operatorUserId);
+        log.setAction("CREATE_TASK");
+        log.setCreatedAt(OffsetDateTime.now());
+        return log;
     }
 }

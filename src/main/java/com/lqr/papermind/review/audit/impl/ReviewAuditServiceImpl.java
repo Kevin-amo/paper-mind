@@ -1,6 +1,8 @@
 package com.lqr.papermind.review.audit.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.mapper.ReviewAuditLogMapper;
@@ -18,6 +20,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class ReviewAuditServiceImpl implements ReviewAuditService {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final ReviewAuditLogMapper mapper;
 
@@ -69,6 +73,48 @@ public class ReviewAuditServiceImpl implements ReviewAuditService {
                         .eq(ReviewAuditLogEntity::getTaskId, taskId)
                         .orderByDesc(ReviewAuditLogEntity::getCreatedAt)
         );
+    }
+
+    @Override
+    public List<ReviewAuditLogEntity> listOperators() {
+        return mapper.selectList(
+                new LambdaQueryWrapper<ReviewAuditLogEntity>()
+                        .isNotNull(ReviewAuditLogEntity::getOperatorUserId)
+                        .select(ReviewAuditLogEntity::getOperatorUserId)
+                        .groupBy(ReviewAuditLogEntity::getOperatorUserId)
+        );
+    }
+
+    /**
+     * 分页查询全局评审审计日志，支持按操作人、动作类型和时间范围筛选，按创建时间倒序排列。
+     *
+     * @param operatorUserId 操作人用户ID筛选，可为 null
+     * @param action         动作类型筛选，可为 null 或空
+     * @param startTime      创建时间下界（含），可为 null
+     * @param endTime        创建时间上界（含），可为 null
+     * @param page           页码（从0开始）
+     * @param size           每页大小
+     * @return 分页后的审计日志实体
+     */
+    @Override
+    public IPage<ReviewAuditLogEntity> searchAuditLogs(UUID operatorUserId,
+                                                       String action,
+                                                       OffsetDateTime startTime,
+                                                       OffsetDateTime endTime,
+                                                       int page,
+                                                       int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
+        // MyBatis-Plus Page 页码从1开始，外部接口使用0基页码
+        Page<ReviewAuditLogEntity> pageReq = new Page<>(safePage + 1L, safeSize);
+        String normalizedAction = action == null || action.isBlank() ? null : action.trim();
+        LambdaQueryWrapper<ReviewAuditLogEntity> wrapper = new LambdaQueryWrapper<ReviewAuditLogEntity>()
+                .eq(operatorUserId != null, ReviewAuditLogEntity::getOperatorUserId, operatorUserId)
+                .eq(normalizedAction != null, ReviewAuditLogEntity::getAction, normalizedAction)
+                .ge(startTime != null, ReviewAuditLogEntity::getCreatedAt, startTime)
+                .le(endTime != null, ReviewAuditLogEntity::getCreatedAt, endTime)
+                .orderByDesc(ReviewAuditLogEntity::getCreatedAt);
+        return mapper.selectPage(pageReq, wrapper);
     }
 
     /**

@@ -8,6 +8,8 @@ import com.lqr.papermind.review.dto.AdminReviewTaskDetailResponse;
 import com.lqr.papermind.review.dto.AdminReviewTaskSummaryResponse;
 import com.lqr.papermind.review.dto.ReviewAssignmentRequest;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
+import com.lqr.papermind.review.dto.ReviewAuditLogResponse;
+import com.lqr.papermind.review.dto.ReviewAuditOperatorResponse;
 import com.lqr.papermind.review.dto.ReviewerLoadResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusUpdateRequest;
@@ -16,6 +18,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -154,6 +158,58 @@ public class AdminReviewController {
     public List<ReviewerLoadResponse> listReviewerLoads(@AuthenticationPrincipal SecurityUserPrincipal principal) {
         requireAdmin(principal);
         return adminReviewService.listReviewerLoads();
+    }
+
+    /**
+     * 分页查询全局评审审计日志，支持按操作人、动作类型和时间范围筛选。
+     *
+     * @param principal      当前认证用户
+     * @param operatorUserId 操作人用户ID筛选（可选）
+     * @param action         动作类型筛选（可选）
+     * @param startTime      创建时间下界（含，可选），ISO-8601 格式
+     * @param endTime        创建时间上界（含，可选），ISO-8601 格式
+     * @param page           页码（从0开始）
+     * @param size           每页大小
+     * @return 分页后的审计日志列表
+     */
+    @GetMapping("/audit-logs")
+    public PageResponse<ReviewAuditLogResponse> listAuditLogs(@AuthenticationPrincipal SecurityUserPrincipal principal,
+                                                              @RequestParam(value = "operatorUserId", required = false) UUID operatorUserId,
+                                                              @RequestParam(value = "action", required = false) String action,
+                                                              @RequestParam(value = "startTime", required = false)
+                                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime startTime,
+                                                              @RequestParam(value = "endTime", required = false)
+                                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime endTime,
+                                                              @RequestParam(value = "page", defaultValue = "0") @Min(0) int page,
+                                                              @RequestParam(value = "size", defaultValue = "20") @Min(1) @Max(100) int size) {
+        requireAdmin(principal);
+        return adminReviewService.listAuditLogs(operatorUserId, action, startTime, endTime, page, size);
+    }
+
+    /**
+     * 获取全局审计日志筛选用的实际操作人列表，不包含系统/自动事件。
+     *
+     * @param principal 当前认证用户
+     * @return 审计日志中出现过的操作人列表
+     */
+    @GetMapping("/audit-logs/operators")
+    public List<ReviewAuditOperatorResponse> listAuditOperators(@AuthenticationPrincipal SecurityUserPrincipal principal) {
+        requireAdmin(principal);
+        return adminReviewService.listAuditOperators();
+    }
+
+    /**
+     * 获取指定评审任务的审计日志列表，按创建时间倒序排列。
+     *
+     * @param principal 当前认证用户
+     * @param taskId    评审任务ID
+     * @return 审计日志列表
+     */
+    @GetMapping("/tasks/{taskId}/audit-logs")
+    public List<ReviewAuditLogResponse> listTaskAuditLogs(@AuthenticationPrincipal SecurityUserPrincipal principal,
+                                                          @PathVariable UUID taskId) {
+        requireAdmin(principal);
+        return adminReviewService.listTaskAuditLogs(taskId);
     }
 
     /**

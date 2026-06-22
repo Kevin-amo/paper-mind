@@ -41,7 +41,7 @@ class ReviewCriterionWeightValidationTest {
         when(criterionMapper.selectList(any())).thenReturn(List.of());
 
         ReviewServiceImpl service = new ReviewServiceImpl(
-                null, null, null, criterionMapper, null,
+                null, null, null, criterionMapper,
                 null, null, null, null, null, null, null,
                 new com.lqr.papermind.review.risk.ReferenceFormatChecker(),
                 null, null, null, new com.fasterxml.jackson.databind.ObjectMapper()
@@ -87,7 +87,7 @@ class ReviewCriterionWeightValidationTest {
         when(criterionMapper.updateById(any(ReviewCriterionEntity.class))).thenReturn(1);
 
         ReviewServiceImpl service = new ReviewServiceImpl(
-                null, null, null, criterionMapper, null,
+                null, null, null, criterionMapper,
                 null, null, null, null, null, null, null,
                 new com.lqr.papermind.review.risk.ReferenceFormatChecker(),
                 null, null, null, new com.fasterxml.jackson.databind.ObjectMapper()
@@ -112,7 +112,7 @@ class ReviewCriterionWeightValidationTest {
         when(criterionMapper.selectById(id1)).thenReturn(null);
 
         ReviewServiceImpl service = new ReviewServiceImpl(
-                null, null, null, criterionMapper, null,
+                null, null, null, criterionMapper,
                 null, null, null, null, null, null, null,
                 new com.lqr.papermind.review.risk.ReferenceFormatChecker(),
                 null, null, null, new com.fasterxml.jackson.databind.ObjectMapper()

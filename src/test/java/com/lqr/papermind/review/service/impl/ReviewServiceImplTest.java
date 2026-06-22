@@ -15,12 +15,10 @@ import com.lqr.papermind.review.dto.ReviewCriterionResponse;
 import com.lqr.papermind.review.dto.ReviewReportUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewRiskUpdateRequest;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
-import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.entity.ReviewCriterionEntity;
 import com.lqr.papermind.review.entity.ReviewReportEntity;
 import com.lqr.papermind.review.entity.ReviewRiskItemEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
-import com.lqr.papermind.review.mapper.ReviewAuditLogMapper;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
 import com.lqr.papermind.review.mapper.ReviewCriterionMapper;
 import com.lqr.papermind.review.mapper.ReviewReportMapper;
@@ -33,7 +31,6 @@ import com.lqr.papermind.review.risk.ReviewRiskService;
 import com.lqr.papermind.review.service.ReviewConsensusService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -49,8 +46,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -121,7 +116,6 @@ class ReviewServiceImplTest {
                 null,
                 null,
                 null,
-                null,
                 new ReviewOutputParser(objectMapper),
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
@@ -139,12 +133,10 @@ class ReviewServiceImplTest {
         ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
         DocumentMapper documentMapper = mock(DocumentMapper.class);
         DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
-        ReviewAuditLogMapper auditLogMapper = mock(ReviewAuditLogMapper.class);
         ReviewServiceImpl service = serviceWithDependencies(
                 taskMapper,
                 mock(ReviewReportMapper.class),
                 mock(ReviewCriterionMapper.class),
-                auditLogMapper,
                 documentMapper,
                 documentPersistenceService,
                 mock(PaperStructuredParseService.class),
@@ -161,7 +153,6 @@ class ReviewServiceImplTest {
         verify(documentMapper, never()).selectOne(any());
         verify(taskMapper, never()).existsByDocumentId(any());
         verify(taskMapper, never()).insert(any(ReviewTaskEntity.class));
-        verify(auditLogMapper, never()).insert(any(ReviewAuditLogEntity.class));
     }
 
     @Test
@@ -175,7 +166,6 @@ class ReviewServiceImplTest {
                 taskMapper,
                 mock(ReviewReportMapper.class),
                 mock(ReviewCriterionMapper.class),
-                mock(ReviewAuditLogMapper.class),
                 documentMapper,
                 documentPersistenceService,
                 mock(PaperStructuredParseService.class),
@@ -239,7 +229,6 @@ class ReviewServiceImplTest {
                 null,
                 null,
                 null,
-                null,
                 paperStructuredParseService,
                 null,
                 null,
@@ -287,7 +276,6 @@ class ReviewServiceImplTest {
         ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
         ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
         ReviewCriterionMapper criterionMapper = mock(ReviewCriterionMapper.class);
-        ReviewAuditLogMapper auditLogMapper = mock(ReviewAuditLogMapper.class);
         DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
         PaperStructuredParseService paperStructuredParseService = mock(PaperStructuredParseService.class);
         LlmService llmService = mock(LlmService.class);
@@ -348,7 +336,6 @@ class ReviewServiceImplTest {
                 reportMapper,
                 assignmentMapper,
                 criterionMapper,
-                auditLogMapper,
                 null,
                 null,
                 documentPersistenceService,
@@ -390,7 +377,6 @@ class ReviewServiceImplTest {
                 reportMapper,
                 assignmentMapper,
                 criterionMapper,
-                mock(ReviewAuditLogMapper.class),
                 null,
                 null,
                 documentPersistenceService,
@@ -439,7 +425,6 @@ class ReviewServiceImplTest {
                 mock(ReviewReportMapper.class),
                 assignmentMapper,
                 mock(ReviewCriterionMapper.class),
-                mock(ReviewAuditLogMapper.class),
                 null,
                 null,
                 documentPersistenceService,
@@ -485,7 +470,6 @@ class ReviewServiceImplTest {
         ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
         ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
         ReviewCriterionMapper criterionMapper = mock(ReviewCriterionMapper.class);
-        ReviewAuditLogMapper auditLogMapper = mock(ReviewAuditLogMapper.class);
         ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
         DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
         PaperStructuredParseService paperStructuredParseService = mock(PaperStructuredParseService.class);
@@ -497,7 +481,6 @@ class ReviewServiceImplTest {
                 reportMapper,
                 assignmentMapper,
                 criterionMapper,
-                auditLogMapper,
                 null,
                 null,
                 documentPersistenceService,
@@ -557,16 +540,13 @@ class ReviewServiceImplTest {
         UUID taskId = UUID.randomUUID();
         ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
         ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
-        ReviewAuditLogMapper auditLogMapper = mock(ReviewAuditLogMapper.class);
         ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
-        ReviewAuditService reviewAuditService = mock(ReviewAuditService.class);
         ObjectMapper objectMapper = new ObjectMapper();
         ReviewServiceImpl service = new ReviewServiceImpl(
                 taskMapper,
                 reportMapper,
                 assignmentMapper,
                 null,
-                auditLogMapper,
                 null,
                 null,
                 null,
@@ -575,7 +555,7 @@ class ReviewServiceImplTest {
                 null,
                 null,
                 new ReferenceFormatChecker(),
-                reviewAuditService,
+                mock(ReviewAuditService.class),
                 mock(ReviewRiskService.class),
                 null,
                 objectMapper
@@ -607,30 +587,12 @@ class ReviewServiceImplTest {
         service.updateReport(currentUserId, false, reportId, request);
 
         ArgumentCaptor<ReviewReportEntity> reportCaptor = ArgumentCaptor.forClass(ReviewReportEntity.class);
-        ArgumentCaptor<Map<String, Object>> beforeCaptor = ArgumentCaptor.forClass(Map.class);
-        ArgumentCaptor<Map<String, Object>> afterCaptor = ArgumentCaptor.forClass(Map.class);
-        InOrder inOrder = inOrder(reportMapper, reviewAuditService);
-        inOrder.verify(reportMapper).updateById(reportCaptor.capture());
-        inOrder.verify(reviewAuditService).append(
-                org.mockito.ArgumentMatchers.eq(taskId),
-                org.mockito.ArgumentMatchers.eq(currentUserId),
-                org.mockito.ArgumentMatchers.eq("ADJUST_REPORT"),
-                anyString(),
-                beforeCaptor.capture(),
-                afterCaptor.capture(),
-                org.mockito.ArgumentMatchers.eq(Map.of())
-        );
+        verify(reportMapper).updateById(reportCaptor.capture());
         assertThat(reportCaptor.getValue().getManualDelta())
                 .containsEntry("scoreChanged", true)
                 .containsEntry("commentEdited", true)
                 .containsEntry("riskOverridden", false)
                 .containsEntry("finalRecommendationChanged", true);
-        assertThat(beforeCaptor.getValue())
-                .containsEntry("reportId", reportId.toString())
-                .containsEntry("status", "AI_GENERATED");
-        assertThat(afterCaptor.getValue())
-                .containsEntry("reportId", reportId.toString())
-                .containsEntry("status", "CONFIRMED");
     }
 
     @Test
@@ -642,7 +604,6 @@ class ReviewServiceImplTest {
         ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
         ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
         ReviewRiskService reviewRiskService = mock(ReviewRiskService.class);
-        ReviewAuditService reviewAuditService = mock(ReviewAuditService.class);
         ReviewServiceImpl service = serviceWithRiskAccess(taskMapper, reportMapper, reviewRiskService);
         ReviewReportEntity report = report(reportId, taskId);
         report.setReviewerUserId(otherReviewerId);
@@ -656,7 +617,6 @@ class ReviewServiceImplTest {
 
         verify(reportMapper, never()).updateById(org.mockito.ArgumentMatchers.any(ReviewReportEntity.class));
         verify(reviewRiskService, never()).replaceReportRisks(any(), any(), any());
-        verify(reviewAuditService, never()).append(any(), any(), anyString(), anyString(), any(), any(), any());
     }
 
     @Test
@@ -900,7 +860,6 @@ class ReviewServiceImplTest {
                 null,
                 null,
                 null,
-                null,
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
                 riskService,
@@ -912,7 +871,6 @@ class ReviewServiceImplTest {
     private ReviewServiceImpl serviceWithDependencies(ReviewTaskMapper taskMapper,
                                                       ReviewReportMapper reportMapper,
                                                       ReviewCriterionMapper criterionMapper,
-                                                      ReviewAuditLogMapper auditLogMapper,
                                                       com.lqr.papermind.document.mapper.DocumentMapper documentMapper,
                                                       DocumentPersistenceService documentPersistenceService,
                                                       PaperStructuredParseService paperStructuredParseService,
@@ -926,7 +884,6 @@ class ReviewServiceImplTest {
                 reportMapper,
                 mock(ReviewAssignmentMapper.class),
                 criterionMapper,
-                auditLogMapper,
                 null,
                 documentMapper,
                 documentPersistenceService,

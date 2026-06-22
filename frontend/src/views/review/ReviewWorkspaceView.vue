@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import MainLayout from '../../layouts/MainLayout.vue';
 import PageHeader from '../../components/common/PageHeader.vue';
+import LogoutConfirmDialog from '../../components/common/LogoutConfirmDialog.vue';
 import ReviewTaskList from './components/ReviewTaskList.vue';
 import ReviewParseTab from './components/ReviewParseTab.vue';
 import ReviewScoresTab from './components/ReviewScoresTab.vue';
@@ -23,6 +24,7 @@ const auth = useAuth();
 const reviews = useReviews();
 const { canAccessLeaderWorkspace, refreshLeaderWorkspaceAccess } = useReviewLeaderAccess();
 const activeReviewTab = ref('parse');
+const logoutDialogVisible = ref(false);
 
 const currentUserName = computed(() => auth.state.user?.displayName || auth.state.user?.username || '评审员');
 const selectedTask = computed(() => reviews.selectedTask.value);
@@ -87,9 +89,11 @@ onMounted(async () => {
         <el-button v-if="canAccessLeaderWorkspace" @click="router.push('/review-leader')">组长工作台</el-button>
         <el-button v-if="auth.hasRole('USER')" @click="router.push('/user')">用户端</el-button>
         <el-button v-if="auth.isAdmin.value" @click="router.push('/admin')">管理后台</el-button>
-        <el-button @click="handleLogout">退出登录</el-button>
+        <el-button @click="logoutDialogVisible = true">退出登录</el-button>
       </template>
     </PageHeader>
+
+    <LogoutConfirmDialog v-model="logoutDialogVisible" @confirm="handleLogout" />
 
     <section class="stats-bar">
       <div class="stat-item">

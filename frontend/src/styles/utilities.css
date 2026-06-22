@@ -2,21 +2,82 @@
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-md);
   background: var(--app-surface);
-  box-shadow: var(--app-shadow-xs);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: var(--app-shadow-card);
+  transition: box-shadow var(--app-transition-base), border-color var(--app-transition-base);
 }
 
 .app-card:hover {
-  box-shadow: var(--app-shadow-sm);
+  box-shadow: var(--app-shadow-card-hover);
   border-color: var(--app-border-strong);
+}
+
+.app-card-flat {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+}
+
+.app-card-soft {
+  border: 1px solid var(--app-border-light);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-soft);
 }
 
 .app-muted {
   color: var(--app-text-muted);
 }
 
+.app-subtle {
+  color: var(--app-text-subtle);
+}
+
 .apple-surface {
   border: 1px solid var(--app-border);
   background: var(--app-surface);
-  box-shadow: var(--app-shadow-xs);
+  box-shadow: var(--app-shadow-card);
+}
+
+.app-section-header {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--app-border-light);
+}
+
+.app-section-header h3 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.app-section-header p {
+  margin: 4px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.app-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.app-toolbar :deep([class~="el-input__wrapper"]),
+.app-toolbar :deep([class~="el-select__wrapper"]) {
+  min-height: 36px;
+  border-radius: var(--app-radius-sm) !important;
+  box-shadow: none !important;
+  border: 1px solid var(--app-border);
+}
+
+.app-toolbar :deep([class~="el-input__wrapper"]:hover),
+.app-toolbar :deep([class~="el-select__wrapper"]:hover) {
+  border-color: var(--app-border-strong);
+}
+
+.app-toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
+.app-toolbar :deep([class~="el-select__wrapper"]:focus-within) {
+  border-color: var(--app-primary);
 }

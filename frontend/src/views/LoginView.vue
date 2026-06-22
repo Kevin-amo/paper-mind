@@ -181,7 +181,11 @@ onUnmounted(() => {
         </div>
       </aside>
 
-      <el-card class="form-card" shadow="never">
+      <el-card
+        class="form-card animate zoom-in"
+        shadow="never"
+        v-animate="{ type: 'zoom-in', trigger: 'load', duration: '0.7s' }"
+      >
         <div class="form-heading">
           <p>{{ activeMode === 'login' ? '账号登录' : '邮箱注册' }}</p>
           <h2>{{ activeMode === 'login' ? '欢迎回来' : '创建账号' }}</h2>

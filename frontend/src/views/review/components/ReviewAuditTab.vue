@@ -35,6 +35,10 @@ function actionLabel(action: string): string {
   return actionLabels[action] ?? action;
 }
 
+function operatorLabel(log: ReviewAuditLog): string {
+  return log.operatorDisplayName || log.operatorUsername || log.operatorUserId || '系统';
+}
+
 function formatTime(iso: string): string {
   try {
     return new Date(iso).toLocaleString('zh-CN', {
@@ -93,8 +97,7 @@ watch(() => props.taskId, loadAuditLogs);
           <div class="timeline-content">
             <div class="timeline-header">
               <span class="timeline-action">{{ actionLabel(log.action) }}</span>
-              <span v-if="log.operatorDisplayName" class="timeline-operator">{{ log.operatorDisplayName }}</span>
-              <span v-else-if="log.operatorUsername" class="timeline-operator">{{ log.operatorUsername }}</span>
+              <span class="timeline-operator">{{ operatorLabel(log) }}</span>
             </div>
             <p v-if="log.note" class="timeline-note">{{ log.note }}</p>
             <time class="timeline-time">{{ formatTime(log.createdAt) }}</time>

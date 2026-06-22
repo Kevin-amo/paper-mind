@@ -10,6 +10,26 @@ const globalStyle = [
   readFileSync(new URL('../src/styles/reset.css', import.meta.url), 'utf8'),
 ].join('\n');
 
+function importedIconNames(source) {
+  const match = source.match(/import\s*\{([^}]*)\}\s*from\s*'@element-plus\/icons-vue';/);
+  if (!match) return new Set();
+  return new Set(
+    match[1]
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean),
+  );
+}
+
+function ensureImportedIcons(source, fileLabel, iconNames, missing) {
+  const imports = importedIconNames(source);
+  for (const iconName of iconNames) {
+    if (!imports.has(iconName)) {
+      missing.push(`${fileLabel} missing icon import: ${iconName}`);
+    }
+  }
+}
+
 const requiredMenuMarkers = [
   "key: 'users'",
   "key: 'config'",
@@ -38,6 +58,8 @@ if (!shell.includes('admin-layout') || !shell.includes('admin-sidebar')) {
 if (!reviews.includes('route.query.tab') || !reviews.includes('router.replace')) {
   missing.push('AdminReviewDashboardView missing query-driven tab synchronization');
 }
+ensureImportedIcons(usersPanel, 'AdminUsersPanel', ['User', 'UserFilled', 'Avatar', 'CircleClose', 'EditPen', 'MoreFilled'], missing);
+ensureImportedIcons(reviews, 'AdminReviewDashboardView', ['Document', 'List', 'TrendCharts', 'UserFilled'], missing);
 if (usersPanel.includes('<el-drawer') || usersPanel.includes('admin-users-drawer') || usersView.includes('v-model="panelVisible"')) {
   missing.push('User management must render inline, not as a drawer controlled by v-model');
 }

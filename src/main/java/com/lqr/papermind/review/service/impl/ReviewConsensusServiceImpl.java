@@ -2,7 +2,9 @@ package com.lqr.papermind.review.service.impl;
 
 import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
-import com.lqr.papermind.review.audit.ReviewAuditService;
+import com.lqr.papermind.review.audit.AuditContext;
+import com.lqr.papermind.review.audit.ReviewAudit;
+import com.lqr.papermind.review.audit.ReviewAuditAction;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.lqr.papermind.review.consensus.ConsensusCalculator;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
@@ -49,7 +51,6 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
     private final ReviewCriterionMapper criterionMapper;
     private final SysUserMapper userMapper;
     private final ConsensusCalculator consensusCalculator;
-    private final ReviewAuditService reviewAuditService;
 
     /**
      * 根据评审任务ID获取共识汇总信息
@@ -74,6 +75,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.RECALCULATE_CONSENSUS)
     public ReviewConsensusResponse recalculate(UUID taskId) {
         return recalculate(taskId, null);
     }
@@ -87,6 +89,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.RECALCULATE_CONSENSUS)
     public ReviewConsensusResponse recalculate(UUID taskId, UUID operatorUserId) {
         return recalculate(taskId, operatorUserId, resolveConsensusLeadUserId(taskId), reportMapper.selectSubmittedByTaskId(taskId));
     }
@@ -100,6 +103,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.UPDATE_CONSENSUS)
     public ReviewConsensusResponse update(UUID taskId, ReviewConsensusUpdateRequest request) {
         return update(taskId, null, request);
     }
@@ -114,6 +118,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.UPDATE_CONSENSUS)
     public ReviewConsensusResponse update(UUID taskId, UUID operatorUserId, ReviewConsensusUpdateRequest request) {
         ReviewConsensusEntity consensus = requireConsensus(taskId);
         if (isConfirmed(consensus)) {
@@ -128,15 +133,12 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
         }
         consensus.setUpdatedAt(OffsetDateTime.now());
         consensusMapper.updateById(consensus);
-        reviewAuditService.append(
-                taskId,
-                operatorUserId,
-                "UPDATE_CONSENSUS",
-                "保存最终评分与共识意见",
-                beforeSnapshot,
-                consensusSnapshot(consensus),
-                Map.of("scope", operatorUserId == null ? "legacy" : "review-consensus")
-        );
+        AuditContext.set(new AuditContext()
+                .taskId(taskId)
+                .operatorUserId(operatorUserId)
+                .beforeSnapshot(beforeSnapshot)
+                .afterSnapshot(consensusSnapshot(consensus))
+                .clientInfo(Map.of("scope", operatorUserId == null ? "legacy" : "review-consensus")));
         return toResponse(consensus);
     }
 
@@ -149,6 +151,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.CONFIRM_CONSENSUS)
     public ReviewConsensusResponse confirm(UUID taskId, UUID operatorUserId) {
         ReviewConsensusEntity consensus = requireConsensus(taskId);
         if (isConfirmed(consensus)) {
@@ -163,15 +166,12 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
         consensus.setUpdatedAt(now);
         consensusMapper.updateById(consensus);
         taskMapper.updateTaskStatus(taskId, ReviewTaskStatuses.CONSENSUS_CONFIRMED);
-        reviewAuditService.append(
-                taskId,
-                operatorUserId,
-                "CONFIRM_CONSENSUS",
-                "确认最终评分与共识意见",
-                beforeSnapshot,
-                consensusSnapshot(consensus),
-                Map.of("scope", operatorUserId == null ? "legacy" : "review-consensus")
-        );
+        AuditContext.set(new AuditContext()
+                .taskId(taskId)
+                .operatorUserId(operatorUserId)
+                .beforeSnapshot(beforeSnapshot)
+                .afterSnapshot(consensusSnapshot(consensus))
+                .clientInfo(Map.of("scope", operatorUserId == null ? "legacy" : "review-consensus")));
         return toResponse(consensus);
     }
 
@@ -219,6 +219,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.RECALCULATE_CONSENSUS)
     public ReviewConsensusResponse recalculateForLeader(UUID currentUserId, UUID groupId, UUID taskId) {
         requireTaskLeader(currentUserId, groupId, taskId);
         return recalculate(taskId, currentUserId, currentUserId, reportMapper.selectSubmittedActiveAssignmentReportsByTaskId(taskId));
@@ -235,6 +236,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.UPDATE_CONSENSUS)
     public ReviewConsensusResponse updateForLeader(UUID currentUserId, UUID groupId, UUID taskId, ReviewConsensusUpdateRequest request) {
         requireTaskLeader(currentUserId, groupId, taskId);
         return update(taskId, currentUserId, request);
@@ -250,6 +252,7 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
      */
     @Override
     @Transactional
+    @ReviewAudit(action = ReviewAuditAction.CONFIRM_CONSENSUS)
     public ReviewConsensusResponse confirmForLeader(UUID currentUserId, UUID groupId, UUID taskId) {
         requireTaskLeader(currentUserId, groupId, taskId);
         return confirm(taskId, currentUserId);
@@ -331,15 +334,12 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
         clientInfo.put("scope", operatorUserId == null ? "legacy" : "review-consensus");
         clientInfo.put("reportCount", reports.size());
         clientInfo.put("creating", creating);
-        reviewAuditService.append(
-                taskId,
-                operatorUserId,
-                "RECALCULATE_CONSENSUS",
-                "重新计算最终评分与共识草稿",
-                beforeSnapshot,
-                consensusSnapshot(consensus),
-                clientInfo
-        );
+        AuditContext.set(new AuditContext()
+                .taskId(taskId)
+                .operatorUserId(operatorUserId)
+                .beforeSnapshot(beforeSnapshot)
+                .afterSnapshot(consensusSnapshot(consensus))
+                .clientInfo(clientInfo));
         return toResponse(consensus, reports);
     }
 

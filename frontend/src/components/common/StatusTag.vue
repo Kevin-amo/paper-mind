@@ -23,6 +23,10 @@ const tagType = computed(() => {
     case 'PROCESSING':
     case 'PENDING':
     case 'QUEUED':
+    case 'PARSING':
+    case 'CHUNKING':
+    case 'EMBEDDING':
+    case 'INDEXING':
     case 'PENDING_ASSIGNMENT':
     case 'ASSIGNED':
       return 'warning';
@@ -51,6 +55,14 @@ const label = computed(() => {
     case 'PENDING':
     case 'QUEUED':
       return '排队中';
+    case 'PARSING':
+      return '解析中';
+    case 'CHUNKING':
+      return '切分中';
+    case 'EMBEDDING':
+      return '嵌入中';
+    case 'INDEXING':
+      return '索引中';
     case 'PENDING_ASSIGNMENT':
       return '待分配';
     case 'ASSIGNED':

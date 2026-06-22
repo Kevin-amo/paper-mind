@@ -19,6 +19,7 @@ const emit = defineEmits<{
   upload: [file: File];
   refresh: [];
   pageChange: [page: number];
+  stopPolling: [];
 }>();
 
 function beforeUpload(file: File) {
@@ -35,6 +36,7 @@ function beforeUpload(file: File) {
     destroy-on-close
     @update:model-value="emit('update:modelValue', $event)"
     @opened="emit('refresh')"
+    @close="emit('stopPolling')"
   >
     <div class="submission-toolbar">
       <el-upload
@@ -76,11 +78,6 @@ function beforeUpload(file: File) {
       <el-table-column label="提交时间" width="170">
         <template #default="{ row }: { row: ReviewSubmission }">
           {{ formatDate(row.submittedAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="错误信息" min-width="180">
-        <template #default="{ row }: { row: ReviewSubmission }">
-          <span class="error-text">{{ row.errorMessage || '-' }}</span>
         </template>
       </el-table-column>
     </el-table>
@@ -128,11 +125,6 @@ function beforeUpload(file: File) {
 .paper-cell span,
 .muted-text {
   color: var(--app-text-muted);
-  font-size: 12px;
-}
-
-.error-text {
-  color: var(--app-danger);
   font-size: 12px;
 }
 
