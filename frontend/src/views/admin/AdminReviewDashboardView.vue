@@ -80,7 +80,10 @@ onMounted(async () => {
 <template>
   <AdminShell :active="activeTab" :title="activeSectionTitle">
     <section class="summary-grid">
-      <div class="summary-card">
+      <div
+        class="summary-card animate slide-up"
+        v-animate="{ type: 'slide-up', delay: '0ms', duration: '0.6s' }"
+      >
         <div class="summary-icon blue">
           <el-icon :size="20"><Document /></el-icon>
         </div>
@@ -89,7 +92,10 @@ onMounted(async () => {
           <strong class="summary-value">{{ adminReviews.total.value }}</strong>
         </div>
       </div>
-      <div class="summary-card">
+      <div
+        class="summary-card animate slide-up"
+        v-animate="{ type: 'slide-up', delay: '80ms', duration: '0.6s' }"
+      >
         <div class="summary-icon indigo">
           <el-icon :size="20"><List /></el-icon>
         </div>
@@ -98,7 +104,10 @@ onMounted(async () => {
           <strong class="summary-value">{{ adminReviews.tasks.value.length }}</strong>
         </div>
       </div>
-      <div class="summary-card">
+      <div
+        class="summary-card animate slide-up"
+        v-animate="{ type: 'slide-up', delay: '160ms', duration: '0.6s' }"
+      >
         <div class="summary-icon green">
           <el-icon :size="20"><TrendCharts /></el-icon>
         </div>
@@ -107,7 +116,10 @@ onMounted(async () => {
           <strong class="summary-value">{{ submittedTotal }}<span class="summary-denom">/{{ assignmentTotal }}</span></strong>
         </div>
       </div>
-      <div class="summary-card">
+      <div
+        class="summary-card animate slide-up"
+        v-animate="{ type: 'slide-up', delay: '240ms', duration: '0.6s' }"
+      >
         <div class="summary-icon amber">
           <el-icon :size="20"><UserFilled /></el-icon>
         </div>
@@ -118,7 +130,10 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section class="dashboard-card">
+    <section
+      class="dashboard-card animate fade-in"
+      v-animate="{ type: 'fade-in', delay: '0.1s', duration: '0.6s' }"
+    >
       <div v-if="activeTab === 'config'">
         <div class="section-header">
           <h3>批次与小组</h3>
@@ -322,7 +337,7 @@ onMounted(async () => {
 
 .toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
 .toolbar :deep([class~="el-select__wrapper"]:focus-within) {
-  border-color: var(--app-border-strong);
+  border-color: var(--app-primary);
 }
 
 .pagination-wrap {

@@ -1,0 +1,114 @@
+/* ── Element Plus Dialog / Drawer Custom Transitions ──
+ *
+ * 覆盖 Element Plus 默认的 dialog-fade 与 el-drawer-fade 过渡，
+ * 实现弹窗缩放淡入淡出、抽屉平滑滑入滑出的效果。
+ */
+
+/* ── Dialog：缩放淡入 / 缩小淡出 ── */
+
+.dialog-fade-enter-active {
+  animation: modal-fade-in 0.3s ease-in-out;
+}
+
+.dialog-fade-enter-active .el-overlay-dialog {
+  animation: dialog-scale-fade-in 0.3s ease-in-out;
+}
+
+.dialog-fade-leave-active {
+  animation: modal-fade-out 0.3s ease-in-out;
+}
+
+.dialog-fade-leave-active .el-overlay-dialog {
+  animation: dialog-scale-fade-out 0.3s ease-in-out;
+}
+
+@keyframes dialog-scale-fade-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dialog-scale-fade-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes modal-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ── Drawer：右侧平滑滑入 / 滑出 ── */
+
+.el-drawer-fade-enter-active,
+.el-drawer-fade-leave-active {
+  transition: all 0.3s ease-in-out !important;
+}
+
+.el-drawer {
+  transition: transform 0.3s ease-in-out !important;
+}
+
+.el-drawer-fade-enter-from .el-drawer.rtl,
+.el-drawer-fade-leave-to .el-drawer.rtl {
+  transform: translateX(100%);
+}
+
+.el-drawer-fade-enter-to .el-drawer.rtl,
+.el-drawer-fade-leave-from .el-drawer.rtl {
+  transform: translateX(0);
+}
+
+/* 其他方向保持原有滑入方向，仅统一时长与缓动 */
+.el-drawer-fade-enter-from .el-drawer.ltr,
+.el-drawer-fade-leave-to .el-drawer.ltr {
+  transform: translateX(-100%);
+}
+
+.el-drawer-fade-enter-from .el-drawer.ttb,
+.el-drawer-fade-leave-to .el-drawer.ttb {
+  transform: translateY(-100%);
+}
+
+.el-drawer-fade-enter-from .el-drawer.btt,
+.el-drawer-fade-leave-to .el-drawer.btt {
+  transform: translateY(100%);
+}
+
+/* 减少动画偏好：瞬间完成，避免残留 transform */
+@media (prefers-reduced-motion: reduce) {
+  .dialog-fade-enter-active,
+  .dialog-fade-enter-active .el-overlay-dialog,
+  .dialog-fade-leave-active,
+  .dialog-fade-leave-active .el-overlay-dialog,
+  .el-drawer-fade-enter-active,
+  .el-drawer-fade-leave-active,
+  .el-drawer {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

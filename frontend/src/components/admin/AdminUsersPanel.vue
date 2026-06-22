@@ -503,7 +503,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
 
 .toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
 .toolbar :deep([class~="el-select__wrapper"]:focus-within) {
-  border-color: var(--app-border-strong);
+  border-color: var(--app-primary);
 }
 
 .users-table {
@@ -601,7 +601,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
 
 .role-choice-list :deep([class~="el-checkbox-button"][class~="is-checked"] [class~="el-checkbox-button__inner"]),
 .status-choice-list :deep([class~="el-radio-button"][class~="is-active"] [class~="el-radio-button__inner"]) {
-  border-color: transparent;
+  border-color: var(--app-primary);
   background: var(--app-primary);
   box-shadow: none;
 }

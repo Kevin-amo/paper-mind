@@ -212,7 +212,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="user-app-shell">
+  <div
+    class="user-app-shell animate fade-in"
+    v-animate="{ type: 'fade-in', trigger: 'load', duration: '0.5s' }"
+  >
     <ChatSidebar
       :conversations="conversationsState.conversations.value"
       :active-conversation-id="conversationsState.activeConversationId.value"

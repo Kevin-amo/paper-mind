@@ -18,34 +18,34 @@
   --app-text-subtle: #8C95A6;
   --app-text-on-primary: #FFFFFF;
 
-  /* ── Primary: Deep Teal ── */
-  --app-primary: #0E7C6B;
-  --app-primary-hover: #0A6356;
-  --app-primary-active: #074D43;
-  --app-primary-soft: rgba(14, 124, 107, 0.07);
-  --app-primary-soft-hover: rgba(14, 124, 107, 0.12);
-  --app-primary-glow: rgba(14, 124, 107, 0.18);
+  /* ── Primary: Light Blue ── */
+  --app-primary: #2563EB;
+  --app-primary-hover: #1D4ED8;
+  --app-primary-active: #1E40AF;
+  --app-primary-soft: rgba(37, 99, 235, 0.07);
+  --app-primary-soft-hover: rgba(37, 99, 235, 0.12);
+  --app-primary-glow: rgba(37, 99, 235, 0.18);
 
-  /* ── Accent: Warm Slate ── */
-  --app-accent: #4A6FA5;
-  --app-accent-soft: rgba(74, 111, 165, 0.07);
-  --app-accent-hover: #3D5E8C;
+  /* ── Accent: Sky Blue ── */
+  --app-accent: #2563EB;
+  --app-accent-soft: rgba(37, 99, 235, 0.07);
+  --app-accent-hover: #1D4ED8;
 
   /* ── Semantic Colors ── */
   --app-danger: #D1453B;
   --app-danger-soft: rgba(209, 69, 59, 0.07);
   --app-danger-hover: #B83A31;
 
-  --app-success: #2D9F6F;
-  --app-success-soft: rgba(45, 159, 111, 0.07);
-  --app-success-hover: #248559;
+  --app-success: #0284C7;
+  --app-success-soft: rgba(2, 132, 199, 0.07);
+  --app-success-hover: #0369A1;
 
   --app-warning: #C4841D;
   --app-warning-soft: rgba(196, 132, 29, 0.07);
   --app-warning-hover: #A56F14;
 
-  --app-info: #4A6FA5;
-  --app-info-soft: rgba(74, 111, 165, 0.07);
+  --app-info: #2563EB;
+  --app-info-soft: rgba(37, 99, 235, 0.07);
 
   /* ── Radius ── */
   --app-radius-xs: 4px;

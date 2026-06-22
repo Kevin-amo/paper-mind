@@ -175,6 +175,12 @@ defineEmits<{
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
+  transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out;
+}
+
+.task-status-badge:hover {
+  transform: scale(1.05);
+  filter: brightness(1.08);
 }
 
 .task-status-badge.ASSIGNED {
@@ -189,7 +195,7 @@ defineEmits<{
 
 .task-status-badge.SUBMITTED {
   background: var(--app-success-soft);
-  color: #047857;
+  color: var(--app-success-hover);
 }
 
 .task-status-badge.RETURNED {

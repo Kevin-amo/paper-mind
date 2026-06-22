@@ -79,5 +79,5 @@
 
 .app-toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
 .app-toolbar :deep([class~="el-select__wrapper"]:focus-within) {
-  border-color: var(--app-border-strong);
+  border-color: var(--app-primary);
 }

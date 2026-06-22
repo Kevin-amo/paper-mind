@@ -153,7 +153,12 @@
 .el-tag {
   border-radius: var(--app-radius-xs);
   font-weight: 600;
-  transition: all var(--app-transition-fast);
+  transition: transform 0.2s ease-in-out, filter 0.2s ease-in-out;
+}
+
+.el-tag:hover {
+  transform: scale(1.05);
+  filter: brightness(1.08);
 }
 
 .el-tag--primary {
@@ -165,26 +170,30 @@
 /* ── Tabs ── */
 .el-tabs__item {
   font-weight: 600;
-  transition: color var(--app-transition-fast);
+  border-radius: var(--app-radius-sm);
+  transition: color 0.25s ease-in-out, background-color 0.25s ease-in-out;
 }
 
-.el-tabs__active-bar {
-  background-color: var(--app-primary);
+.el-tabs__item:hover {
+  color: var(--app-primary);
+  background-color: var(--app-primary-soft);
 }
 
 .el-tabs__item.is-active {
   color: var(--app-primary);
 }
 
-.el-tabs__item:hover {
-  color: var(--app-primary);
+.el-tabs__active-bar {
+  height: 2px;
+  background-color: var(--app-primary);
+  transition: transform 0.25s ease-in-out, width 0.25s ease-in-out;
 }
 
 /* ── Input / Select ── */
 .el-input__wrapper,
 .el-select__wrapper {
   border-radius: var(--app-radius-sm) !important;
-  transition: box-shadow var(--app-transition-fast), border-color var(--app-transition-fast);
+  transition: box-shadow 0.3s ease-in-out, border-color 0.3s ease-in-out;
 }
 
 .el-input__wrapper:hover,
@@ -194,7 +203,10 @@
 
 .el-input__wrapper.is-focus,
 .el-select__wrapper:focus-within {
-  box-shadow: 0 0 0 1px var(--app-border-strong) inset, 0 0 0 3px rgba(201, 206, 212, 0.5) !important;
+  box-shadow:
+    0 0 0 1px var(--app-primary) inset,
+    0 0 0 3px var(--app-primary-glow),
+    0 0 10px 2px var(--app-primary-glow) !important;
 }
 
 /* ── Table ── */
@@ -301,7 +313,7 @@
 }
 
 .el-slider__button {
-  border-color: var(--app-border-strong);
+  border-color: var(--app-primary);
 }
 
 /* ── Checkbox Button / Radio Button ── */

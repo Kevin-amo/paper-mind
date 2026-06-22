@@ -235,7 +235,7 @@ async function handleLogout() {
   color: var(--app-text-muted);
   cursor: pointer;
   text-align: left;
-  transition: all 0.15s ease;
+  transition: color 0.25s ease-in-out, background-color 0.25s ease-in-out;
 }
 
 .sidebar-menu-item:hover {
@@ -244,7 +244,7 @@ async function handleLogout() {
 }
 
 .sidebar-menu-item.active {
-  background: var(--app-primary-soft);
+  background: var(--app-primary-soft-hover);
   color: var(--app-primary);
 }
 
