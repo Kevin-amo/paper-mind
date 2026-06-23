@@ -213,7 +213,7 @@ onMounted(async () => {
 
 <template>
   <div
-    class="user-app-shell animate fade-in"
+    class="user-app-shell claude-chat-shell animate fade-in"
     v-animate="{ type: 'fade-in', trigger: 'load', duration: '0.5s' }"
   >
     <ChatSidebar
@@ -327,19 +327,19 @@ onMounted(async () => {
 .user-app-shell {
   position: relative;
   isolation: isolate;
-  height: 100vh;
-  display: flex;
-  gap: 20px;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 288px minmax(0, 1fr);
+  gap: 18px;
   overflow: hidden;
-  padding: 20px;
+  padding: 18px;
   background: var(--app-bg);
 }
 
 @media (max-width: 900px) {
   .user-app-shell {
-    height: auto;
+    grid-template-columns: 1fr;
     min-height: 100vh;
-    flex-direction: column;
     overflow: visible;
     padding: 12px;
   }

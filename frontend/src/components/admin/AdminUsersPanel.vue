@@ -122,7 +122,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
 </script>
 
 <template>
-  <section class="users-panel">
+  <section class="paper-mind-workspace-card users-panel">
     <div class="panel-heading">
       <div>
         <h2>用户列表</h2>
@@ -385,7 +385,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   padding: 24px;
-  background: var(--app-surface);
+  background: var(--claude-canvas);
 }
 
 .panel-heading {
@@ -506,6 +506,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   overflow: hidden;
+  background: var(--claude-canvas);
 }
 
 .user-cell {

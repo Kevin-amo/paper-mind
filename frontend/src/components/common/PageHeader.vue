@@ -25,10 +25,10 @@ defineProps<{
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
-  padding: 24px 28px;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-md);
-  background: var(--app-surface);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .page-eyebrow {
@@ -42,8 +42,8 @@ defineProps<{
 
 h1 {
   margin: 0;
-  font-size: clamp(24px, 2.5vw, 30px);
-  font-weight: 700;
+  font-size: clamp(30px, 3vw, 42px);
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
@@ -52,7 +52,7 @@ h1 {
   max-width: 640px;
   margin: 10px 0 0;
   color: var(--app-text-muted);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.65;
 }
 
@@ -67,7 +67,6 @@ h1 {
 @media (max-width: 860px) {
   .page-header {
     flex-direction: column;
-    padding: 20px;
   }
 
   .page-actions {

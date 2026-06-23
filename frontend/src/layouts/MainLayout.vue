@@ -15,8 +15,8 @@ defineProps<{
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: clamp(16px, 3vw, 28px);
+  gap: 24px;
+  padding: clamp(16px, 2.8vw, 28px);
   background: var(--app-bg);
 }
 </style>

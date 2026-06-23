@@ -64,20 +64,20 @@
   flex-wrap: wrap;
 }
 
-.app-toolbar :deep([class~="el-input__wrapper"]),
-.app-toolbar :deep([class~="el-select__wrapper"]) {
+.app-toolbar [class~="el-input__wrapper"],
+.app-toolbar [class~="el-select__wrapper"] {
   min-height: 36px;
   border-radius: var(--app-radius-sm) !important;
   box-shadow: none !important;
   border: 1px solid var(--app-border);
 }
 
-.app-toolbar :deep([class~="el-input__wrapper"]:hover),
-.app-toolbar :deep([class~="el-select__wrapper"]:hover) {
+.app-toolbar [class~="el-input__wrapper"]:hover,
+.app-toolbar [class~="el-select__wrapper"]:hover {
   border-color: var(--app-border-strong);
 }
 
-.app-toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
-.app-toolbar :deep([class~="el-select__wrapper"]:focus-within) {
+.app-toolbar [class~="el-input__wrapper"][class~="is-focus"],
+.app-toolbar [class~="el-select__wrapper"]:focus-within {
   border-color: var(--app-primary);
 }

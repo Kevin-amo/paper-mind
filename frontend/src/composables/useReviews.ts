@@ -15,6 +15,7 @@ import {
   getReviewUploadJob,
 } from '../api/reviews';
 import { getErrorMessage } from '../api/http';
+import { calculateWeightedScore } from './reviewScore';
 import type {
   PaperStructuredParse,
   ReviewCriterion,
@@ -247,12 +248,14 @@ export function useReviews() {
     }
     saving.value = true;
     try {
+      const totalScore = calculateWeightedScore(report.scores, criteria.value);
+      reportForm.totalScore = totalScore;
       const payload: UpdateReviewReportPayload = {
         paperSections: report.paperSections,
         scores: report.scores,
         comments: report.comments,
         risks: report.risks,
-        totalScore: reportForm.totalScore,
+        totalScore,
         finalRecommendation: reportForm.finalRecommendation.trim() || null,
         status: 'ADJUSTED',
       };
@@ -390,35 +393,6 @@ export function useReviews() {
     reportForm.totalScore = report?.totalScore ?? calculateWeightedScore(report?.scores, criteria.value);
     reportForm.finalRecommendation = report?.finalRecommendation ?? '';
     reportForm.status = report?.status === 'CONFIRMED' || report?.status === 'COMPLETED' ? report.status : 'ADJUSTED';
-  }
-
-  function calculateWeightedScore(scores: unknown, criteriaList: ReviewCriterion[]) {
-    if (!Array.isArray(scores) || scores.length === 0) {
-      return 0;
-    }
-    // Build weight map from criteria
-    const weightMap = new Map<string, number>();
-    if (Array.isArray(criteriaList)) {
-      for (const c of criteriaList) {
-        if (c.code && c.weight != null) {
-          weightMap.set(c.code, c.weight);
-        }
-      }
-    }
-    let weightedSum = 0;
-    let totalWeight = 0;
-    for (const item of scores) {
-      const scoreItem = item as ReviewScoreItem;
-      const score = Number(scoreItem.score);
-      if (!Number.isFinite(score)) continue;
-      const weight = scoreItem.code ? (weightMap.get(scoreItem.code) ?? 1) : 1;
-      weightedSum += score * weight;
-      totalWeight += weight;
-    }
-    if (totalWeight === 0) {
-      return 0;
-    }
-    return Math.round(weightedSum / totalWeight);
   }
 
   return {

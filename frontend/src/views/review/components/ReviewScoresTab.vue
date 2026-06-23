@@ -74,7 +74,8 @@ defineEmits<{
         <el-popconfirm title="提交后个人评审将只读，是否继续？" @confirm="$emit('submit-assignment')">
           <template #reference>
             <el-button
-              type="success"
+              type="primary"
+              class="submit-assignment-button"
               :disabled="assignmentSubmitted || submittingAssignment || !selectedReport"
               :loading="submittingAssignment"
             >
@@ -215,6 +216,28 @@ defineEmits<{
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--app-border);
+}
+
+.submit-assignment-button {
+  min-width: 96px;
+  border-color: var(--app-primary);
+  background: var(--app-primary);
+  color: var(--app-text-on-primary);
+  box-shadow: none;
+}
+
+.submit-assignment-button:hover,
+.submit-assignment-button:focus-visible {
+  border-color: var(--app-primary-hover);
+  background: var(--app-primary-hover);
+  color: var(--app-text-on-primary);
+}
+
+.submit-assignment-button.is-disabled,
+.submit-assignment-button.is-disabled:hover {
+  border-color: var(--app-border);
+  background: var(--app-surface-muted);
+  color: var(--app-text-subtle);
 }
 
 @media (max-width: 1180px) {

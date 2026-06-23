@@ -94,8 +94,8 @@ defineEmits<{
   flex-direction: column;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  background: var(--app-surface);
-  padding: 18px;
+  background: var(--claude-canvas);
+  padding: 16px;
   gap: 12px;
 }
 

@@ -12,6 +12,7 @@ import com.lqr.papermind.document.structured.service.PaperStructuredParseService
 import com.lqr.papermind.review.assessment.ReviewOutputParser;
 import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.dto.ReviewCriterionResponse;
+import com.lqr.papermind.review.dto.ReviewReportResponse;
 import com.lqr.papermind.review.dto.ReviewReportUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewRiskUpdateRequest;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -531,6 +533,92 @@ class ReviewServiceImplTest {
             assertThat(risk.get("detector")).isEqualTo("REFERENCE_RULE");
             assertThat(risk.get("type")).isEqualTo("REFERENCE_FORMAT");
         });
+    }
+
+    @Test
+    void generateAiReviewShouldCalculateWeightedTotalScoreFromCriteriaWeights() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
+        ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
+        ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
+        ReviewCriterionMapper criterionMapper = mock(ReviewCriterionMapper.class);
+        DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
+        PaperStructuredParseService paperStructuredParseService = mock(PaperStructuredParseService.class);
+        LlmService llmService = mock(LlmService.class);
+        ReviewOutputParser reviewOutputParser = mock(ReviewOutputParser.class);
+        ReviewServiceImpl service = new ReviewServiceImpl(
+                taskMapper,
+                reportMapper,
+                assignmentMapper,
+                criterionMapper,
+                null,
+                null,
+                documentPersistenceService,
+                paperStructuredParseService,
+                llmService,
+                null,
+                reviewOutputParser,
+                new ReferenceFormatChecker(),
+                mock(ReviewAuditService.class),
+                mock(ReviewRiskService.class),
+                null,
+                new ObjectMapper()
+        );
+        ReviewTaskEntity task = task(taskId, null);
+        task.setDocumentId(documentId);
+        task.setSubmitterUserId(currentUserId);
+        task.setSourceId("source-1");
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task);
+        when(documentPersistenceService.findReviewDocument(currentUserId, "source-1")).thenReturn(Optional.of(document(currentUserId, "source-1")));
+        ReviewAssignmentEntity assignment = assignment(UUID.randomUUID(), taskId, currentUserId);
+        when(assignmentMapper.selectActiveByTaskAndReviewer(taskId, currentUserId)).thenReturn(assignment);
+
+        ReviewCriterionEntity policy = criterion();
+        policy.setCode("POLICY");
+        policy.setWeight(20);
+        ReviewCriterionEntity match = criterion();
+        match.setCode("MATCH");
+        match.setWeight(20);
+        ReviewCriterionEntity innovation = criterion();
+        innovation.setCode("INNOVATION");
+        innovation.setWeight(20);
+        ReviewCriterionEntity logic = criterion();
+        logic.setCode("LOGIC");
+        logic.setWeight(15);
+        ReviewCriterionEntity language = criterion();
+        language.setCode("LANGUAGE");
+        language.setWeight(15);
+        ReviewCriterionEntity reference = criterion();
+        reference.setCode("REFERENCE");
+        reference.setWeight(10);
+        when(criterionMapper.selectList(any())).thenReturn(List.of(policy, match, innovation, logic, language, reference));
+        when(paperStructuredParseService.find(currentUserId, "source-1")).thenReturn(Optional.empty());
+        when(llmService.generate(any())).thenReturn("{}");
+        when(reviewOutputParser.parse("{}")).thenReturn(Map.of(
+                "scores", List.of(
+                        Map.of("code", "POLICY", "score", 100),
+                        Map.of("code", "MATCH", "score", 95),
+                        Map.of("code", "INNOVATION", "score", 75),
+                        Map.of("code", "LOGIC", "score", 90),
+                        Map.of("code", "LANGUAGE", "score", 85),
+                        Map.of("code", "REFERENCE", "score", 60)
+                ),
+                "paperSections", Map.of("title", "title")
+        ));
+        AtomicReference<ReviewReportEntity> savedReport = new AtomicReference<>();
+        when(reportMapper.insert(any(ReviewReportEntity.class))).thenAnswer(invocation -> {
+            savedReport.set(invocation.getArgument(0));
+            return 1;
+        });
+        when(reportMapper.selectByAssignmentId(assignment.getId()))
+                .thenReturn(null)
+                .thenAnswer(invocation -> savedReport.get());
+
+        ReviewReportResponse response = service.generateAiReview(currentUserId, false, taskId);
+
+        assertThat(response.totalScore()).isEqualTo(86);
     }
 
     @Test

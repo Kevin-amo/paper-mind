@@ -299,13 +299,17 @@ onUnmounted(() => {
   --auth-accent-strong: var(--app-primary-active);
   --auth-ink: var(--app-text);
   --auth-muted: var(--app-text-muted);
+  --auth-left-bg: #24211d;
+  --auth-left-border: rgba(250, 249, 245, 0.09);
+  --auth-left-surface: rgba(250, 249, 245, 0.055);
+  --auth-right-bg: #f7f3ec;
   width: min(1080px, 100%);
   display: grid;
   grid-template-columns: minmax(0, 1.02fr) minmax(390px, 0.98fr);
   overflow: hidden;
-  border: 1px solid var(--app-border);
+  border: 1px solid #e8ded2;
   border-radius: var(--app-radius-xl);
-  background: var(--app-surface);
+  background: var(--auth-right-bg);
   box-shadow: var(--app-shadow-xl);
 }
 
@@ -319,7 +323,7 @@ onUnmounted(() => {
   overflow: hidden;
   padding: clamp(38px, 5vw, 62px);
   color: var(--app-on-dark);
-  background: var(--app-dark);
+  background: var(--auth-left-bg);
 }
 
 .brand-panel::before {
@@ -336,23 +340,6 @@ onUnmounted(() => {
     linear-gradient(-45deg, transparent 47%, var(--app-text) 48%, var(--app-text) 52%, transparent 53%) center / 24px 24px no-repeat,
     var(--app-surface);
   content: '';
-}
-
-.brand-panel::after {
-  position: absolute;
-  right: 38px;
-  bottom: 42px;
-  width: 210px;
-  height: 150px;
-  border: 1px solid var(--app-dark-elevated);
-  border-radius: var(--app-radius-lg);
-  background:
-    linear-gradient(90deg, var(--app-primary) 0 22%, transparent 22% 100%) 24px 36px / 120px 10px no-repeat,
-    linear-gradient(90deg, var(--app-on-dark-soft) 0 72%, transparent 72% 100%) 24px 58px / 150px 8px no-repeat,
-    linear-gradient(90deg, var(--app-on-dark-soft) 0 52%, transparent 52% 100%) 24px 78px / 150px 8px no-repeat,
-    var(--app-dark-soft);
-  content: '';
-  opacity: 0.8;
 }
 
 .brand-panel > * {
@@ -394,9 +381,9 @@ onUnmounted(() => {
 
 .feature-card {
   padding: 17px 18px;
-  border: 1px solid var(--app-dark-elevated);
+  border: 1px solid var(--auth-left-border);
   border-radius: var(--app-radius-lg);
-  background: var(--app-dark-soft);
+  background: var(--auth-left-surface);
   box-shadow: none;
 }
 
@@ -421,7 +408,7 @@ onUnmounted(() => {
   border: none;
   border-left: 1px solid var(--app-border);
   border-radius: 0;
-  background: var(--app-surface);
+  background: var(--auth-right-bg);
   box-shadow: none;
 }
 

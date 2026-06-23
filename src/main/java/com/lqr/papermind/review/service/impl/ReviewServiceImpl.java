@@ -1306,7 +1306,10 @@ public class ReviewServiceImpl implements ReviewService {
         Map<String, Integer> weightMap = new LinkedHashMap<>();
         if (criteria != null) {
             for (ReviewCriterionResponse c : criteria) {
-                weightMap.put(c.code(), c.weight());
+                String code = normalizeScoreCode(c.code());
+                if (!code.isEmpty()) {
+                    weightMap.put(code, c.weight());
+                }
             }
         }
         double weightedSum = 0.0;
@@ -1317,10 +1320,10 @@ public class ReviewServiceImpl implements ReviewService {
                 if (score == null) {
                     continue;
                 }
-                Object code = map.get("code");
+                String code = normalizeScoreCode(map.get("code"));
                 int weight = 1; // default weight if no matching criterion
-                if (code != null && weightMap.containsKey(String.valueOf(code))) {
-                    weight = weightMap.get(String.valueOf(code));
+                if (!code.isEmpty() && weightMap.containsKey(code)) {
+                    weight = weightMap.get(code);
                 }
                 weightedSum += score * weight;
                 totalWeight += weight;
@@ -1340,6 +1343,13 @@ public class ReviewServiceImpl implements ReviewService {
      */
     private int calculateTotalScore(Object scores) {
         return calculateTotalScore(scores, null);
+    }
+
+    private String normalizeScoreCode(Object code) {
+        if (code == null) {
+            return "";
+        }
+        return String.valueOf(code).trim().toUpperCase();
     }
 
     /**

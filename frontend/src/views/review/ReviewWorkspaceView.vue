@@ -78,7 +78,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <MainLayout class="review-page">
+  <MainLayout class="review-page paper-mind-review-shell">
     <PageHeader
       eyebrow="Review Workspace"
       title="论文辅助评审工作台"
@@ -224,14 +224,14 @@ onMounted(async () => {
 .review-page {
   gap: 24px;
   padding: 28px;
-  background: var(--app-bg);
+  background: var(--claude-canvas);
 }
 
 .review-page :deep([class~="page-header"]) {
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
-  padding: 32px;
-  background: var(--app-surface);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
   box-shadow: none;
 }
 
@@ -262,24 +262,11 @@ onMounted(async () => {
   border-radius: var(--app-radius-sm);
 }
 
-.review-page :deep([class~="el-tabs__item"]) {
-  color: var(--app-text-muted);
-  font-weight: 600;
-}
-
-.review-page :deep([class~="el-tabs__item"][class~="is-active"]) {
-  color: var(--app-primary);
-}
-
-.review-page :deep([class~="el-tabs__active-bar"]) {
-  background: var(--app-primary);
-}
-
 .review-page .app-card,
 .review-detail {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  background: var(--app-surface);
+  background: var(--claude-canvas);
 }
 
 .stats-bar {
@@ -353,13 +340,13 @@ onMounted(async () => {
 
 .review-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: minmax(300px, 348px) minmax(0, 1fr);
+  gap: 20px;
   min-height: 640px;
 }
 
 .review-detail {
-  padding: 28px;
+  padding: 24px;
 }
 
 .detail-header {

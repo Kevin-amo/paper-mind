@@ -12,13 +12,11 @@ import com.lqr.papermind.review.entity.ReviewReportEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
 import com.lqr.papermind.review.mapper.ReviewConsensusMapper;
-import com.lqr.papermind.review.mapper.ReviewCriterionMapper;
 import com.lqr.papermind.review.mapper.ReviewGroupMapper;
 import com.lqr.papermind.review.mapper.ReviewReportMapper;
 import com.lqr.papermind.review.mapper.ReviewTaskMapper;
 import com.lqr.papermind.review.model.ReviewConsensusStatuses;
 import com.lqr.papermind.review.model.ReviewTaskStatuses;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.web.server.ResponseStatusException;
@@ -42,7 +40,6 @@ class ReviewConsensusServiceImplTest {
     private final ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
     private final ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
     private final ReviewGroupMapper groupMapper = mock(ReviewGroupMapper.class);
-    private final ReviewCriterionMapper criterionMapper = mock(ReviewCriterionMapper.class);
     private final SysUserMapper userMapper = mock(SysUserMapper.class);
     private final ReviewConsensusServiceImpl service = new ReviewConsensusServiceImpl(
             consensusMapper,
@@ -50,15 +47,9 @@ class ReviewConsensusServiceImplTest {
             assignmentMapper,
             taskMapper,
             groupMapper,
-            criterionMapper,
             userMapper,
             new ConsensusCalculator()
     );
-
-    @BeforeEach
-    void setUp() {
-        when(criterionMapper.selectList(any())).thenReturn(List.of());
-    }
 
     @Test
     void recalculateShouldCreateDraftConsensusWithAverageScore() {
@@ -421,6 +412,34 @@ class ReviewConsensusServiceImplTest {
     }
 
     @Test
+    void recalculateForLeaderShouldAverageSubmittedReportTotals() {
+        UUID taskId = UUID.randomUUID();
+        UUID groupId = UUID.randomUUID();
+        UUID leaderUserId = UUID.randomUUID();
+        UUID reviewerA = UUID.randomUUID();
+        UUID reviewerB = UUID.randomUUID();
+        when(taskMapper.selectById(taskId)).thenReturn(task(taskId, groupId, leaderUserId));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, leaderUserId, "ACTIVE"));
+        when(consensusMapper.selectByTaskId(taskId)).thenReturn(null);
+        when(reportMapper.selectSubmittedActiveAssignmentReportsByTaskId(taskId)).thenReturn(List.of(
+                report(taskId, reviewerA, 80, "A", List.of(
+                        Map.of("code", "POLICY", "score", 100),
+                        Map.of("code", "REFERENCE", "score", 0)
+                )),
+                report(taskId, reviewerB, 90, "B", List.of(
+                        Map.of("code", "POLICY", "score", 0),
+                        Map.of("code", "REFERENCE", "score", 100)
+                ))
+        ));
+        markAllSubmitted(taskId, 2L);
+
+        ReviewConsensusResponse response = service.recalculateForLeader(leaderUserId, groupId, taskId);
+
+        assertThat(response.finalScore()).isEqualTo(85);
+        verify(consensusMapper).insert(any(ReviewConsensusEntity.class));
+    }
+
+    @Test
     void updateForLeaderShouldRejectNonLeader() {
         UUID taskId = UUID.randomUUID();
         UUID groupId = UUID.randomUUID();
@@ -472,6 +491,10 @@ class ReviewConsensusServiceImplTest {
     }
 
     private ReviewReportEntity report(UUID taskId, UUID reviewerUserId, int totalScore, String recommendation) {
+        return report(taskId, reviewerUserId, totalScore, recommendation, null);
+    }
+
+    private ReviewReportEntity report(UUID taskId, UUID reviewerUserId, int totalScore, String recommendation, Object scores) {
         ReviewReportEntity report = new ReviewReportEntity();
         report.setId(UUID.randomUUID());
         report.setTaskId(taskId);
@@ -479,6 +502,7 @@ class ReviewConsensusServiceImplTest {
         report.setReviewerUserId(reviewerUserId);
         report.setTotalScore(totalScore);
         report.setFinalRecommendation(recommendation);
+        report.setScores(scores);
         report.setStatus("CONFIRMED");
         return report;
     }

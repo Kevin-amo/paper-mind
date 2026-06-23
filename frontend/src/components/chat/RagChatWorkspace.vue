@@ -34,7 +34,7 @@ function handleExample(question: string) {
 </script>
 
 <template>
-  <main class="rag-workspace">
+  <main class="rag-workspace claude-chat-main">
     <ChatDropZone @drop-files="emit('dropFiles', $event)">
       <ChatMessageList
         :messages="props.messages"
@@ -67,8 +67,8 @@ function handleExample(question: string) {
   flex: 1;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border: 0;
+  border-radius: 0;
   background: var(--app-surface);
   box-shadow: none;
 }
@@ -77,7 +77,7 @@ function handleExample(question: string) {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: linear-gradient(180deg, var(--app-surface), var(--app-surface-strong));
+  background: var(--app-surface);
   content: '';
   pointer-events: none;
 }
@@ -91,7 +91,6 @@ function handleExample(question: string) {
   .rag-workspace {
     height: auto;
     min-height: 70vh;
-    border-radius: var(--app-radius-lg);
   }
 }
 </style>

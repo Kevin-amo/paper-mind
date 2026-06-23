@@ -114,6 +114,31 @@ class ReviewServiceImplWeightedScoreTest {
         assertThat(result).isEqualTo(90);
     }
 
+    @Test
+    void calculateTotalScoreWithSixDimensionWeightsShouldNormalizeCodes() throws Exception {
+        ReviewServiceImpl service = createMinimalService();
+        List<Map<String, Object>> scores = List.of(
+                Map.of("code", " policy ", "score", 100),
+                Map.of("code", "MATCH", "score", 95),
+                Map.of("code", "Innovation", "score", 75),
+                Map.of("code", "logic", "score", 90),
+                Map.of("code", "language", "score", 85),
+                Map.of("code", "REFERENCE", "score", 60)
+        );
+        List<ReviewCriterionResponse> criteria = List.of(
+                criterion("POLICY", 20),
+                criterion("MATCH", 20),
+                criterion("INNOVATION", 20),
+                criterion("LOGIC", 15),
+                criterion("LANGUAGE", 15),
+                criterion("REFERENCE", 10)
+        );
+
+        int result = invokeCalculateTotalScore(service, scores, criteria);
+
+        assertThat(result).isEqualTo(86);
+    }
+
     private ReviewServiceImpl createMinimalService() {
         // Use the constructor that accepts ReviewOutputParser and ReferenceFormatChecker
         try {
