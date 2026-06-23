@@ -56,7 +56,7 @@ defineExpose({ fillQuestion });
 </script>
 
 <template>
-  <section class="chat-composer">
+  <section class="chat-composer claude-floating-composer">
     <div class="composer-box">
       <el-input
         v-model="question"
@@ -69,16 +69,15 @@ defineExpose({ fillQuestion });
       <div class="composer-actions">
         <div class="composer-left-actions">
           <el-button
-            class="composer-pill upload-pill"
+            class="composer-icon-button"
             text
             :icon="Plus"
             title="上传论文"
+            aria-label="上传论文"
             @click="emit('selectFiles')"
-          >
-            上传
-          </el-button>
+          />
           <el-button class="composer-pill" text :icon="Setting" @click="advancedVisible = true">
-            高级设置 · Top K {{ topK }}
+            Top K {{ topK }}
           </el-button>
         </div>
         <el-button
@@ -93,6 +92,8 @@ defineExpose({ fillQuestion });
         />
       </div>
     </div>
+
+    <p class="composer-hint">PaperMind may make mistakes. Please double-check generated research claims.</p>
 
     <el-dialog v-model="advancedVisible" title="高级设置" width="420px" class="advanced-dialog claude-workspace-dialog" append-to-body align-center>
       <div class="advanced-setting-card">
@@ -129,52 +130,42 @@ defineExpose({ fillQuestion });
   position: sticky;
   bottom: 0;
   z-index: 5;
-  padding: 0 0 20px;
-  background: linear-gradient(180deg, rgba(250, 249, 245, 0), rgba(250, 249, 245, 0.84) 46%, var(--app-bg));
+  padding: 0 0 14px;
+  background: linear-gradient(180deg, rgba(250, 249, 245, 0), rgba(250, 249, 245, 0.86) 42%, var(--app-bg));
 }
 
 .composer-box {
   display: grid;
   gap: 10px;
-  width: min(960px, calc(100% - 48px));
+  width: min(940px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 18px 18px 14px;
-  border: 0;
+  padding: 20px 20px 14px;
+  border: 1px solid var(--app-border);
   border-radius: 24px;
   background: var(--app-surface);
-  box-shadow: none;
+  box-shadow: 0 14px 36px rgba(20, 20, 19, 0.08);
 }
 
-.composer-box :deep([class~="el-textarea__inner"]) {
+.composer-box :deep(.el-textarea__inner) {
   min-height: 56px !important;
   border: 0 !important;
-  background: transparent;
+  background: transparent !important;
   box-shadow: none !important;
   color: var(--app-text);
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.7;
-  padding: 2px 4px;
+  padding: 2px 6px;
   outline: none !important;
   resize: none;
-  -webkit-appearance: none;
 }
 
-.composer-box :deep([class~="el-textarea__inner"]:focus) {
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.composer-box :deep([class~="el-textarea__inner"]:focus-visible) {
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.composer-box :deep([class~="el-textarea__inner"]:hover) {
+.composer-box :deep(.el-textarea__inner:focus),
+.composer-box :deep(.el-textarea__inner:hover) {
   border: 0 !important;
   box-shadow: none !important;
 }
 
-.composer-box :deep([class~="el-textarea__inner"]::placeholder) {
+.composer-box :deep(.el-textarea__inner::placeholder) {
   color: var(--app-text-subtle);
 }
 
@@ -192,18 +183,26 @@ defineExpose({ fillQuestion });
   gap: 8px;
 }
 
+.composer-icon-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--app-text);
+}
+
 .composer-pill {
-  height: 30px;
-  padding: 0 10px;
+  height: 34px;
+  padding: 0 12px;
   border: 1px solid var(--app-border);
   border-radius: 999px;
   background: var(--app-surface-soft);
   color: var(--app-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 
-.composer-pill:hover {
+.composer-pill:hover,
+.composer-icon-button:hover {
   border-color: var(--app-border-strong);
   background: var(--app-surface-muted);
   color: var(--app-primary);
@@ -223,11 +222,19 @@ defineExpose({ fillQuestion });
   box-shadow: none;
 }
 
-.send-button[class~="is-disabled"],
-.send-button[class~="is-disabled"]:hover {
+.send-button.is-disabled,
+.send-button.is-disabled:hover {
   background: var(--app-border);
   color: var(--app-text-muted);
   box-shadow: none;
+}
+
+.composer-hint {
+  width: min(940px, calc(100% - 48px));
+  margin: 8px auto 0;
+  color: var(--app-text-muted);
+  font-size: 12px;
+  text-align: center;
 }
 
 .advanced-setting-card {
@@ -237,14 +244,6 @@ defineExpose({ fillQuestion });
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   background: var(--app-surface-soft);
-  box-shadow: none;
-}
-
-.advanced-setting-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
 }
 
 .advanced-setting-header strong,
@@ -279,7 +278,6 @@ defineExpose({ fillQuestion });
   cursor: pointer;
   font: inherit;
   font-weight: 500;
-  transition: all 0.16s ease;
 }
 
 .topk-option:hover {
@@ -291,16 +289,15 @@ defineExpose({ fillQuestion });
   border-color: rgba(204, 120, 92, 0.32);
   background: var(--app-primary-soft);
   color: var(--app-primary);
-  box-shadow: none;
 }
 
-:global([class~="advanced-dialog"] [class~="el-dialog"]) {
+:global(.advanced-dialog .el-dialog) {
   border-radius: 26px;
 }
 
-:global([class~="advanced-dialog"] [class~="el-dialog__title"]) {
+:global(.advanced-dialog .el-dialog__title) {
   color: var(--app-text);
-  font-weight: 850;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
@@ -308,11 +305,15 @@ defineExpose({ fillQuestion });
     padding-bottom: 12px;
   }
 
-  .composer-box {
+  .composer-box,
+  .composer-hint {
     width: calc(100% - 24px);
+  }
+
+  .composer-box {
     border-radius: var(--app-radius-lg);
   }
- 
+
   .composer-actions {
     align-items: flex-end;
   }
@@ -321,7 +322,7 @@ defineExpose({ fillQuestion });
     grid-template-columns: repeat(5, minmax(42px, 1fr));
   }
 
-  :global([class~="advanced-dialog"]) {
+  :global(.advanced-dialog) {
     width: calc(100% - 28px) !important;
   }
 }

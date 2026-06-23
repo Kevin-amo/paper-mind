@@ -187,41 +187,44 @@ function conversationTitle(conversation: Conversation) {
 </script>
 
 <template>
-  <aside class="chat-sidebar">
-    <div class="brand-block">
-      <div class="brand-mark">P</div>
-      <div>
+  <aside class="chat-sidebar claude-chat-sidebar paper-mind-workspace-panel">
+    <div class="sidebar-brand">
+      <button class="brand-mark" type="button" @click="emit('createConversation')">
+        <span aria-hidden="true">P</span>
+      </button>
+      <div class="brand-copy">
         <strong>PaperMind</strong>
         <span>论文智能助手</span>
       </div>
     </div>
 
-    <el-button class="new-chat-button" type="primary" size="large" :icon="Plus" @click="emit('createConversation')">
-      新聊天
-    </el-button>
+    <button class="new-chat-button" type="button" @click="emit('createConversation')">
+      <el-icon><Plus /></el-icon>
+      <span>新对话</span>
+    </button>
 
     <nav class="sidebar-nav">
       <button class="nav-item active" type="button">
         <el-icon><ChatDotRound /></el-icon>
-        <span>问答会话</span>
+        <span>Chats</span>
       </button>
       <button class="nav-item" type="button" @click="emit('openDocuments')">
         <el-icon><Collection /></el-icon>
-        <span>文档库</span>
+        <span>Documents</span>
       </button>
       <button class="nav-item" type="button" @click="emit('openReviewSubmissions')">
         <el-icon><DocumentAdd /></el-icon>
-        <span>我的投稿</span>
+        <span>Submissions</span>
       </button>
       <button v-if="props.isAdmin" class="nav-item" type="button" @click="emit('goAdmin')">
         <el-icon><Setting /></el-icon>
-        <span>管理后台</span>
+        <span>Admin</span>
       </button>
     </nav>
 
     <section class="conversation-section">
       <div class="section-title">
-        <span>最近会话</span>
+        <span>历史会话</span>
       </div>
 
       <div v-loading="props.conversationsLoading" class="conversation-list">
@@ -290,7 +293,7 @@ function conversationTitle(conversation: Conversation) {
     </section>
 
     <footer class="user-footer">
-      <button class="user-avatar" type="button" title="账号管理" @click="emit('openAccountManagement')">
+      <button class="user-avatar" type="button" title="账户管理" @click="emit('openAccountManagement')">
         <img v-if="props.currentUserAvatarUrl" :src="props.currentUserAvatarUrl" alt="用户头像">
         <el-icon v-else><User /></el-icon>
       </button>
@@ -347,81 +350,69 @@ function conversationTitle(conversation: Conversation) {
 
 <style scoped>
 .chat-sidebar {
-  width: 306px;
-  min-width: 306px;
-  height: calc(100vh - 36px);
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  overflow: hidden;
+  gap: 16px;
+  min-width: 0;
+  height: calc(100vh - 36px);
   padding: 18px 14px;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
+  overflow: hidden;
   background: var(--app-surface);
-  box-shadow: none;
 }
 
-.brand-block {
+.sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 2px 8px 8px;
+  gap: 12px;
+  padding: 4px 8px 10px;
 }
 
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  color: transparent;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--app-border);
+  border-radius: 50%;
   background:
-    linear-gradient(var(--app-text), var(--app-text)) center / 2px 20px no-repeat,
-    linear-gradient(90deg, var(--app-text), var(--app-text)) center / 20px 2px no-repeat,
-    linear-gradient(45deg, transparent 46%, var(--app-text) 47%, var(--app-text) 53%, transparent 54%) center / 20px 20px no-repeat,
-    linear-gradient(-45deg, transparent 46%, var(--app-text) 47%, var(--app-text) 53%, transparent 54%) center / 20px 20px no-repeat,
-    var(--app-surface-soft);
-  font-size: 0;
-  box-shadow: none;
+    linear-gradient(var(--app-text), var(--app-text)) center / 2px 22px no-repeat,
+    linear-gradient(90deg, var(--app-text), var(--app-text)) center / 22px 2px no-repeat,
+    linear-gradient(45deg, transparent 46%, var(--app-text) 47%, var(--app-text) 53%, transparent 54%) center / 22px 22px no-repeat,
+    linear-gradient(-45deg, transparent 46%, var(--app-text) 47%, var(--app-text) 53%, transparent 54%) center / 22px 22px no-repeat,
+    var(--app-surface);
+  color: transparent;
+  cursor: pointer;
 }
 
-.brand-block strong,
+.brand-copy strong,
 .user-meta strong {
   display: block;
   color: var(--app-text);
-  line-height: 1.2;
+  font-size: 18px;
+  font-weight: 500;
 }
 
-.brand-block strong {
-  font-size: 15px;
-}
-
-.brand-block span,
-.user-meta span {
+.brand-copy span {
   display: block;
-  margin-top: 3px;
+  margin-top: 2px;
   color: var(--app-text-muted);
   font-size: 12px;
 }
 
 .new-chat-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
   height: 46px;
-  justify-content: center;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-md);
   background: var(--app-surface-soft);
   color: var(--app-text);
+  cursor: pointer;
+  font-size: 14px;
   font-weight: 500;
-  box-shadow: none;
-}
-
-.new-chat-button:hover,
-.new-chat-button:focus {
-  border-color: var(--app-primary);
-  background: var(--app-surface-muted);
-  color: var(--app-text);
-  box-shadow: none;
 }
 
 .sidebar-nav {
@@ -430,7 +421,6 @@ function conversationTitle(conversation: Conversation) {
 }
 
 .nav-item {
-  width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -441,21 +431,19 @@ function conversationTitle(conversation: Conversation) {
   color: var(--app-text-muted);
   cursor: pointer;
   text-align: left;
-  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
 }
 
-.nav-item:hover,
-.nav-item.active {
+.nav-item.active,
+.nav-item:hover {
   border-color: var(--app-border);
   background: var(--app-surface-soft);
-  box-shadow: none;
   color: var(--app-text);
 }
 
 .conversation-section {
-  min-height: 0;
   display: flex;
   flex: 1;
+  min-height: 0;
   flex-direction: column;
   gap: 8px;
 }
@@ -465,18 +453,20 @@ function conversationTitle(conversation: Conversation) {
   align-items: center;
   justify-content: space-between;
   padding: 6px 8px 0;
-  color: var(--app-text-subtle);
+  color: var(--app-text-muted);
   font-size: 12px;
   font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .conversation-list {
-  min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
   padding-right: 2px;
 }
 
@@ -489,12 +479,11 @@ function conversationTitle(conversation: Conversation) {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 2px;
-  min-height: 40px;
+  min-height: 42px;
   padding: 4px 5px 4px 10px;
   border: 1px solid transparent;
   border-radius: var(--app-radius-md);
   background: transparent;
-  transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
 }
 
 .conversation-item:hover {
@@ -503,9 +492,8 @@ function conversationTitle(conversation: Conversation) {
 }
 
 .conversation-item.active {
-  border-color: rgba(204, 120, 92, 0.24);
-  background: rgba(204, 120, 92, 0.1);
-  box-shadow: none;
+  border-color: var(--app-primary);
+  background: var(--app-primary-soft);
 }
 
 .conversation-select {
@@ -557,8 +545,8 @@ function conversationTitle(conversation: Conversation) {
   place-items: center;
   width: 20px;
   height: 20px;
-  border-radius: 999px;
-  background: rgba(204, 120, 92, 0.18);
+  border-radius: 50%;
+  background: var(--app-primary-soft);
   color: var(--app-primary);
   font-size: 12px;
   line-height: 1;
@@ -744,45 +732,6 @@ function conversationTitle(conversation: Conversation) {
   transition: background var(--app-transition-fast), border-color var(--app-transition-fast);
 }
 
-.logout-confirm-footer .logout-confirm-button:hover,
-.logout-confirm-footer .logout-confirm-button:focus {
-  transform: none;
-  box-shadow: none;
-}
-
-.logout-confirm-footer .logout-confirm-button:active {
-  transform: none;
-  box-shadow: none;
-}
-
-@media (max-width: 640px) {
-  .logout-confirm-dialog :deep(.el-dialog__body) {
-    padding: 28px 22px 20px;
-  }
-
-  .logout-confirm-dialog :deep(.el-dialog__footer) {
-    padding: 0 22px 22px;
-  }
-
-  .logout-confirm-title {
-    font-size: 17px;
-  }
-
-  .logout-confirm-desc {
-    font-size: 13px;
-  }
-
-  .logout-confirm-footer {
-    flex-direction: column-reverse;
-    gap: 10px;
-  }
-
-  .logout-confirm-footer :deep(.el-button) {
-    width: 100%;
-    min-width: 0;
-  }
-}
-
 .user-footer {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto;
@@ -793,7 +742,6 @@ function conversationTitle(conversation: Conversation) {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   background: var(--app-surface-soft);
-  box-shadow: none;
 }
 
 .user-avatar {
@@ -803,7 +751,7 @@ function conversationTitle(conversation: Conversation) {
   height: 38px;
   overflow: hidden;
   border: 0;
-  border-radius: 999px;
+  border-radius: 50%;
   color: var(--app-primary);
   background: rgba(204, 120, 92, 0.14);
   cursor: pointer;
@@ -814,10 +762,6 @@ function conversationTitle(conversation: Conversation) {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.user-avatar:hover {
-  box-shadow: var(--app-shadow-focus);
 }
 
 .user-meta {
@@ -842,7 +786,6 @@ function conversationTitle(conversation: Conversation) {
 @media (max-width: 900px) {
   .chat-sidebar {
     width: 100%;
-    min-width: 0;
     height: auto;
     max-height: 46vh;
     border-radius: 26px;

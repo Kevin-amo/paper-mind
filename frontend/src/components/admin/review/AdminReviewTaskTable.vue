@@ -70,8 +70,8 @@ function canDispatch(task: AdminReviewTaskSummary) {
     <el-table-column label="操作" width="120" fixed="right" align="center">
       <template #default="{ row }">
         <div class="task-actions">
-          <el-button text type="primary" size="small" @click="emit('open', row)">详情</el-button>
-          <el-button v-if="canDispatch(row)" text type="primary" size="small" @click="emit('dispatch', row)">派发小组</el-button>
+          <el-button size="small" class="task-action-button detail-button" @click="emit('open', row)">详情</el-button>
+          <el-button v-if="canDispatch(row)" size="small" class="task-action-button dispatch-button" @click="emit('dispatch', row)">分配</el-button>
         </div>
       </template>
     </el-table-column>
@@ -102,7 +102,32 @@ function canDispatch(task: AdminReviewTaskSummary) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: nowrap;
   gap: 6px;
   width: 100%;
+}
+
+.task-action-button {
+  min-width: 52px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.detail-button {
+  --el-button-bg-color: var(--app-surface);
+  --el-button-border-color: var(--app-border);
+  --el-button-text-color: var(--app-text);
+}
+
+.dispatch-button {
+  --el-button-bg-color: var(--app-primary-soft);
+  --el-button-border-color: rgba(204, 120, 92, 0.26);
+  --el-button-text-color: var(--app-primary);
+  --el-button-hover-bg-color: rgba(204, 120, 92, 0.16);
+  --el-button-hover-border-color: rgba(204, 120, 92, 0.4);
+  --el-button-hover-text-color: var(--app-primary-active);
 }
 </style>

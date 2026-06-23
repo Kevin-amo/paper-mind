@@ -35,8 +35,8 @@ const scrollSignal = computed(() => {
 });
 
 const emptyContent = computed(() => ({
-  title: '开始使用论文超级助手',
-  description: '你可以让它检索本地论文、搜索外部文献，并综合分析研究趋势、方法差异和后续方向。',
+  title: '开始一段新的论文对话',
+  description: '你可以让它概括论文、搜索外部文献、梳理研究趋势、比较方法差异，或者继续追问前一轮结果。',
   examples: [
     '请总结我上传论文中的核心研究问题和主要贡献',
     '帮我找 Graph RAG 最新论文，并结合我的知识库总结趋势',
@@ -108,7 +108,7 @@ watch(
   <div
     ref="listRef"
     v-loading="props.loading && !props.messages.some((message) => message.streaming)"
-    class="message-list"
+    class="message-list claude-message-column"
     :class="{ 'is-empty': !props.messages.length }"
   >
     <EmptyState
@@ -178,13 +178,13 @@ watch(
 
 <style scoped>
 .message-list {
-  min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 22px;
-  padding: clamp(24px, 4vw, 44px) 0 154px;
+  gap: 24px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: clamp(28px, 4vw, 48px) 0 168px;
   background: transparent;
   scrollbar-color: rgba(204, 120, 92, 0.32) transparent;
 }
@@ -193,22 +193,21 @@ watch(
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: 48px 0 64px;
+  padding: 42px 0 72px;
 }
 
-.message-list.is-empty :deep([class~="empty-state"]) {
-  width: min(820px, calc(100% - 48px));
-  min-height: 230px;
+.message-list.is-empty :deep(.empty-state) {
+  width: min(760px, calc(100% - 48px));
+  min-height: 220px;
   border-color: var(--app-border);
   background: var(--app-surface-soft);
-  box-shadow: none;
 }
 
-.message-list.is-empty :deep([class~="empty-state"] p) {
+.message-list.is-empty :deep(.empty-state p) {
   max-width: 560px;
 }
 
-.message-list.is-empty :deep([class~="empty-icon"]) {
+.message-list.is-empty :deep(.empty-icon) {
   background: var(--app-primary-soft);
 }
 
@@ -229,13 +228,10 @@ watch(
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: none;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
 }
 
 .example-prompts button:hover {
   border-color: var(--app-primary);
-  box-shadow: var(--app-shadow-sm);
   color: var(--app-primary);
 }
 
@@ -243,7 +239,7 @@ watch(
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 10px;
-  width: min(910px, calc(100% - 48px));
+  width: min(860px, calc(100% - 48px));
   margin-inline: auto;
   animation: message-in 0.2s ease both;
 }
@@ -262,11 +258,9 @@ watch(
 
 .from-user .message-body {
   justify-self: end;
-  max-width: 72%;
-  border-color: rgba(204, 120, 92, 0.26);
+  max-width: 74%;
+  border-color: rgba(204, 120, 92, 0.22);
   background: var(--app-primary-soft);
-  color: var(--app-text);
-  box-shadow: none;
 }
 
 .from-assistant .message-body {
@@ -274,7 +268,8 @@ watch(
   max-width: 100%;
   border-color: transparent;
   background: transparent;
-  box-shadow: none;
+  padding: 6px 4px;
+  border-radius: 0;
 }
 
 .message-avatar {
@@ -288,11 +283,6 @@ watch(
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   background: var(--app-surface);
-}
-
-.from-assistant .message-body {
-  padding: 6px 4px;
-  border-radius: 0;
 }
 
 .message-content {
@@ -392,7 +382,6 @@ watch(
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   background: var(--app-surface-soft);
-  box-shadow: none;
 }
 
 .agent-steps details {
@@ -462,7 +451,7 @@ watch(
 
 @media (max-width: 640px) {
   .message-list {
-    padding-bottom: 178px;
+    padding-bottom: 188px;
   }
 
   .message-row,

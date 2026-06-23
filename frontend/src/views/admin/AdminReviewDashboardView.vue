@@ -79,7 +79,7 @@ onMounted(async () => {
 
 <template>
   <AdminShell :active="activeTab" :title="activeSectionTitle">
-    <section class="summary-grid">
+    <section v-if="activeTab === 'tasks'" class="summary-grid">
       <div
         class="summary-card animate slide-up"
         v-animate="{ type: 'slide-up', delay: '0ms', duration: '0.6s' }"
@@ -131,7 +131,7 @@ onMounted(async () => {
     </section>
 
     <section
-      class="dashboard-card animate fade-in"
+      class="paper-mind-workspace-card review-dashboard-panel animate fade-in"
       v-animate="{ type: 'fade-in', delay: '0.1s', duration: '0.6s' }"
     >
       <div v-if="activeTab === 'config'">
@@ -280,11 +280,11 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.dashboard-card {
+.review-dashboard-panel {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   padding: 24px;
-  background: var(--app-surface);
+  background: var(--claude-canvas);
 }
 
 .section-header {

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -318,7 +318,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <MainLayout class="leader-page">
+  <MainLayout class="leader-page paper-mind-leader-shell">
     <PageHeader
       eyebrow="Review Leader"
       title="评审组长工作台"
@@ -424,30 +424,30 @@ onMounted(async () => {
           <el-table-column label="截止时间" width="160">
             <template #default="{ row }">{{ formatDate(row.dueAt) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="260" fixed="right">
+          <el-table-column label="操作" width="280" fixed="right">
             <template #default="{ row }">
-              <el-button size="small" @click.stop="loadTaskDetail(row.id)">详情</el-button>
-              <el-button size="small" type="primary" :disabled="!isUnassignedTask(row)" @click.stop="openAssignDialog(row)">
-                分配
-              </el-button>
-              <el-button
-                v-if="hasJoinedReview(row)"
-                size="small"
-                type="success"
-                plain
-                @click.stop="router.push('/review')"
-              >
-                去评审
-              </el-button>
-              <el-button
-                v-else
-                size="small"
-                :loading="isJoiningTask(row.id)"
-                :disabled="!canJoinReview(row)"
-                @click.stop="joinReview(row)"
-              >
-                加入评审
-              </el-button>
+              <div class="leader-action-group">
+                <el-button size="small" class="leader-action-button detail-button" @click.stop="loadTaskDetail(row.id)">详情</el-button>
+                <el-button size="small" class="leader-action-button assign-button" :disabled="!isUnassignedTask(row)" @click.stop="openAssignDialog(row)">分配</el-button>
+                <el-button
+                  v-if="hasJoinedReview(row)"
+                  size="small"
+                  class="leader-action-button join-button"
+                  @click.stop="router.push('/review')"
+                >
+                  去评审
+                </el-button>
+                <el-button
+                  v-else
+                  size="small"
+                  class="leader-action-button join-button"
+                  :loading="isJoiningTask(row.id)"
+                  :disabled="!canJoinReview(row)"
+                  @click.stop="joinReview(row)"
+                >
+                  加入评审
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -501,7 +501,7 @@ onMounted(async () => {
         </div>
 
         <div class="consensus-actions">
-          <el-button type="primary" size="small" :loading="consensusRecalculating" :disabled="consensus?.status === 'CONFIRMED'" @click="recalculateConsensus">
+          <el-button class="leader-action-button recalculate-button" size="small" :loading="consensusRecalculating" :disabled="consensus?.status === 'CONFIRMED'" @click="recalculateConsensus">
             重新计算共识
           </el-button>
         </div>
@@ -516,10 +516,10 @@ onMounted(async () => {
         </el-form>
 
         <div class="consensus-footer">
-          <el-button :loading="consensusSaving" :disabled="!consensus || consensus.status === 'CONFIRMED'" @click="saveConsensus">
+          <el-button class="leader-action-button subtle-button" :loading="consensusSaving" :disabled="!consensus || consensus.status === 'CONFIRMED'" @click="saveConsensus">
             保存最终评分
           </el-button>
-          <el-button type="success" :loading="consensusConfirming" :disabled="!consensus || consensus.status === 'CONFIRMED'" @click="confirmConsensus">
+          <el-button class="leader-action-button confirm-button" :loading="consensusConfirming" :disabled="!consensus || consensus.status === 'CONFIRMED'" @click="confirmConsensus">
             确认最终评分
           </el-button>
         </div>
@@ -564,14 +564,14 @@ onMounted(async () => {
 .leader-page {
   gap: 24px;
   padding: 28px;
-  background: var(--app-bg);
+  background: var(--claude-canvas);
 }
 
 .leader-page :deep([class~="page-header"]) {
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
-  padding: 32px;
-  background: var(--app-surface);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .leader-page :deep([class~="page-eyebrow"]) {
@@ -590,6 +590,85 @@ onMounted(async () => {
 
 .leader-page :deep([class~="el-button"]) {
   border-radius: var(--app-radius-sm);
+}
+
+.leader-action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.leader-action-button {
+  min-width: 48px;
+  height: 30px;
+  padding: 0 9px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.assign-button {
+  --el-button-bg-color: var(--app-primary-soft);
+  --el-button-border-color: rgba(204, 120, 92, 0.26);
+  --el-button-text-color: var(--app-primary);
+  --el-button-hover-bg-color: rgba(204, 120, 92, 0.16);
+  --el-button-hover-border-color: rgba(204, 120, 92, 0.4);
+  --el-button-hover-text-color: var(--app-primary-active);
+}
+
+.join-button {
+  --el-button-bg-color: var(--app-surface-soft);
+  --el-button-border-color: var(--app-border);
+  --el-button-text-color: var(--app-text);
+  --el-button-hover-bg-color: var(--app-surface-muted);
+  --el-button-hover-border-color: var(--app-primary);
+  --el-button-hover-text-color: var(--app-primary-active);
+}
+
+.recalculate-button {
+  min-width: 112px;
+  --el-button-bg-color: var(--app-primary-soft);
+  --el-button-border-color: rgba(204, 120, 92, 0.26);
+  --el-button-text-color: var(--app-primary);
+  --el-button-hover-bg-color: var(--app-primary-soft-hover);
+  --el-button-hover-border-color: rgba(204, 120, 92, 0.4);
+  --el-button-hover-text-color: var(--app-primary-active);
+}
+
+.leader-page :deep(.recalculate-button.is-disabled),
+.leader-page :deep(.recalculate-button.is-disabled:hover) {
+  --el-button-disabled-bg-color: var(--app-surface-muted);
+  --el-button-disabled-border-color: var(--app-border);
+  --el-button-disabled-text-color: var(--app-text-subtle);
+}
+
+.confirm-button {
+  --el-button-bg-color: var(--app-primary);
+  --el-button-border-color: var(--app-primary);
+  --el-button-text-color: var(--app-text-on-primary);
+  --el-button-hover-bg-color: var(--app-primary-hover);
+  --el-button-hover-border-color: var(--app-primary-hover);
+  --el-button-active-bg-color: var(--app-primary-active);
+  --el-button-active-border-color: var(--app-primary-active);
+}
+
+.leader-page :deep(.confirm-button.is-disabled),
+.leader-page :deep(.confirm-button.is-disabled:hover) {
+  --el-button-bg-color: var(--app-surface-muted);
+  --el-button-border-color: var(--app-border);
+  --el-button-text-color: var(--app-text-subtle);
+}
+
+.task-panel :deep(.el-table__cell:last-child) {
+  min-width: 258px;
+}
+
+.task-panel :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 
 .stats-bar {
@@ -648,7 +727,7 @@ onMounted(async () => {
 .detail-card {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  background: var(--app-surface);
+  background: var(--claude-canvas);
   padding: 22px;
 }
 
@@ -805,6 +884,14 @@ onMounted(async () => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.consensus-footer :deep(.el-button) {
+  min-width: 84px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 1;
 }
 
 @media (max-width: 1180px) {

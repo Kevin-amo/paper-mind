@@ -132,7 +132,7 @@ class ConsensusCalculatorTest {
     }
 
     @Test
-    void calculateWithWeightsShouldComputeWeightedAverage() {
+    void calculateWithWeightsShouldIgnoreWeightsAndUseReportTotalScore() {
         // POLICY weight=20, score=80 => 80*20=1600
         // INNOVATION weight=30, score=60 => 60*30=1800
         // Weighted average = (1600+1800)/(20+30) = 3400/50 = 68
@@ -145,11 +145,12 @@ class ConsensusCalculatorTest {
 
         ConsensusCalculator.Result result = calculator.calculate(List.of(report), weights);
 
-        assertThat(result.finalScore()).isEqualTo(68);
+        assertThat(result.finalScore()).isEqualTo(70);
+        assertThat(result.scoreSummary()).containsEntry("overallAverage", 70);
     }
 
     @Test
-    void calculateWithWeightsShouldAverageMultipleReports() {
+    void calculateWithWeightsShouldAverageReportTotalsAcrossMultipleReports() {
         // Report 1: POLICY=80*20=1600, INNOVATION=60*30=1800 => weighted=3400/50=68
         // Report 2: POLICY=90*20=1800, INNOVATION=70*30=2100 => weighted=3900/50=78
         // Average of 68 and 78 = 73
@@ -167,7 +168,22 @@ class ConsensusCalculatorTest {
 
         ConsensusCalculator.Result result = calculator.calculate(List.of(first, second), weights);
 
-        assertThat(result.finalScore()).isEqualTo(73);
+        assertThat(result.finalScore()).isEqualTo(75);
+        assertThat(result.scoreSummary())
+                .containsEntry("overallAverage", 75)
+                .containsEntry("overallMin", 70)
+                .containsEntry("overallMax", 80);
+    }
+
+    @Test
+    void calculateWithWeightsShouldAverageReportTotalsWhenNoWeightedScoresPresent() {
+        ReviewReportEntity first = report(UUID.randomUUID(), UUID.randomUUID(), 80, "寤鸿閫氳繃", List.of());
+        ReviewReportEntity second = report(UUID.randomUUID(), UUID.randomUUID(), 90, "寤鸿淇敼鍚庨€氳繃", List.of());
+        Map<String, Integer> weights = Map.of("POLICY", 20);
+
+        ConsensusCalculator.Result result = calculator.calculate(List.of(first, second), weights);
+
+        assertThat(result.finalScore()).isEqualTo(85);
     }
 
     @Test

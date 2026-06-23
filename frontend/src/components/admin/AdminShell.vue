@@ -94,7 +94,7 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div class="admin-layout" v-loading="props.loading">
+  <div class="admin-layout paper-mind-admin-shell" v-loading="props.loading">
     <aside class="admin-sidebar" aria-label="管理后台导航">
       <div class="sidebar-brand">
         <div class="brand-logo">
@@ -164,8 +164,8 @@ async function handleLogout() {
 .admin-layout {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  background: var(--app-bg);
+  grid-template-columns: 268px minmax(0, 1fr);
+  background: var(--claude-canvas);
   color: var(--app-text);
   overflow-x: hidden;
 }
@@ -176,7 +176,7 @@ async function handleLogout() {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--app-dark);
+  background: var(--claude-dark);
   border-right: 1px solid var(--app-dark-elevated);
   overflow-y: auto;
 }
@@ -185,7 +185,7 @@ async function handleLogout() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 22px 18px;
+  padding: 24px 18px;
   border-bottom: 1px solid var(--app-dark-elevated);
 }
 
@@ -321,6 +321,7 @@ async function handleLogout() {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  background: var(--claude-canvas);
 }
 
 .admin-topbar {

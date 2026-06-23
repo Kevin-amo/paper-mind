@@ -99,7 +99,7 @@ onMounted(async () => {
 
 <template>
   <AdminShell active="audit-logs" title="审计日志">
-    <section class="dashboard-card">
+    <section class="paper-mind-workspace-card audit-dashboard-panel">
       <div class="section-header">
         <h3>审计日志</h3>
         <p>追溯评审流程中的关键操作记录，支持按操作人、动作类型和时间范围组合查询。</p>
@@ -178,11 +178,11 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.dashboard-card {
+.audit-dashboard-panel {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   padding: 24px;
-  background: var(--app-surface);
+  background: var(--claude-canvas);
 }
 
 .section-header {
