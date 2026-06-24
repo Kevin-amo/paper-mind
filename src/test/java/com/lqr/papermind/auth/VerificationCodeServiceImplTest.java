@@ -27,6 +27,12 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("unchecked")
 class VerificationCodeServiceImplTest {
 
+    private static final SecurityProperties.Jwt TEST_JWT = new SecurityProperties.Jwt(
+            "paper-mind",
+            "test-jwt-secret-with-at-least-32-characters",
+            Duration.ofHours(2)
+    );
+
     private final StringRedisTemplate redisTemplate = mock(StringRedisTemplate.class);
     private final ValueOperations<String, String> valueOperations = mock(ValueOperations.class);
     private final MailService mailService = mock(MailService.class);
@@ -37,7 +43,7 @@ class VerificationCodeServiceImplTest {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         service = new VerificationCodeServiceImpl(
                 redisTemplate,
-                new SecurityProperties(null, null, new SecurityProperties.RegisterEmailCode(
+                new SecurityProperties(TEST_JWT, null, new SecurityProperties.RegisterEmailCode(
                         Duration.ofMinutes(5),
                         Duration.ofSeconds(60),
                         2,

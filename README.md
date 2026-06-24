@@ -352,12 +352,12 @@ src/main/resources/application-local.yaml
 | `REDIS_PORT` | Redis 端口 | `6379` |
 | `REDIS_PASSWORD` | Redis 密码 | 空 |
 | `REDIS_DATABASE` | Redis 数据库编号 | `0` |
-| `RABBITMQ_HOST` | RabbitMQ 地址 | `192.168.200.129` |
+| `RABBITMQ_HOST` | RabbitMQ 地址 | `localhost` |
 | `RABBITMQ_PORT` | RabbitMQ 端口 | `5672` |
 | `RABBITMQ_USERNAME` | RabbitMQ 用户名 | `admin` |
 | `RABBITMQ_PASSWORD` | RabbitMQ 密码 | `admin` |
 | `DASHSCOPE_API_KEY` | DashScope API Key | 空 |
-| `JWT_SECRET` | JWT 签名密钥 | 本地开发默认值 |
+| `JWT_SECRET` | JWT 签名密钥 | 主配置无默认值；`application-local.example.yaml` 提供本地开发示例值 |
 
 ### AI 模型配置
 
@@ -454,7 +454,7 @@ src/main/resources/application-local.yaml
 | `app.mail.resend.from` | 发件人地址 | 空 |
 | `app.mail.resend.timeout` | 请求超时 | `10s` |
 
-> 生产部署时务必显式配置 `JWT_SECRET`、数据库密码、RabbitMQ 密码和 DashScope API Key，不要使用开发默认值。
+> 生产部署时务必显式配置 `JWT_SECRET`、数据库密码、RabbitMQ 密码和 DashScope API Key，不要使用本地开发示例值。
 
 ## API 简览
 

@@ -149,7 +149,7 @@ onMounted(async () => {
               <el-tag v-if="selectedTask.currentAssignment" size="default" effect="plain">
                 {{ statusLabel(selectedTask.currentAssignment.status) }}
               </el-tag>
-              <el-button type="primary" :disabled="assignmentSubmitted" :loading="reviews.generating.value" @click="reviews.runAiReview">
+              <el-button type="primary" class="regenerate-review-button" :disabled="assignmentSubmitted" :loading="reviews.generating.value" @click="reviews.runAiReview">
                 {{ selectedReport ? '重新生成辅助评审' : '生成辅助评审' }}
               </el-button>
             </div>
@@ -390,8 +390,32 @@ onMounted(async () => {
   flex-shrink: 0;
 }
 
+.regenerate-review-button {
+  --el-button-bg-color: var(--app-primary-soft);
+  --el-button-border-color: rgba(204, 120, 92, 0.26);
+  --el-button-text-color: var(--app-primary);
+  --el-button-hover-bg-color: var(--app-primary-soft-hover);
+  --el-button-hover-border-color: rgba(204, 120, 92, 0.4);
+  --el-button-hover-text-color: var(--app-primary-active);
+}
+
+.review-page :deep(.regenerate-review-button.is-disabled),
+.review-page :deep(.regenerate-review-button.is-disabled:hover) {
+  --el-button-disabled-bg-color: var(--app-surface-muted);
+  --el-button-disabled-border-color: var(--app-border);
+  --el-button-disabled-text-color: var(--app-text-subtle);
+}
+
 .review-tabs {
   margin-top: 20px;
+}
+
+.review-tabs :deep(.el-tabs__header .el-tabs__item:nth-child(2)) {
+  padding-left: 14px;
+}
+
+.review-tabs :deep(.el-tabs__header .el-tabs__item:last-child) {
+  padding-right: 14px;
 }
 
 @media (max-width: 1180px) {

@@ -37,14 +37,12 @@ public record SecurityProperties(
             String secret,
             Duration accessTokenTtl
     ) {
-        private static final String DEFAULT_SECRET = "V1kNrJuT67FGQp0fWCJlkzH3KdavGcGYoUz6TdBzheIOVu7E5HfJQVxulvmIh73E";
-
         public Jwt {
             if (issuer == null || issuer.isBlank()) {
                 issuer = "paper-mind";
             }
             if (secret == null || secret.isBlank()) {
-                secret = DEFAULT_SECRET;
+                throw new IllegalArgumentException("app.security.jwt.secret must be configured");
             }
             if (accessTokenTtl == null || accessTokenTtl.isNegative() || accessTokenTtl.isZero()) {
                 accessTokenTtl = Duration.ofHours(2);

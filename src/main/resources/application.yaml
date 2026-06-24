@@ -134,7 +134,7 @@ app:
   security:
     jwt:
       issuer: ${JWT_ISSUER:paper-mind}
-      secret: ${JWT_SECRET:V1kNrJuT67FGQp0fWCJlkzH3KdavGcGYoUz6TdBzheIOVu7E5HfJQVxulvmIh73E}
+      secret: ${JWT_SECRET}
       access-token-ttl: ${JWT_ACCESS_TOKEN_TTL:12h}
     register-email-code:
       code-ttl: ${REGISTER_EMAIL_CODE_TTL:5m}
