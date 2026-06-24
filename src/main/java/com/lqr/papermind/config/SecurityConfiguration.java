@@ -56,14 +56,12 @@ public class SecurityConfiguration {
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'"))
                         .frameOptions(frame -> frame.deny())
-                        .contentTypeOptions(cto -> cto.disable())
                         .httpStrictTransportSecurity(hsts -> hsts
                                 .includeSubDomains(true)
                                 .preload(true)
                                 .maxAgeInSeconds(31536000))
                         .xssProtection(xss -> xss.disable())
                         .addHeaderWriter((request, response) -> {
-                            response.setHeader("X-Content-Type-Options", "nosniff");
                             response.setHeader("X-XSS-Protection", "0");
                             response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
                             response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");

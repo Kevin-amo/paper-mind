@@ -32,6 +32,21 @@ logging:
     com.lqr.papermind.ai: ${LOG_LEVEL_AI:INFO}
 
 app:
+  security:
+    jwt:
+      secret: local-development-jwt-secret-change-me-please
+      access-token-ttl: 12h
+    register-email-code:
+      code-ttl: 5m
+      email-cooldown: 60s
+      email-daily-limit: 10
+      ip-minute-limit: 20
+      ip-daily-limit: 200
+    login-attempt:
+      enabled: true
+      max-failures: 5
+      window: 15m
+      lock-duration: 15m
   mail:
     resend:
       enabled: true
@@ -74,18 +89,6 @@ app:
       candidate-multiplier: 3
       timeout: 10s
       base-url: https://dashscope.aliyuncs.com
-  security:
-    register-email-code:
-      code-ttl: 5m
-      email-cooldown: 60s
-      email-daily-limit: 10
-      ip-minute-limit: 20
-      ip-daily-limit: 200
-    login-attempt:
-      enabled: true
-      max-failures: 5
-      window: 15m
-      lock-duration: 15m
   document-ingestion:
     storage-dir: storage/document-ingestion
     keep-upload-file: false
