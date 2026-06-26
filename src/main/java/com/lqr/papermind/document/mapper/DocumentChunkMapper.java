@@ -23,8 +23,8 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      */
     @Select("""
             select c.chunk_id, c.source_id, c.chunk_index, c.content, c.metadata
-            from public.paper_document_chunk c
-            join public.paper_document d
+            from public.document_chunk c
+            join public.document d
               on d.owner_user_id = c.owner_user_id
              and d.source_id = c.source_id
             where c.owner_user_id = #{ownerUserId}
@@ -44,7 +44,7 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
      * @return 更新行数
      */
     @Update("""
-            update public.paper_document_chunk
+            update public.document_chunk
             set vector_store_id = #{vectorStoreId}, updated_at = now()
             where owner_user_id = #{ownerUserId}
               and chunk_id = #{chunkId}
@@ -54,8 +54,8 @@ public interface DocumentChunkMapper extends BaseMapper<DocumentChunkEntity> {
                             @Param("vectorStoreId") UUID vectorStoreId);
 
     @Delete("""
-            delete from public.paper_document_chunk c
-            using public.paper_document d
+            delete from public.document_chunk c
+            using public.document d
             where c.owner_user_id = #{ownerUserId}
               and d.owner_user_id = c.owner_user_id
               and d.source_id = c.source_id

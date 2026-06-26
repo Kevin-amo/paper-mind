@@ -35,7 +35,7 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
     @Update("""
             insert into public.review_task (document_id, submitter_user_id, source_id, title, status)
             select d.id, d.owner_user_id, d.source_id, d.title, 'PENDING_ASSIGNMENT'
-            from public.paper_document d
+            from public.document d
             where d.deleted_at is null
               and d.status = 'INDEXED'
               and upper(coalesce(d.metadata ->> 'sourceType', '')) = 'REVIEW'

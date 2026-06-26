@@ -14,7 +14,7 @@ import java.util.UUID;
  * 论文结构化解析持久化实体。
  */
 @Data
-@TableName(value = "public.paper_structured_parse", autoResultMap = true)
+@TableName(value = "public.document_structured_parse", autoResultMap = true)
 public class PaperStructuredParseEntity {
 
     @TableId(value = "id", type = IdType.INPUT)

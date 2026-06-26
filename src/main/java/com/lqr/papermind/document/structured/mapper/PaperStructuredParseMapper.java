@@ -15,7 +15,7 @@ import java.util.UUID;
 public interface PaperStructuredParseMapper extends BaseMapper<PaperStructuredParseEntity> {
 
     @Update("""
-            insert into public.paper_structured_parse (
+            insert into public.document_structured_parse (
                 id, owner_user_id, document_id, source_id, raw_text,
                 rule_result, model_result, merged_result, field_confidence,
                 missing_fields, low_confidence_fields, raw_model_output,
@@ -57,7 +57,7 @@ public interface PaperStructuredParseMapper extends BaseMapper<PaperStructuredPa
                      @Param("errorMessage") String errorMessage);
 
     @Update("""
-            insert into public.paper_structured_parse (
+            insert into public.document_structured_parse (
                 id, owner_user_id, document_id, source_id, raw_text,
                 rule_result, model_result, merged_result, field_confidence,
                 missing_fields, low_confidence_fields,

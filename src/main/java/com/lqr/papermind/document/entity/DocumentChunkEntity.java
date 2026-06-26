@@ -16,7 +16,7 @@ import java.util.UUID;
  * 文档切片实体，对应可检索的文档分块记录。
  */
 @Data
-@TableName(value = "public.paper_document_chunk", autoResultMap = true)
+@TableName(value = "public.document_chunk", autoResultMap = true)
 public class DocumentChunkEntity {
 
     @TableId(value = "id", type = IdType.INPUT)
