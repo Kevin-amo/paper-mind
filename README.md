@@ -684,17 +684,6 @@ docker compose down -v
 docker compose up -d
 ```
 
-已有数据库不要通过清理数据卷来完成表名整理。请先备份数据库，然后手动执行迁移脚本：
-
-```bash
-psql -h localhost -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f src/main/resources/sql/migration/2026-06-26-rename-document-tables.sql
-```
-
-Docker Compose 本地 PostgreSQL 示例：
-
-```bash
-docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /docker-entrypoint-initdb.d/migration/2026-06-26-rename-document-tables.sql'
-```
-
-该迁移只执行 `ALTER TABLE ... RENAME TO ...` 以及相关索引、约束重命名，不清空文档或向量数据，也不会迁移
-`public.vector_store`。`document_chunk.vector_store_id` 会继续引用 `public.vector_store(id)`。
+已有数据库不要通过清理数据卷来完成表名整理。请先备份数据库，再按当前 `paper-mind.sql`
+中的表结构对照处理旧表、索引和约束名称，避免误删文档或向量数据。`document_chunk.vector_store_id`
+会继续引用 `public.vector_store(id)`。
