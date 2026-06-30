@@ -653,12 +653,12 @@ OPEN → CONFIRMED / IGNORED / RESOLVED
 ### 预置评审指标
 
 | 指标 | 代码 | 权重 | 分类 |
-| --- | --- | --- | --- |
+| --- | --- |----| --- |
 | 政策导向 | `POLICY` | 20 | CONTENT |
 | 专业匹配 | `MATCH` | 20 | CONTENT |
 | 创新性 | `INNOVATION` | 20 | QUALITY |
-| 逻辑性 | `LOGIC` | 20 | QUALITY |
-| 语言质量 | `LANGUAGE` | 20 | QUALITY |
+| 逻辑性 | `LOGIC` | 15 | QUALITY |
+| 语言质量 | `LANGUAGE` | 15 | QUALITY |
 | 参考文献规范 | `REFERENCE` | 10 | FORMAT |
 
 ## 数据库初始化

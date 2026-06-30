@@ -76,6 +76,7 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
         mergedMetadata.putIfAbsent(MetadataKeys.FILE_NAME, normalizedFileName);
         mergedMetadata.putIfAbsent(MetadataKeys.CONTENT_LENGTH, content.length);
         mergedMetadata.putIfAbsent(MetadataKeys.SOURCE_TYPE, MetadataKeys.SOURCE_TYPE_USER);
+        // 识别文件类型
         String contentType = tika.detect(content, normalizedFileName);
         mergedMetadata.put(MetadataKeys.CONTENT_TYPE, contentType);
         String sourceId = mergedMetadata.containsKey(MetadataKeys.SOURCE_ID)
@@ -87,22 +88,27 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
                 : normalizedFileName;
 
         DocumentSource provisionalSource = new DocumentSource(sourceId, title, normalizedFileName, mergedMetadata);
+        // 补充元数据
         DocumentSource enrichedSource = documentMetadataService.enrich(provisionalSource, metadata);
         mergedMetadata = new LinkedHashMap<>(enrichedSource.metadata());
+        // 抽取内容 图片文档以及扫描版pdf（Tika检测不了）：多模态抽取 正常pdf等：Tika抽取
         ExtractionResult extractionResult = extractContent(enrichedSource, content, contentType, mergedMetadata);
         enrichedSource = documentMetadataService.enrich(new DocumentSource(sourceId, enrichedSource.title(), normalizedFileName, mergedMetadata), Map.of());
         mergedMetadata = new LinkedHashMap<>(enrichedSource.metadata());
         mergedMetadata.put(MetadataKeys.EXTRACTION_MODE, extractionResult.mode().name());
         mergedMetadata.put(MetadataKeys.EXTRACTED_TEXT_LENGTH, extractionResult.text().length());
+        // 解析过程发现额外资源，先记录
         if (!extractionResult.assets().isEmpty()) {
             mergedMetadata.put(MetadataKeys.ASSET_COUNT, extractionResult.assets().size());
             mergedMetadata.put(MetadataKeys.DOCUMENT_ASSETS, extractionResult.assets().stream()
                     .map(this::assetMetadata)
                     .toList());
         }
+        // 记录渲染页数
         if (extractionResult.renderedPageCount() > 0) {
             mergedMetadata.put(MetadataKeys.RENDERED_PAGE_COUNT, extractionResult.renderedPageCount());
         }
+        // 记录多模态抽取是否截断
         if (extractionResult.truncated()) {
             mergedMetadata.put(MetadataKeys.MULTIMODAL_TRUNCATED, true);
         }
@@ -142,12 +148,14 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
         }
     }
 
-    /**
+    /**54若
      * 根据文件类型选择文本抽取路径，必要时回退到多模态抽取。
      */
     private ExtractionResult extractContent(DocumentSource source, byte[] content, String contentType, Map<String, Object> metadata) {
+        // 规范化 MIME 类型为小写
         String normalizedContentType = contentType == null ? "" : contentType.toLowerCase(Locale.ROOT);
         if (normalizedContentType.startsWith("image/")) {
+            // 图片文档进行多模态抽取
             DocumentMultimodalExtractionResult result = documentMultimodalExtractionService.extract(source, content);
             String text = normalizeExtractedText(result.text());
             if (text.isBlank()) {
@@ -156,8 +164,11 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
             return new ExtractionResult(text, ExtractionMode.MULTIMODAL, result.pageCount(), result.truncated(), List.of());
         }
 
+        // 尝试使用 Tika 抽取文本
         TextExtractionResult tikaText = extractTextWithTika(source, content, contentType, metadata);
+        // 如果是 PDF 类型且 Tika 未提取到文本（扫描版PDF），则进行多模态抽取
         if (normalizedContentType.contains("pdf") && tikaText.text().isBlank()) {
+            // 扫描版 PDF 进行多模态抽取
             DocumentMultimodalExtractionResult result = documentMultimodalExtractionService.extract(source, content);
             String text = normalizeExtractedText(result.text());
             if (text.isBlank()) {
@@ -165,7 +176,6 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
             }
             return new ExtractionResult(text, ExtractionMode.MULTIMODAL, result.pageCount(), result.truncated(), List.of());
         }
-
         return new ExtractionResult(tikaText.text(), ExtractionMode.TEXT, 0, false, tikaText.assets());
     }
 
@@ -176,11 +186,15 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
         try {
             Metadata tikaMetadata = new Metadata();
             tikaMetadata.set("resourceName", source.origin());
+            // 使用 Tika 抽取文本
             String extractedText = normalizeExtractedText(tika.parseToString(new ByteArrayInputStream(content), tikaMetadata));
+            // 合并 Tika 元数据
             mergeTikaMetadata(metadata, tikaMetadata);
+            // 如果不是 Office 文档，返回抽取结果
             if (!isOfficeDocument(contentType)) {
                 return new TextExtractionResult(extractedText, List.of());
             }
+            // 清理 Office 文档中的图片占位符
             String cleanedText = removeOfficeImageArtifactLines(extractedText);
             if (!isWordprocessingDocument(contentType)) {
                 return new TextExtractionResult(cleanedText, List.of());
@@ -221,13 +235,17 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
     private TextExtractionResult mergeWordImagesIntoText(DocumentSource source, byte[] content, String fallbackText) {
         try {
             WordPackage wordPackage = readWordPackage(content);
+            // 检查 Word 包是否包含正文和关系 XML，如果不存在直接返回兜底文本
             if (wordPackage.documentXml() == null || wordPackage.relationshipXml() == null) {
                 return new TextExtractionResult(fallbackText, List.of());
             }
+            // 读取图片关系 ID 与文件路径的映射
             Map<String, String> relationshipTargets = readImageRelationshipTargets(wordPackage.relationshipXml());
+            // 如果没有图片关系则返回兜底文本
             if (relationshipTargets.isEmpty()) {
                 return new TextExtractionResult(fallbackText, List.of());
             }
+            // 读取 Word 正文和图片
             TextExtractionResult orderedText = readWordDocumentTextWithImages(source, wordPackage.documentXml(), relationshipTargets, wordPackage.entries());
             return orderedText.text().isBlank() ? new TextExtractionResult(fallbackText, List.of()) : orderedText;
         } catch (RuntimeException ex) {
@@ -239,18 +257,24 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
      * 读取 Word 压缩包中的正文 XML、关系 XML 和全部条目。
      */
     private WordPackage readWordPackage(byte[] content) {
+        // 所有 zip 条目
         Map<String, byte[]> entries = new HashMap<>();
+        // Word 正文 XML
         String documentXml = null;
+        // Word 关系 XML
         String relationshipXml = null;
         try (ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(content))) {
             ZipEntry entry;
+            // 遍历 zip 条目
             while ((entry = zipInputStream.getNextEntry()) != null) {
                 String name = entry.getName();
                 byte[] bytes = zipInputStream.readAllBytes();
                 entries.put(name, bytes);
                 if (WORD_DOCUMENT_XML.equals(name)) {
+                    // 读取 Word 正文 XML，转成字符串
                     documentXml = new String(bytes, StandardCharsets.UTF_8);
                 } else if (WORD_DOCUMENT_RELS_XML.equals(name)) {
+                    // 读取 Word 关系 XML，转成字符串
                     relationshipXml = new String(bytes, StandardCharsets.UTF_8);
                 }
             }
@@ -265,8 +289,11 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
      */
     private Map<String, String> readImageRelationshipTargets(String relationshipXml) {
         Map<String, String> targets = new HashMap<>();
+        // 解析关系 XML
         Element root = parseXml(relationshipXml).getDocumentElement();
+        // 获取所有关系
         NodeList relationships = root.getElementsByTagNameNS("*", "Relationship");
+        // 遍历每个关系
         for (int i = 0; i < relationships.getLength(); i++) {
             Element relationship = (Element) relationships.item(i);
             String type = relationship.getAttribute("Type");
@@ -286,6 +313,7 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
                                                                String documentXml,
                                                                Map<String, String> relationshipTargets,
                                                                Map<String, byte[]> entries) {
+        // 获取 Word 正文（body）
         Element body = firstElementByLocalName(parseXml(documentXml).getDocumentElement(), "body");
         if (body == null) {
             return new TextExtractionResult("", List.of());
@@ -293,17 +321,26 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
         StringBuilder textBuilder = new StringBuilder();
         List<DocumentAsset> assets = new ArrayList<>();
         NodeList children = body.getChildNodes();
+        // 遍历 Word 正文（body）的子节点
         for (int i = 0; i < children.getLength(); i++) {
             Node node = children.item(i);
+            // 判断是否是段落元素
             if (node instanceof Element element && "p".equals(element.getLocalName())) {
+                // 提取段落文本
                 String paragraphText = paragraphText(element);
+                // 如果段落文本不为空且不是图片占位符，则追加段落文本
                 if (!paragraphText.isBlank() && !OFFICE_IMAGE_ARTIFACT_LINE.matcher(paragraphText.strip()).matches()) {
                     appendBlock(textBuilder, paragraphText.strip());
                 }
+                // 遍历段落中引用的图片关系 ID
                 for (String relationshipId : imageRelationshipIds(element)) {
+                    // 根据图片关系 ID 获取图片路径
                     String imagePath = relationshipTargets.get(relationshipId);
+                    // 根据图片路径获取图片字节
                     byte[] imageBytes = imagePath == null ? null : entries.get(imagePath);
+                    // 如果图片字节为空或图片路径不是支持的图片类型，则跳过
                     if (imageBytes == null || !isSupportedOfficeImage(imagePath)) {
+                        // 继续下一次循环
                         continue;
                     }
                     String imageText = extractEmbeddedImageText(source, imagePath, imageBytes);

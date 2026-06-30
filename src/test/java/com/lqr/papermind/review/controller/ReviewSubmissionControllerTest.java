@@ -9,8 +9,14 @@ import com.lqr.papermind.document.entity.DocumentIngestionJob;
 import com.lqr.papermind.document.service.DocumentPersistenceService;
 import com.lqr.papermind.document.service.DocumentUploadWorkflowService;
 import com.lqr.papermind.review.dto.ReviewSubmissionResponse;
+import com.lqr.papermind.review.entity.ReviewConsensusEntity;
+import com.lqr.papermind.review.entity.ReviewCriterionEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
+import com.lqr.papermind.review.mapper.ReviewConsensusMapper;
+import com.lqr.papermind.review.mapper.ReviewCriterionMapper;
 import com.lqr.papermind.review.mapper.ReviewTaskMapper;
+import com.lqr.papermind.review.model.ReviewConsensusStatuses;
+import com.lqr.papermind.review.model.ReviewTaskStatuses;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -34,6 +40,8 @@ class ReviewSubmissionControllerTest {
     private DocumentUploadWorkflowService uploadWorkflowService;
     private DocumentPersistenceService documentPersistenceService;
     private ReviewTaskMapper reviewTaskMapper;
+    private ReviewConsensusMapper reviewConsensusMapper;
+    private ReviewCriterionMapper reviewCriterionMapper;
     private ReviewSubmissionController controller;
     private UUID ownerUserId;
     private SecurityUserPrincipal principal;
@@ -43,7 +51,15 @@ class ReviewSubmissionControllerTest {
         uploadWorkflowService = mock(DocumentUploadWorkflowService.class);
         documentPersistenceService = mock(DocumentPersistenceService.class);
         reviewTaskMapper = mock(ReviewTaskMapper.class);
-        controller = new ReviewSubmissionController(uploadWorkflowService, documentPersistenceService, reviewTaskMapper);
+        reviewConsensusMapper = mock(ReviewConsensusMapper.class);
+        reviewCriterionMapper = mock(ReviewCriterionMapper.class);
+        controller = new ReviewSubmissionController(
+                uploadWorkflowService,
+                documentPersistenceService,
+                reviewTaskMapper,
+                reviewConsensusMapper,
+                reviewCriterionMapper
+        );
         ownerUserId = UUID.randomUUID();
         principal = principal(ownerUserId);
     }
@@ -127,10 +143,124 @@ class ReviewSubmissionControllerTest {
         assertThat(item.documentStatus()).isEqualTo("INDEXED");
         assertThat(item.reviewTaskId()).isEqualTo(taskId);
         assertThat(item.reviewStatus()).isEqualTo("PENDING_ASSIGNMENT");
+        assertThat(item.reviewReport()).isNull();
         assertThat(item.submittedAt()).isEqualTo(submittedAt);
         assertThat(item.updatedAt()).isEqualTo(updatedAt);
         verify(documentPersistenceService).listReviewDocuments(ownerUserId, 0, 20);
         verify(reviewTaskMapper).selectBySubmitterAndSourceIds(ownerUserId, List.of("source-a"));
+    }
+
+    @Test
+    void listShouldReturnConfirmedConsensusReportForSubmitter() {
+        UUID documentId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        OffsetDateTime submittedAt = OffsetDateTime.now().minusHours(2);
+        OffsetDateTime updatedAt = OffsetDateTime.now();
+        OffsetDateTime confirmedAt = OffsetDateTime.now().minusMinutes(15);
+        DocumentPersistenceService.DocumentDetail document = reviewDocument(submittedAt, updatedAt);
+        ReviewTaskEntity task = new ReviewTaskEntity();
+        task.setId(taskId);
+        task.setDocumentId(documentId);
+        task.setSourceId("source-a");
+        task.setStatus(ReviewTaskStatuses.CONSENSUS_CONFIRMED);
+        ReviewConsensusEntity consensus = new ReviewConsensusEntity();
+        consensus.setTaskId(taskId);
+        consensus.setStatus(ReviewConsensusStatuses.CONFIRMED);
+        consensus.setFinalScore(88);
+        consensus.setFinalRecommendation("建议录用，补充实验说明。");
+        consensus.setConfirmedAt(confirmedAt);
+        consensus.setScoreSummary(Map.of(
+                "criteria", List.of(
+                        Map.of("criterionCode", "INNOVATION", "average", 18),
+                        Map.of("criterionCode", "LOGIC", "average", 16)
+                )
+        ));
+        ReviewCriterionEntity innovation = criterion("INNOVATION", "创新性", 20);
+        ReviewCriterionEntity logic = criterion("LOGIC", "逻辑结构", 20);
+        when(documentPersistenceService.listReviewDocuments(ownerUserId, 0, 20))
+                .thenReturn(new DocumentPersistenceService.PageResult<>(List.of(document), 0, 20, 1));
+        when(reviewTaskMapper.selectBySubmitterAndSourceIds(eq(ownerUserId), any()))
+                .thenReturn(List.of(task));
+        when(reviewConsensusMapper.selectByTaskId(taskId)).thenReturn(consensus);
+        when(reviewCriterionMapper.selectList(any())).thenReturn(List.of(innovation, logic));
+
+        PageResponse<ReviewSubmissionResponse> response = controller.list(principal, 0, 20);
+
+        ReviewSubmissionResponse item = response.items().getFirst();
+        assertThat(item.reviewReport()).isNotNull();
+        assertThat(item.reviewReport().taskId()).isEqualTo(taskId);
+        assertThat(item.reviewReport().finalScore()).isEqualTo(88);
+        assertThat(item.reviewReport().finalRecommendation()).isEqualTo("建议录用，补充实验说明。");
+        assertThat(item.reviewReport().confirmedAt()).isEqualTo(confirmedAt);
+        assertThat(item.reviewReport().criteriaScores())
+                .extracting("code", "name", "score", "maxScore")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("INNOVATION", "创新性", 18, 20),
+                        org.assertj.core.groups.Tuple.tuple("LOGIC", "逻辑结构", 16, 20)
+                );
+    }
+
+    @Test
+    void listShouldNotReturnDraftConsensusReportForSubmitter() {
+        UUID documentId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        DocumentPersistenceService.DocumentDetail document = reviewDocument(OffsetDateTime.now().minusHours(2), OffsetDateTime.now());
+        ReviewTaskEntity task = new ReviewTaskEntity();
+        task.setId(taskId);
+        task.setDocumentId(documentId);
+        task.setSourceId("source-a");
+        task.setStatus(ReviewTaskStatuses.CONSENSUS_CONFIRMED);
+        ReviewConsensusEntity consensus = new ReviewConsensusEntity();
+        consensus.setTaskId(taskId);
+        consensus.setStatus(ReviewConsensusStatuses.DRAFT);
+        consensus.setFinalScore(88);
+        consensus.setScoreSummary(Map.of("criteria", List.of(Map.of("criterionCode", "LOGIC", "average", 16))));
+        when(documentPersistenceService.listReviewDocuments(ownerUserId, 0, 20))
+                .thenReturn(new DocumentPersistenceService.PageResult<>(List.of(document), 0, 20, 1));
+        when(reviewTaskMapper.selectBySubmitterAndSourceIds(eq(ownerUserId), any()))
+                .thenReturn(List.of(task));
+        when(reviewConsensusMapper.selectByTaskId(taskId)).thenReturn(consensus);
+
+        PageResponse<ReviewSubmissionResponse> response = controller.list(principal, 0, 20);
+
+        ReviewSubmissionResponse item = response.items().getFirst();
+        assertThat(item.reviewReport()).isNull();
+    }
+
+    private DocumentPersistenceService.DocumentDetail reviewDocument(OffsetDateTime submittedAt, OffsetDateTime updatedAt) {
+        return new DocumentPersistenceService.DocumentDetail(
+                "source-a",
+                ownerUserId,
+                "Paper A",
+                "upload",
+                "paper-a.pdf",
+                "application/pdf",
+                12L,
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                List.of(),
+                null,
+                Map.of(MetadataKeys.SOURCE_TYPE, MetadataKeys.SOURCE_TYPE_REVIEW),
+                "INDEXED",
+                3,
+                null,
+                submittedAt,
+                updatedAt,
+                null
+        );
+    }
+
+    private ReviewCriterionEntity criterion(String code, String name, Integer maxScore) {
+        ReviewCriterionEntity criterion = new ReviewCriterionEntity();
+        criterion.setId(UUID.randomUUID());
+        criterion.setCode(code);
+        criterion.setName(name);
+        criterion.setMaxScore(maxScore);
+        criterion.setEnabled(true);
+        return criterion;
     }
 
     private SecurityUserPrincipal principal(UUID userId) {

@@ -394,9 +394,18 @@ onMounted(async () => {
   --el-button-bg-color: var(--app-primary-soft);
   --el-button-border-color: rgba(204, 120, 92, 0.26);
   --el-button-text-color: var(--app-primary);
-  --el-button-hover-bg-color: var(--app-primary-soft-hover);
+  --el-button-hover-bg-color: var(--app-primary-soft);
   --el-button-hover-border-color: rgba(204, 120, 92, 0.4);
-  --el-button-hover-text-color: var(--app-primary-active);
+  --el-button-hover-text-color: var(--app-primary);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+  transform-origin: center;
+}
+
+.review-page :deep(.regenerate-review-button:not(.is-disabled):not(.is-loading):hover) {
+  transform: scale(1.02);
 }
 
 .review-page :deep(.regenerate-review-button.is-disabled),

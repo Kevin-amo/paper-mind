@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run check:routing && npm run check:home-redirect && npm run check:admin-review-detail && npm run check:review-audit-labels && npm run check:claude-workspace-theme && npm run check:paper-mind-visual-rework && vue-tsc --noEmit && vite build",
+    "build": "npm run check:routing && npm run check:home-redirect && npm run check:admin-review-detail && npm run check:review-audit-labels && npm run check:claude-workspace-theme && npm run check:paper-mind-visual-rework && npm run check:review-button-hover && npm run check:submission-report-button && vue-tsc --noEmit && vite build",
     "check:routing": "node scripts/check-routing-config.mjs",
     "check:home-redirect": "node scripts/check-home-redirect.mjs",
     "check:admin-review-detail": "node scripts/check-admin-review-detail.mjs",
     "check:review-audit-labels": "node scripts/check-review-audit-labels.mjs",
     "check:claude-workspace-theme": "node scripts/check-claude-workspace-theme.mjs",
     "check:paper-mind-visual-rework": "node scripts/check-paper-mind-visual-rework.mjs",
+    "check:review-button-hover": "node scripts/check-review-button-hover.mjs",
+    "check:submission-report-button": "node scripts/check-submission-report-button.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
