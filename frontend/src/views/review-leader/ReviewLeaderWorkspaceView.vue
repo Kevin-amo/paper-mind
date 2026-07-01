@@ -3,7 +3,6 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import MainLayout from '../../layouts/MainLayout.vue';
-import PageHeader from '../../components/common/PageHeader.vue';
 import LogoutConfirmDialog from '../../components/common/LogoutConfirmDialog.vue';
 import { getErrorMessage } from '../../api/http';
 import {
@@ -319,46 +318,90 @@ onMounted(async () => {
 
 <template>
   <MainLayout class="leader-page paper-mind-leader-shell">
-    <PageHeader
-      eyebrow="Review Leader"
-      title="评审组长工作台"
-      description="按评审小组处理任务分配、组内评分详情、最终评分与共识确认。"
-    >
-      <template #actions>
-        <el-tag type="primary" size="large">{{ currentUserName }}</el-tag>
-        <el-button @click="router.push('/review')">评审工作台</el-button>
-        <el-button v-if="auth.isAdmin.value" @click="router.push('/admin/reviews')">管理后台</el-button>
+    <header class="leader-top-nav">
+      <div class="leader-brand">
+        <span class="leader-brand-mark" aria-hidden="true"><span></span></span>
+        <span>Paper Mind</span>
+      </div>
+      <nav class="leader-nav-links" aria-label="评审组长导航">
+        <button class="leader-nav-link active" type="button">组长工作台</button>
+        <button class="leader-nav-link" type="button" @click="router.push('/review')">评审工作台</button>
+        <button v-if="auth.isAdmin.value" class="leader-nav-link" type="button" @click="router.push('/admin/reviews')">
+          管理后台
+        </button>
+      </nav>
+      <div class="leader-top-actions">
+        <span class="leader-account-pill">{{ currentUserName }}</span>
         <el-button @click="logoutDialogVisible = true">退出登录</el-button>
-      </template>
-    </PageHeader>
+      </div>
+    </header>
 
     <LogoutConfirmDialog v-model="logoutDialogVisible" @confirm="handleLogout" />
 
-    <section class="stats-bar">
-      <div class="stat-item">
-        <span class="stat-label">负责小组</span>
+    <section class="leader-hero">
+      <div class="leader-hero-copy">
+        <p class="leader-eyebrow">Review Leader</p>
+        <h1>评审组长工作台</h1>
+        <p class="leader-lead">按评审小组处理任务分配、组内评分详情、最终评分与共识确认。</p>
+        <div class="leader-hero-meta">
+          <span class="leader-badge">负责小组 {{ groups.length }}</span>
+          <span class="leader-badge">本组任务 {{ tasks.length }}</span>
+          <span class="leader-badge">待最终评分 {{ submittedCount }}</span>
+        </div>
+      </div>
+
+      <aside class="leader-brief-card" aria-label="当前评审概览">
+        <div>
+          <div class="brief-title">
+            <div>
+              <p class="leader-eyebrow">Current Group</p>
+              <h2>{{ selectedGroup?.name || '暂无小组' }}</h2>
+            </div>
+            <span class="current-group-label">当前小组</span>
+          </div>
+          <p v-if="selectedGroup">
+            当前小组由 {{ selectedGroup.leaderDisplayName || selectedGroup.leaderUsername || selectedGroup.leaderUserId }} 负责。
+          </p>
+          <p v-else>选择评审小组后，这里会显示成员、任务与共识状态。</p>
+        </div>
+        <div class="brief-grid">
+          <div class="brief-metric">
+            <strong>{{ selectedGroup?.memberCount ?? 0 }}</strong>
+            <span>成员</span>
+          </div>
+          <div class="brief-metric">
+            <strong>{{ unassignedCount }}</strong>
+            <span>待分配</span>
+          </div>
+          <div class="brief-metric">
+            <strong>{{ confirmedCount }}</strong>
+            <span>已确认</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="leader-stats-grid" aria-label="任务统计">
+      <article class="stat-card">
+        <span>负责小组</span>
         <strong>{{ groups.length }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">本组任务</span>
+      </article>
+      <article class="stat-card">
+        <span>本组任务</span>
         <strong>{{ tasks.length }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">待分配</span>
+      </article>
+      <article class="stat-card">
+        <span>待分配</span>
         <strong>{{ unassignedCount }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">待最终评分</span>
+      </article>
+      <article class="stat-card">
+        <span>待最终评分</span>
         <strong>{{ submittedCount }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">最终已确认</span>
+      </article>
+      <article class="stat-card">
+        <span>最终已确认</span>
         <strong>{{ confirmedCount }}</strong>
-      </div>
+      </article>
     </section>
 
     <section class="leader-shell">
@@ -385,7 +428,11 @@ onMounted(async () => {
 
         <div class="member-list">
           <h3>组内普通评审员</h3>
-          <el-empty v-if="!reviewerMembers.length" description="暂无普通评审员成员" />
+          <div v-if="!reviewerMembers.length" class="leader-empty-state compact">
+            <div class="leader-empty-icon" aria-hidden="true"></div>
+            <p class="empty-title">暂无普通评审员成员</p>
+            <p class="empty-copy">添加成员后，可直接在本页分配论文与查看个人评分报告。</p>
+          </div>
           <div v-for="member in reviewerMembers" :key="member.id" class="member-item">
             <strong>{{ reviewerDisplayName(member) }}</strong>
             <span>{{ member.username || member.userId }}</span>
@@ -397,6 +444,10 @@ onMounted(async () => {
         <div class="panel-header">
           <h2>本组评审任务</h2>
           <el-button type="primary" size="small" @click="loadGroupScope()">刷新任务</el-button>
+        </div>
+        <div class="task-toolbar">
+          <p>按论文、状态、提交进度和截止时间快速扫描任务。</p>
+          <span class="leader-badge">当前 {{ tasks.length }} 项</span>
         </div>
 
         <el-table :data="tasks" class="task-table" highlight-current-row @row-click="(row: AdminReviewTaskSummary) => loadTaskDetail(row.id)">
@@ -450,8 +501,15 @@ onMounted(async () => {
               </div>
             </template>
           </el-table-column>
+          <template #empty>
+            <div class="leader-empty-state table-empty">
+              <div class="leader-empty-icon" aria-hidden="true"></div>
+              <p class="empty-title">暂无本组任务</p>
+              <p class="empty-copy">任务分配后将在这里显示论文、评审员、截止时间和最终评分入口。</p>
+              <el-button type="primary" size="small" @click.stop="loadGroupScope()">刷新任务</el-button>
+            </div>
+          </template>
         </el-table>
-        <el-empty v-if="!scopeLoading && !tasks.length" description="暂无本组任务" />
       </main>
     </section>
 
@@ -462,7 +520,11 @@ onMounted(async () => {
           <el-tag size="small">{{ reports.length }} 份报告</el-tag>
         </div>
 
-        <el-empty v-if="!reports.length" description="暂无已生成的个人评分报告" />
+        <div v-if="!reports.length" class="leader-empty-state compact">
+          <div class="leader-empty-icon" aria-hidden="true"></div>
+          <p class="empty-title">暂无已生成的个人评分报告</p>
+          <p class="empty-copy">组内评审员提交报告后，可在这里展开查看评分指标、理由与建议。</p>
+        </div>
         <el-collapse v-else accordion>
           <el-collapse-item v-for="report in reports" :key="report.id" :name="report.id">
             <template #title>
@@ -562,34 +624,297 @@ onMounted(async () => {
 
 <style scoped>
 .leader-page {
-  gap: 24px;
-  padding: 28px;
+  gap: 22px;
+  padding: 0 36px 48px;
   background: var(--claude-canvas);
 }
 
-.leader-page :deep([class~="page-header"]) {
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  background: transparent;
+.leader-page :deep([class~="el-button"]) {
+  border-radius: var(--app-radius-md);
+  cursor: pointer;
 }
 
-.leader-page :deep([class~="page-eyebrow"]) {
+.leader-page h1,
+.leader-page h2,
+.leader-page h3 {
+  letter-spacing: 0;
+}
+
+.leader-top-nav,
+.leader-hero,
+.leader-stats-grid,
+.leader-shell,
+.detail-grid {
+  width: min(100%, 1200px);
+  margin-inline: auto;
+}
+
+.leader-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 64px;
+  border-bottom: 1px solid var(--claude-hairline-soft);
+}
+
+.leader-brand,
+.leader-top-actions,
+.leader-nav-links {
+  display: flex;
+  align-items: center;
+}
+
+.leader-brand {
+  gap: 10px;
+  color: var(--app-text);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.leader-brand-mark {
+  position: relative;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.leader-brand-mark::before,
+.leader-brand-mark::after,
+.leader-brand-mark span::before,
+.leader-brand-mark span::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--app-text);
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.leader-brand-mark::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.leader-brand-mark span::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.leader-brand-mark span::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.leader-nav-links {
+  gap: 4px;
+}
+
+.leader-nav-link {
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  color: var(--app-text-muted);
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background-color var(--app-transition-fast),
+    color var(--app-transition-fast);
+}
+
+.leader-nav-link:hover,
+.leader-nav-link.active {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+.leader-top-actions {
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.leader-account-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.leader-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 32px;
+  align-items: stretch;
+  padding: 48px 0 10px;
+}
+
+.leader-hero-copy {
+  min-width: 0;
+}
+
+.leader-eyebrow {
+  margin: 0 0 10px;
   color: var(--app-primary);
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 1.5px;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
-.leader-page :deep([class~="page-header"] h1) {
+.leader-hero h1 {
+  max-width: 720px;
   color: var(--app-text);
-  font-size: clamp(34px, 4vw, 48px);
+  font-size: 54px;
   font-weight: 500;
-  line-height: 1.08;
+  line-height: 1.06;
 }
 
-.leader-page :deep([class~="el-button"]) {
-  border-radius: var(--app-radius-sm);
+.leader-lead {
+  max-width: 620px;
+  margin: 16px 0 0;
+  color: var(--app-text-muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.leader-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.leader-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.leader-brief-card {
+  display: flex;
+  min-height: 216px;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--app-border);
+  border-left: 4px solid var(--app-primary);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  padding: 24px;
+}
+
+.leader-brief-card p,
+.leader-brief-card span {
+  color: var(--app-text-muted);
+}
+
+.leader-brief-card .leader-eyebrow {
+  color: var(--app-primary);
+}
+
+.brief-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.brief-title h2 {
+  color: var(--app-text);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.current-group-label {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--app-surface);
+  color: var(--app-text-muted);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.brief-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.brief-metric {
+  border-radius: 10px;
+  background: var(--app-surface);
+  padding: 12px;
+}
+
+.brief-metric strong {
+  display: block;
+  color: var(--app-text);
+  font-family: var(--claude-serif);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.brief-metric span {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.leader-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  min-height: 88px;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  padding: 18px;
+}
+
+.stat-card span {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--app-text);
+  font-family: var(--claude-serif);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .leader-action-group {
@@ -671,55 +996,10 @@ onMounted(async () => {
   margin-left: 0;
 }
 
-.stats-bar {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
-  padding: 14px 24px;
-  background: var(--app-surface-soft);
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 16px;
-}
-
-.stat-item:first-child {
-  padding-left: 0;
-}
-
-.stat-item:last-child {
-  padding-right: 0;
-}
-
-.stat-label {
-  color: var(--app-text-muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.stat-item strong {
-  color: var(--app-text);
-  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-  font-size: 20px;
-  font-weight: 500;
-}
-
-.stat-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--app-border);
-  flex-shrink: 0;
-}
-
 .leader-shell {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 310px minmax(0, 1fr);
+  gap: 22px;
 }
 
 .group-panel,
@@ -727,8 +1007,8 @@ onMounted(async () => {
 .detail-card {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  background: var(--claude-canvas);
-  padding: 22px;
+  background: var(--app-surface);
+  padding: 24px;
 }
 
 .panel-header {
@@ -736,16 +1016,17 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--app-border);
 }
 
 .panel-header h2 {
   margin: 0;
   color: var(--app-text);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 500;
+  line-height: 1.15;
 }
 
 .full-width {
@@ -759,8 +1040,8 @@ onMounted(async () => {
   flex-direction: column;
   gap: 4px;
   margin-top: 12px;
-  padding: 12px;
-  border-radius: var(--app-radius-md);
+  padding: 16px;
+  border-radius: var(--app-radius-lg);
   background: var(--app-surface-soft);
 }
 
@@ -784,14 +1065,15 @@ onMounted(async () => {
 }
 
 .member-list {
-  margin-top: 20px;
+  margin-top: 26px;
 }
 
 .member-list h3 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: var(--app-text);
-  font-size: 16px;
-  font-weight: 500;
+  font-family: var(--claude-sans);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .member-item {
@@ -824,14 +1106,113 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.task-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.task-toolbar p {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+}
+
 .task-table {
   width: 100%;
+}
+
+.task-table :deep(.el-table__empty-block) {
+  min-height: 256px;
+}
+
+.task-table :deep(.el-table__empty-text) {
+  width: 100%;
+}
+
+.leader-empty-state {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 190px;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, rgba(245, 240, 232, 0.55), rgba(250, 249, 245, 0));
+  padding: 24px;
+  text-align: center;
+}
+
+.leader-empty-state.compact {
+  min-height: 190px;
+}
+
+.leader-empty-state.table-empty {
+  min-height: 256px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.leader-empty-icon {
+  position: relative;
+  width: 38px;
+  height: 48px;
+  margin-bottom: 14px;
+  border: 1.5px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+}
+
+.leader-empty-icon::before {
+  position: absolute;
+  top: -1.5px;
+  right: -1.5px;
+  width: 15px;
+  height: 15px;
+  border-bottom: 1.5px solid var(--app-border);
+  border-left: 1.5px solid var(--app-border);
+  border-radius: 0 7px 0 4px;
+  background: var(--app-surface-strong);
+  content: "";
+}
+
+.leader-empty-icon::after {
+  position: absolute;
+  top: 22px;
+  right: 10px;
+  left: 10px;
+  height: 1.5px;
+  background: var(--app-border);
+  box-shadow: 0 8px 0 var(--app-border);
+  content: "";
+}
+
+.empty-title {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.empty-copy {
+  max-width: 320px;
+  margin: 6px auto 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.leader-empty-state .el-button {
+  margin-top: 18px;
 }
 
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
-  gap: 20px;
+  gap: 22px;
 }
 
 .report-title {
@@ -895,22 +1276,63 @@ onMounted(async () => {
 }
 
 @media (max-width: 1180px) {
-  .stats-bar {
-    flex-wrap: wrap;
-    gap: 8px;
+  .leader-page {
+    padding-inline: 24px;
   }
 
-  .stat-divider {
-    display: none;
+  .leader-hero {
+    grid-template-columns: 1fr;
   }
 
-  .stat-item {
-    padding: 4px 12px 4px 0;
+  .leader-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .leader-shell,
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .leader-page {
+    padding-inline: 18px;
+  }
+
+  .leader-top-nav {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px 0;
+  }
+
+  .leader-nav-links,
+  .leader-top-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .leader-hero {
+    padding-top: 32px;
+  }
+
+  .leader-hero h1 {
+    font-size: 40px;
+  }
+
+  .leader-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .panel-header,
+  .consensus-footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

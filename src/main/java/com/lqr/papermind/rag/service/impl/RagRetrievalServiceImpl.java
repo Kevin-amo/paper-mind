@@ -65,15 +65,21 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
             } else {
                 builder.similarityThresholdAll();
             }
+            // 把用户问题变成向量，然后在向量库中查找最相关的文档 -- 按语义查询
             List<Document> documents = vectorStore.similaritySearch(builder.build());
             List<String> sourceIds = documents.stream()
                     .map(doc -> {
                         Map<String, Object> meta = doc.getMetadata();
+                        // 获取文档的源ID
                         return meta == null ? null : String.valueOf(meta.getOrDefault(MetadataKeys.SOURCE_ID, ""));
                     })
+                    // 过滤掉无效的源ID
                     .filter(id -> id != null && !id.isBlank())
+                    // 去重
                     .distinct()
+                    // 转换为列表
                     .toList();
+            // 获取源ID对应的文档是否已索引
             Map<String, Boolean> indexedMap = documentPersistenceService.findIndexedDocuments(ownerUserId, sourceIds);
             List<RetrievedChunk> vectorChunks = new ArrayList<>(documents.size());
             FilterStats filterStats = new FilterStats();

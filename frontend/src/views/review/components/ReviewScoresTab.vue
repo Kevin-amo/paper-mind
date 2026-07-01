@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { ReviewReport, ReviewReportStatus, ReviewScoreItem, ReviewCriterion } from '../../../types';
+import { computed } from 'vue';
+import type { ReviewCriterion, ReviewReport, ReviewReportStatus, ReviewScoreItem } from '../../../types';
 
 const props = defineProps<{
   scoreItems: ReviewScoreItem[];
@@ -11,80 +12,179 @@ const props = defineProps<{
   criteria: ReviewCriterion[];
 }>();
 
+const decisionOptions = [
+  { key: 'pass', label: '通过' },
+  { key: 'revise', label: '修改后通过' },
+  { key: 'return', label: '退回' },
+  { key: 'review', label: '需复核' },
+] as const;
+
+type DecisionKey = typeof decisionOptions[number]['key'];
+
+const finalScoreLabel = computed(() => {
+  const score = props.assignmentSubmitted
+    ? props.selectedReport?.totalScore ?? props.reportForm.totalScore
+    : props.reportForm.totalScore ?? props.selectedReport?.totalScore;
+  return Number.isFinite(Number(score)) ? formatNumber(score) : '--';
+});
+
+const finalRecommendationText = computed(() => {
+  const recommendation = props.reportForm.finalRecommendation?.trim()
+    || props.selectedReport?.finalRecommendation?.trim()
+    || '';
+  return recommendation || '暂无最终意见';
+});
+
+const activeDecisionKey = computed<DecisionKey>(() => {
+  const recommendation = finalRecommendationText.value;
+  if (/退回|不通过|拒绝/.test(recommendation)) {
+    return 'return';
+  }
+  if (/复核|仲裁|争议|再审/.test(recommendation)) {
+    return 'review';
+  }
+  if (/修改|修订|补充|完善/.test(recommendation)) {
+    return 'revise';
+  }
+  if (/通过|同意/.test(recommendation)) {
+    return 'pass';
+  }
+  return 'revise';
+});
+
 function getWeight(code: string): number {
-  return props.criteria?.find((c) => c.code === code)?.weight ?? 0;
+  return props.criteria?.find((criterion) => criterion.code === code)?.weight ?? 0;
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function formatNumber(value: unknown): string {
+  const numberValue = toFiniteNumber(value);
+  const rounded = Math.round(numberValue * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+function metricPercent(item: ReviewScoreItem): number {
+  const maxScore = toFiniteNumber(item.maxScore, 100);
+  if (maxScore <= 0) {
+    return 0;
+  }
+  const percent = (toFiniteNumber(item.score) / maxScore) * 100;
+  return Math.min(100, Math.max(0, percent));
+}
+
+function isDecisionActive(key: DecisionKey): boolean {
+  return activeDecisionKey.value === key;
 }
 
 defineEmits<{
   'update-score': [code: string, score: number];
-  'save-report': [];
-  'submit-assignment': [];
 }>();
 </script>
 
 <template>
-  <section class="detail-section">
+  <section class="detail-section" :aria-busy="saving || submittingAssignment">
     <div class="section-header">
       <h3>维度化辅助评分</h3>
-      <p>评委可在 AI 建议基础上手动调整总分和最终意见</p>
+      <p>把总分、结论和各维度证据收在同一张评分表里，提交后自动进入只读留档。</p>
     </div>
-    <div v-if="scoreItems.length" class="score-grid">
-      <article v-for="item in scoreItems" :key="item.code" class="score-card">
-        <div class="score-card-header">
-          <strong class="score-name">{{ item.name }}</strong>
-          <el-tag v-if="getWeight(item.code)" size="small" type="info" class="weight-tag">权重{{ getWeight(item.code) }}%</el-tag>
-          <span class="score-value">{{ item.score }}<span class="score-max">/{{ item.maxScore }}</span></span>
-        </div>
-        <el-slider
-          :model-value="Number(item.score)"
-          :min="0"
-          :max="Number(item.maxScore || 100)"
-          :disabled="assignmentSubmitted"
-          @input="$emit('update-score', item.code, Array.isArray($event) ? $event[0] : $event)"
-        />
-        <p class="score-reason">{{ item.reason }}</p>
-      </article>
-    </div>
-    <el-empty v-else description="生成辅助评审后展示评分建议" />
 
-    <div class="manual-section">
-      <div class="manual-header">
-        <h4>手动调整</h4>
-      </div>
-      <div class="manual-form">
-        <div class="manual-score">
-          <label>总分</label>
-          <el-input-number v-model="reportForm.totalScore" :min="0" :max="100" controls-position="right" :disabled="assignmentSubmitted" />
+    <div v-if="scoreItems.length" class="score-sheet">
+      <section class="score-summary" aria-label="评分摘要">
+        <article class="score-total">
+          <span>最终总分</span>
+          <div class="score-number">{{ finalScoreLabel }}<small>/100</small></div>
+          <p>{{ assignmentSubmitted ? '已提交留档，不再接受调整。' : '保存草稿时会按维度权重重新计算。' }}</p>
+        </article>
+
+        <article class="recommendation-box">
+          <span>最终评审意见</span>
+          <p>{{ finalRecommendationText }}</p>
+        </article>
+      </section>
+
+      <div class="decision-strip" aria-label="最终结论">
+        <div
+          v-for="option in decisionOptions"
+          :key="option.key"
+          class="decision"
+          :class="{ active: isDecisionActive(option.key) }"
+        >
+          {{ option.label }}
         </div>
-        <div class="manual-opinion">
-          <label>最终评审意见</label>
-          <el-input
-            v-model="reportForm.finalRecommendation"
-            type="textarea"
-            :rows="3"
-            :disabled="assignmentSubmitted"
-            placeholder="填写或调整最终评审意见"
-          />
+      </div>
+
+      <section class="metrics" aria-label="评分维度">
+        <article v-for="item in scoreItems" :key="item.code" class="metric-row">
+          <div class="metric-title">
+            <strong>{{ item.name }}</strong>
+            <span>{{ getWeight(item.code) ? `权重 ${getWeight(item.code)}%` : '未配置权重' }}</span>
+          </div>
+
+          <div class="metric-control">
+            <div v-if="assignmentSubmitted" class="metric-track" aria-hidden="true">
+              <div class="metric-fill" :style="{ width: `${metricPercent(item)}%` }"></div>
+            </div>
+            <el-slider
+              v-else
+              class="metric-slider"
+              :model-value="Number(item.score)"
+              :min="0"
+              :max="Number(item.maxScore || 100)"
+              :show-tooltip="false"
+              @input="$emit('update-score', item.code, Array.isArray($event) ? $event[0] : $event)"
+            />
+          </div>
+
+          <div class="metric-score">{{ formatNumber(item.score) }}<small>/{{ formatNumber(item.maxScore) }}</small></div>
+          <p v-if="item.reason" class="metric-reason">{{ item.reason }}</p>
+        </article>
+      </section>
+
+      <section v-if="assignmentSubmitted" class="submitted-panel">
+        <div class="submitted-note">
+          <span class="readonly-pill">只读留档</span>
+          <p>本次个人评审已提交，评分、结论和最终意见不可继续调整。</p>
         </div>
-      </div>
-      <div class="manual-actions">
-        <el-button :disabled="assignmentSubmitted || !selectedReport" :loading="saving" @click="$emit('save-report')">
-          保存调整
-        </el-button>
-        <el-popconfirm title="提交后个人评审将只读，是否继续？" @confirm="$emit('submit-assignment')">
-          <template #reference>
-            <el-button
-              type="primary"
-              class="submit-assignment-button"
-              :disabled="assignmentSubmitted || submittingAssignment || !selectedReport"
-              :loading="submittingAssignment"
-            >
-              提交评审
-            </el-button>
-          </template>
-        </el-popconfirm>
-      </div>
+      </section>
+
+      <section v-else class="edit-panel">
+        <div class="edit-form">
+          <div class="field">
+            <label>总分</label>
+            <el-input-number
+              v-model="reportForm.totalScore"
+              class="score-editor"
+              :min="0"
+              :max="100"
+              controls-position="right"
+            />
+          </div>
+          <div class="field">
+            <label>最终评审意见</label>
+            <el-input
+              v-model="reportForm.finalRecommendation"
+              class="recommendation-editor"
+              type="textarea"
+              :rows="3"
+              placeholder="填写或调整最终评审意见"
+            />
+          </div>
+        </div>
+        <p class="edit-note">
+          {{ selectedReport ? '完成调整后，请使用页面底部操作栏保存草稿或提交评审。' : '生成辅助评审后可填写最终意见。' }}
+        </p>
+      </section>
     </div>
+
+    <section v-else class="review-empty-state">
+      <div class="review-doc-icon" aria-hidden="true"></div>
+      <strong>暂无评分建议</strong>
+      <p>生成辅助评审后，这里会展示各维度评分、权重和理由。</p>
+    </section>
   </section>
 </template>
 
@@ -112,143 +212,378 @@ defineEmits<{
   font-size: 13px;
 }
 
-.score-grid {
+.score-sheet {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
-.score-card {
+.score-summary {
+  display: grid;
+  grid-template-columns: 174px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.score-total,
+.recommendation-box {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  padding: 16px;
-  background: var(--app-surface-soft);
-  transition: border-color 0.15s ease;
+  background: var(--app-surface-strong);
+  padding: 18px;
 }
 
-.score-card:hover {
-  border-color: var(--app-border-strong);
-}
-
-.score-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.score-name {
-  color: var(--app-text);
-  font-size: 14px;
+.score-total span,
+.recommendation-box span,
+.metric-title span {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: 12px;
   font-weight: 600;
 }
 
-.weight-tag {
-  margin-left: 6px;
-  font-size: 11px;
-}
-
-.score-value {
-  color: var(--app-primary);
-  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-  font-size: 20px;
+.score-number {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-top: 8px;
+  color: var(--app-text);
+  font-family: var(--claude-serif);
+  font-size: 52px;
   font-weight: 500;
   letter-spacing: -0.02em;
+  line-height: 1;
 }
 
-.score-max {
+.score-number small {
   color: var(--app-text-subtle);
+  font-family: var(--claude-sans);
   font-size: 14px;
   font-weight: 500;
 }
 
-.score-reason {
-  margin: 8px 0 0;
+.score-total p,
+.recommendation-box p {
+  margin: 10px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.recommendation-box p {
+  color: var(--app-text);
+}
+
+.decision-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.decision {
+  min-height: 38px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface);
+  color: var(--app-text-muted);
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.decision.active {
+  border-color: rgba(204, 120, 92, 0.34);
+  background: var(--app-primary-soft);
+  color: var(--app-primary-active);
+}
+
+.metrics {
+  display: grid;
+  gap: 10px;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: minmax(132px, 170px) minmax(160px, 1fr) minmax(72px, 86px);
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-strong);
+  padding: 14px;
+}
+
+.metric-title {
+  min-width: 0;
+}
+
+.metric-title strong {
+  display: block;
+  overflow: hidden;
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-title span {
+  margin-top: 4px;
+}
+
+.metric-control {
+  min-width: 0;
+}
+
+.metric-track {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--app-surface-muted);
+}
+
+.metric-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--app-primary);
+}
+
+.metric-slider {
+  --el-slider-main-bg-color: var(--app-primary);
+  --el-slider-runway-bg-color: var(--app-surface-muted);
+  --el-slider-stop-bg-color: var(--app-surface-muted);
+  --el-slider-disabled-color: var(--app-primary);
+  height: 20px;
+}
+
+.metric-slider :deep(.el-slider__runway) {
+  height: 8px;
+  margin: 6px 0;
+  border-radius: 999px;
+}
+
+.metric-slider :deep(.el-slider__bar) {
+  height: 8px;
+  border-radius: 999px;
+}
+
+.metric-slider :deep(.el-slider__button-wrapper) {
+  top: -11px;
+}
+
+.metric-slider :deep(.el-slider__button) {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--app-primary);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow-sm);
+}
+
+.metric-score {
+  color: var(--app-primary-active);
+  font-family: var(--claude-serif);
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-align: right;
+}
+
+.metric-score small {
+  color: var(--app-text-subtle);
+  font-family: var(--claude-sans);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.metric-reason {
+  grid-column: 1 / -1;
+  margin: -2px 0 0;
   color: var(--app-text-muted);
   font-size: 13px;
   line-height: 1.6;
 }
 
-.manual-section {
-  margin-top: 20px;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
-  padding: 16px;
-  background: var(--app-surface);
+.submitted-panel,
+.edit-panel {
+  border-top: 1px solid var(--app-border);
+  padding-top: 18px;
 }
 
-.manual-header {
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--app-border);
+.submitted-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
 
-.manual-header h4 {
+.submitted-note p {
   margin: 0;
-  color: var(--app-text);
-  font-size: 14px;
-  font-weight: 700;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
-.manual-form {
+.readonly-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.edit-form {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: 174px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
 }
 
-.manual-score label,
-.manual-opinion label {
+.field label {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: var(--app-text-muted);
   font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
-.manual-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--app-border);
+.score-editor {
+  width: 100%;
 }
 
-.submit-assignment-button {
-  min-width: 96px;
-  border-color: var(--app-primary);
-  background: var(--app-primary);
-  color: var(--app-text-on-primary);
-  box-shadow: none;
+.score-editor :deep(.el-input__wrapper),
+.recommendation-editor :deep(.el-textarea__inner) {
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  box-shadow: 0 0 0 1px var(--app-border) inset;
 }
 
-.submit-assignment-button:hover,
-.submit-assignment-button:focus-visible {
-  border-color: var(--app-primary-hover);
-  background: var(--app-primary-hover);
-  color: var(--app-text-on-primary);
+.score-editor :deep(.el-input__wrapper) {
+  min-height: 48px;
 }
 
-.submit-assignment-button.is-disabled,
-.submit-assignment-button.is-disabled:hover {
-  border-color: var(--app-border);
-  background: var(--app-surface-muted);
-  color: var(--app-text-subtle);
+.score-editor :deep(.el-input__inner) {
+  color: var(--app-primary-active);
+  font-family: var(--claude-serif);
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.recommendation-editor :deep(.el-textarea__inner) {
+  min-height: 90px;
+  color: var(--app-text);
+  line-height: 1.65;
+}
+
+.score-editor :deep(.el-input__wrapper.is-focus),
+.recommendation-editor :deep(.el-textarea__inner:focus) {
+  box-shadow:
+    0 0 0 1px var(--app-primary) inset,
+    var(--app-shadow-focus);
+}
+
+.edit-note {
+  margin: 12px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.review-empty-state {
+  display: grid;
+  justify-items: center;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, rgba(245, 240, 232, 0.58), rgba(250, 249, 245, 0));
+  padding: 30px 18px;
+  text-align: center;
+}
+
+.review-doc-icon {
+  position: relative;
+  width: 32px;
+  height: 42px;
+  margin-bottom: 12px;
+  border: 1.5px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+}
+
+.review-doc-icon::before {
+  position: absolute;
+  top: -1.5px;
+  right: -1.5px;
+  width: 13px;
+  height: 13px;
+  border-bottom: 1.5px solid var(--app-border);
+  border-left: 1.5px solid var(--app-border);
+  border-radius: 0 7px 0 4px;
+  background: var(--app-surface-strong);
+  content: "";
+}
+
+.review-doc-icon::after {
+  position: absolute;
+  top: 20px;
+  left: 9px;
+  right: 9px;
+  height: 1.5px;
+  background: var(--app-border);
+  box-shadow: 0 7px 0 var(--app-border);
+  content: "";
+}
+
+.review-empty-state strong {
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.review-empty-state p {
+  margin: 6px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 @media (max-width: 1180px) {
-  .manual-form {
+  .score-summary,
+  .edit-form {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
-  .score-grid {
+  .decision-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-row {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .metric-title strong {
+    white-space: normal;
+  }
+
+  .metric-score {
+    text-align: left;
+  }
+
+  .score-number {
+    font-size: 44px;
+  }
+
+  .submitted-note {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .section-header {

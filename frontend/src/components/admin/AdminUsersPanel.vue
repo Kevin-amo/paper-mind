@@ -119,10 +119,18 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
     // User cancelled the confirmation dialog.
   }
 }
+
+function handlePageSizeChange(nextSize: number) {
+  admin.pagination.size = nextSize;
+  void admin.loadUsers(0);
+}
 </script>
 
 <template>
-  <section class="paper-mind-workspace-card users-panel">
+  <section
+    class="paper-mind-workspace-card users-panel animate fade-in"
+    v-animate="{ type: 'fade-in', delay: '0.1s', duration: '0.6s' }"
+  >
     <div class="panel-heading">
       <div>
         <h2>用户列表</h2>
@@ -131,41 +139,53 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
       <el-button type="primary" @click="admin.openCreateDialog">新建用户</el-button>
     </div>
 
-    <section class="admin-summary">
-      <div class="summary-card">
+    <section class="summary-grid">
+      <div
+        class="summary-card animate slide-up"
+        v-animate="{ type: 'slide-up', delay: '0ms', duration: '0.6s' }"
+      >
         <div class="summary-icon blue">
-          <el-icon :size="18"><User /></el-icon>
+          <el-icon :size="20"><User /></el-icon>
         </div>
         <div class="summary-body">
-          <span>当前页用户</span>
-          <strong>{{ admin.users.value.length }}</strong>
+          <span class="summary-label">当前页用户</span>
+          <strong class="summary-value">{{ admin.users.value.length }}</strong>
         </div>
       </div>
-      <div class="summary-card">
+      <div
+        class="summary-card animate slide-up"
+        v-animate="{ type: 'slide-up', delay: '80ms', duration: '0.6s' }"
+      >
         <div class="summary-icon green">
-          <el-icon :size="18"><UserFilled /></el-icon>
+          <el-icon :size="20"><UserFilled /></el-icon>
         </div>
         <div class="summary-body">
-          <span>启用账号</span>
-          <strong>{{ admin.activeCount.value }}</strong>
+          <span class="summary-label">启用账号</span>
+          <strong class="summary-value">{{ admin.activeCount.value }}</strong>
         </div>
       </div>
-      <div class="summary-card">
+      <div
+        class="summary-card animate slide-up"
+        v-animate="{ type: 'slide-up', delay: '160ms', duration: '0.6s' }"
+      >
         <div class="summary-icon indigo">
-          <el-icon :size="18"><Avatar /></el-icon>
+          <el-icon :size="20"><Avatar /></el-icon>
         </div>
         <div class="summary-body">
-          <span>管理员</span>
-          <strong>{{ admin.adminCount.value }}</strong>
+          <span class="summary-label">管理员</span>
+          <strong class="summary-value">{{ admin.adminCount.value }}</strong>
         </div>
       </div>
-      <div class="summary-card">
+      <div
+        class="summary-card animate slide-up"
+        v-animate="{ type: 'slide-up', delay: '240ms', duration: '0.6s' }"
+      >
         <div class="summary-icon red">
-          <el-icon :size="18"><CircleClose /></el-icon>
+          <el-icon :size="20"><CircleClose /></el-icon>
         </div>
         <div class="summary-body">
-          <span>禁用账号</span>
-          <strong>{{ admin.disabledCount.value }}</strong>
+          <span class="summary-label">禁用账号</span>
+          <strong class="summary-value">{{ admin.disabledCount.value }}</strong>
         </div>
       </div>
     </section>
@@ -328,15 +348,17 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
     <div class="pagination-wrap">
       <el-pagination
         background
-        layout="total, prev, pager, next"
+        layout="total, sizes, prev, pager, next"
         :total="admin.pagination.total"
         :page-size="admin.pagination.size"
         :current-page="admin.pagination.page + 1"
+        :page-sizes="[10, 20, 50]"
+        @size-change="handlePageSizeChange"
         @current-change="(page: number) => admin.loadUsers(page - 1)"
       />
     </div>
 
-    <el-dialog v-model="admin.formDialogVisible.value" :title="admin.dialogTitle.value" width="480px" class="claude-workspace-dialog">
+    <el-dialog v-model="admin.formDialogVisible.value" :title="admin.dialogTitle.value" width="480px" class="claude-workspace-dialog" append-to-body modal-class="admin-users-dialog-overlay">
       <el-form label-position="top">
         <el-form-item label="用户名" required>
           <el-input v-model="admin.userForm.username" :disabled="admin.formMode.value === 'edit'" placeholder="例如 alice" />
@@ -364,7 +386,7 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="admin.passwordDialogVisible.value" title="重置密码" width="400px" class="claude-workspace-dialog">
+    <el-dialog v-model="admin.passwordDialogVisible.value" title="重置密码" width="400px" class="claude-workspace-dialog" append-to-body modal-class="admin-users-dialog-overlay">
       <el-form label-position="top">
         <el-form-item :label="`新密码${admin.selectedUser.value ? ` · ${admin.selectedUser.value.username}` : ''}`" required>
           <el-input v-model="admin.passwordForm.password" type="password" show-password placeholder="请输入新密码" />
@@ -410,25 +432,25 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   font-size: 13px;
 }
 
-.admin-summary {
+.summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .summary-card {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  padding: 14px 16px;
+  padding: 20px;
   background: var(--app-surface-soft);
 }
 
 .summary-icon {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -456,19 +478,19 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   color: var(--app-danger);
 }
 
-.summary-body span {
+.summary-label {
   display: block;
   color: var(--app-text-muted);
   font-size: 13px;
   font-weight: 500;
 }
 
-.summary-body strong {
+.summary-value {
   display: block;
-  margin-top: 2px;
+  margin-top: 4px;
   color: var(--app-text);
   font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -637,6 +659,8 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
 .pagination-wrap {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .full-select {
@@ -670,8 +694,13 @@ async function handleUserAction(command: UserActionCommand, user: AdminUser) {
   --el-button-hover-border-color: #dc2626;
 }
 
+:global(.admin-users-dialog-overlay) {
+  background: rgba(250, 249, 245, 0.18);
+  backdrop-filter: blur(2px);
+}
+
 @media (max-width: 980px) {
-  .admin-summary,
+  .summary-grid,
   .toolbar {
     grid-template-columns: 1fr;
   }

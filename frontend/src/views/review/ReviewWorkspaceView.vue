@@ -3,7 +3,6 @@ import { computed, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import MainLayout from '../../layouts/MainLayout.vue';
-import PageHeader from '../../components/common/PageHeader.vue';
 import LogoutConfirmDialog from '../../components/common/LogoutConfirmDialog.vue';
 import ReviewTaskList from './components/ReviewTaskList.vue';
 import ReviewParseTab from './components/ReviewParseTab.vue';
@@ -11,20 +10,29 @@ import ReviewScoresTab from './components/ReviewScoresTab.vue';
 import ReviewRisksTab from './components/ReviewRisksTab.vue';
 import ReviewCommentsTab from './components/ReviewCommentsTab.vue';
 import ReviewAuditTab from './components/ReviewAuditTab.vue';
-import { statusLabel } from '../../constants/review';
 import { formatDate } from '../../utils/format';
 import { getErrorMessage } from '../../api/http';
 import { useAuth } from '../../composables/useAuth';
 import { useReviews } from '../../composables/useReviews';
 import { useReviewLeaderAccess } from '../../composables/useReviewLeaderAccess';
-import type { PaperStructuredContent, ReviewScoreItem } from '../../types';
+import type { PaperStructuredContent, ReviewAssignmentStatus, ReviewScoreItem } from '../../types';
+
+type ReviewTabKey = 'parse' | 'risks' | 'scores' | 'comments' | 'audit';
 
 const router = useRouter();
 const auth = useAuth();
 const reviews = useReviews();
 const { canAccessLeaderWorkspace, refreshLeaderWorkspaceAccess } = useReviewLeaderAccess();
-const activeReviewTab = ref('parse');
+const activeReviewTab = ref<ReviewTabKey>('scores');
 const logoutDialogVisible = ref(false);
+
+const reviewSteps: Array<{ key: ReviewTabKey; label: string; caption: string }> = [
+  { key: 'parse', label: '论文概览', caption: '结构解析' },
+  { key: 'risks', label: 'AI 辅助', caption: '风险提示' },
+  { key: 'scores', label: '评分表', caption: '多维调整' },
+  { key: 'comments', label: '评语', caption: '意见整理' },
+  { key: 'audit', label: '提交', caption: '留档记录' },
+];
 
 const currentUserName = computed(() => auth.state.user?.displayName || auth.state.user?.username || '评审员');
 const selectedTask = computed(() => reviews.selectedTask.value);
@@ -47,12 +55,74 @@ const comments = computed(() => selectedReport.value?.comments && typeof selecte
   ? selectedReport.value.comments as Record<string, unknown>
   : {});
 
+const reviewSummary = computed(() => {
+  const summary = comments.value.summary || comments.value.finalAdvice || selectedReport.value?.finalRecommendation;
+  if (typeof summary === 'string' && summary.trim()) {
+    return summary.trim();
+  }
+  if (selectedReport.value) {
+    return '辅助评审已生成，建议结合评分表、风险提示和人工判断完成最终意见。';
+  }
+  return '尚未生成辅助评审。先运行 AI 辅助评审，再进行评分与评语调整。';
+});
+
+const reportScoreLabel = computed(() => {
+  if (!selectedReport.value) {
+    return '--';
+  }
+  const score = selectedReport.value.totalScore ?? reviews.reportForm.totalScore;
+  return Number.isFinite(Number(score)) ? `${Math.round(Number(score))}` : '--';
+});
+
+const bottomStatusText = computed(() => {
+  if (assignmentSubmitted.value) {
+    return '本次个人评审已提交，报告将进入只读留档状态。';
+  }
+  if (!selectedReport.value) {
+    return '生成辅助评审后，可保存草稿并提交个人评审。';
+  }
+  return '草稿会保存当前评分与最终意见；提交后将锁定本次个人评审报告。';
+});
+
 function handlePageChange(page: number) {
   reviews.loadTasks(page - 1);
 }
 
 function handleScoreInput(code: string, value: number) {
   reviews.updateScore(code, value);
+}
+
+function updateTaskKeyword(value: string) {
+  reviews.keyword.value = value;
+}
+
+function applyStatusFilter(value: ReviewAssignmentStatus | '') {
+  reviews.statusFilter.value = value;
+  reviews.loadTasks(0);
+}
+
+function focusCriteria() {
+  activeReviewTab.value = 'scores';
+}
+
+function setActiveReviewTab(key: ReviewTabKey) {
+  activeReviewTab.value = key;
+}
+
+function isReviewStepDone(key: ReviewTabKey) {
+  if (key === 'parse') {
+    return Boolean(structuredParse.value || selectedTask.value?.document);
+  }
+  if (key === 'risks') {
+    return Boolean(selectedReport.value);
+  }
+  if (key === 'scores') {
+    return scoreItems.value.length > 0;
+  }
+  if (key === 'comments') {
+    return Boolean(selectedReport.value?.finalRecommendation || comments.value.summary || comments.value.finalAdvice);
+  }
+  return assignmentSubmitted.value;
 }
 
 async function handleLogout() {
@@ -79,314 +149,518 @@ onMounted(async () => {
 
 <template>
   <MainLayout class="review-page paper-mind-review-shell">
-    <PageHeader
-      eyebrow="Review Workspace"
-      title="论文辅助评审工作台"
-      description="面向教师/评委的论文初筛、结构化解析、多维评分、风险提示与评审留档入口。"
-    >
-      <template #actions>
-        <el-tag type="primary" size="large">{{ currentUserName }}</el-tag>
-        <el-button v-if="canAccessLeaderWorkspace" @click="router.push('/review-leader')">组长工作台</el-button>
-        <el-button v-if="auth.hasRole('USER')" @click="router.push('/user')">用户端</el-button>
-        <el-button v-if="auth.isAdmin.value" @click="router.push('/admin')">管理后台</el-button>
+    <header class="review-top-nav">
+      <button class="review-brand" type="button" @click="router.push('/review')">
+        <span class="review-brand-mark" aria-hidden="true"><span></span></span>
+        <span>Paper Mind</span>
+      </button>
+
+      <nav class="review-nav-links" aria-label="主导航">
+        <button v-if="canAccessLeaderWorkspace" class="review-nav-link" type="button" @click="router.push('/review-leader')">
+          组长工作台
+        </button>
+        <button class="review-nav-link active" type="button">评审工作台</button>
+        <button v-if="auth.hasRole('USER')" class="review-nav-link" type="button" @click="router.push('/user')">用户端</button>
+        <button v-if="auth.isAdmin.value" class="review-nav-link" type="button" @click="router.push('/admin')">管理后台</button>
+      </nav>
+
+      <div class="review-nav-actions">
+        <span class="review-account-pill">{{ currentUserName }}</span>
         <el-button @click="logoutDialogVisible = true">退出登录</el-button>
-      </template>
-    </PageHeader>
+      </div>
+    </header>
 
     <LogoutConfirmDialog v-model="logoutDialogVisible" @confirm="handleLogout" />
 
-    <section class="stats-bar">
-      <div class="stat-item">
-        <span class="stat-dot pending"></span>
-        <span class="stat-label">待评审</span>
-        <strong>{{ reviews.pendingCount.value }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-dot reviewing"></span>
-        <span class="stat-label">评审中</span>
-        <strong>{{ reviews.reviewingCount.value }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-dot completed"></span>
-        <span class="stat-label">已完成</span>
-        <strong>{{ reviews.completedCount.value }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-dot criteria"></span>
-        <span class="stat-label">评审指标</span>
-        <strong>{{ reviews.criteria.value.length }}</strong>
-      </div>
-    </section>
+    <main class="review-workspace">
+      <section class="review-hero">
+        <div class="review-hero-copy">
+          <p class="review-eyebrow">Review Workspace</p>
+          <h1>论文评审工作台</h1>
+          <p>
+            像收件箱一样处理评审任务：左侧选择论文，右侧完成解析、AI 辅助、评分、评语和提交。
+          </p>
+        </div>
 
-    <section class="review-layout">
-      <ReviewTaskList
-        :tasks="reviews.tasks.value"
-        :selected-task-id="selectedTask?.id ?? null"
-        :loading="reviews.loading.value"
-        :keyword="reviews.keyword.value"
-        :status-filter="reviews.statusFilter.value"
-        :pagination="reviews.pagination"
-        @select="reviews.selectTask"
-        @search="reviews.loadTasks(0)"
-        @page-change="handlePageChange"
-      />
-
-      <main class="review-detail" v-loading="reviews.detailLoading.value">
-        <template v-if="selectedTask">
-          <div class="detail-header">
-            <div class="detail-title">
-              <h2>{{ selectedTask.title }}</h2>
-              <div class="detail-meta">
-                <span>{{ selectedTask.sourceId }}</span>
-                <span class="meta-dot"></span>
-                <span>{{ formatDate(selectedTask.createdAt) }}</span>
-              </div>
-            </div>
-            <div class="detail-actions">
-              <el-tag v-if="selectedTask.currentAssignment" size="default" effect="plain">
-                {{ statusLabel(selectedTask.currentAssignment.status) }}
-              </el-tag>
-              <el-button type="primary" class="regenerate-review-button" :disabled="assignmentSubmitted" :loading="reviews.generating.value" @click="reviews.runAiReview">
-                {{ selectedReport ? '重新生成辅助评审' : '生成辅助评审' }}
-              </el-button>
-            </div>
+        <aside class="review-hero-summary" aria-label="评审概览">
+          <div>
+            <span>待评审</span>
+            <strong>{{ reviews.pendingCount.value }}</strong>
           </div>
+          <div>
+            <span>评审中</span>
+            <strong>{{ reviews.reviewingCount.value }}</strong>
+          </div>
+          <div>
+            <span>已提交</span>
+            <strong>{{ reviews.completedCount.value }}</strong>
+          </div>
+        </aside>
+      </section>
 
-          <el-tabs v-model="activeReviewTab" class="review-tabs">
-            <el-tab-pane label="结构化解析" name="parse">
-              <ReviewParseTab
-                :structured-parse="structuredParse"
-                :structured-content="structuredContent"
-                :selected-task="selectedTask"
-                :missing-fields="missingFields"
-                :low-confidence-fields="lowConfidenceFields"
-                :assignment-submitted="assignmentSubmitted"
-                :structured-parse-loading="reviews.structuredParseLoading.value"
-                :regenerating-structured-parse="reviews.regeneratingStructuredParse.value"
-                @rerun-structured-parse="reviews.rerunStructuredParse"
-              />
-            </el-tab-pane>
+      <section class="review-filter-row">
+        <div class="review-filter-chips" aria-label="任务筛选">
+          <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === '' }" type="button" @click="applyStatusFilter('')">
+            全部 {{ reviews.pagination.total || reviews.tasks.value.length }}
+          </button>
+          <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'ASSIGNED' }" type="button" @click="applyStatusFilter('ASSIGNED')">
+            待评审 {{ reviews.pendingCount.value }}
+          </button>
+          <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'REVIEWING' }" type="button" @click="applyStatusFilter('REVIEWING')">
+            评审中 {{ reviews.reviewingCount.value }}
+          </button>
+          <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'SUBMITTED' }" type="button" @click="applyStatusFilter('SUBMITTED')">
+            已提交 {{ reviews.completedCount.value }}
+          </button>
+          <button class="review-filter-chip" type="button" @click="focusCriteria">
+            评审指标 {{ reviews.criteria.value.length }}
+          </button>
+        </div>
+      </section>
 
-            <el-tab-pane label="多维评分" name="scores">
-              <ReviewScoresTab
-                :score-items="scoreItems"
-                :selected-report="selectedReport"
-                :assignment-submitted="assignmentSubmitted"
-                :saving="reviews.saving.value"
-                :submitting-assignment="reviews.submittingAssignment.value"
-                :report-form="reviews.reportForm"
-                :criteria="reviews.criteria.value"
-                @update-score="handleScoreInput"
-                @save-report="reviews.saveReport"
-                @submit-assignment="reviews.submitCurrentAssignment"
-              />
-            </el-tab-pane>
+      <section class="review-layout">
+        <ReviewTaskList
+          :tasks="reviews.tasks.value"
+          :selected-task-id="selectedTask?.id ?? null"
+          :loading="reviews.loading.value"
+          :keyword="reviews.keyword.value"
+          :pagination="reviews.pagination"
+          @update:keyword="updateTaskKeyword"
+          @select="reviews.selectTask"
+          @search="reviews.loadTasks(0)"
+          @page-change="handlePageChange"
+        />
 
-            <el-tab-pane label="风险预警" name="risks">
-              <ReviewRisksTab
-                :risk-records="riskRecords"
-                :risk-loading="reviews.riskLoading.value"
-                :risk-status-updating-ids="reviews.riskStatusUpdatingIds.value"
-                @set-risk-status="reviews.setRiskStatus"
-              />
-            </el-tab-pane>
+        <main class="review-detail" v-loading="reviews.detailLoading.value">
+          <template v-if="selectedTask">
+            <article class="review-paper-header">
+              <div class="review-paper-header-top">
+                <div class="review-paper-title">
+                  <p class="review-eyebrow">Selected Paper</p>
+                  <h2>{{ selectedTask.title }}</h2>
+                  <div class="review-paper-meta">
+                    <span>{{ selectedTask.sourceId }}</span>
+                    <span>{{ formatDate(selectedTask.createdAt) }}</span>
+                    <span v-if="selectedTask.dueAt">截止 {{ formatDate(selectedTask.dueAt) }}</span>
+                  </div>
+                </div>
+                <div class="review-paper-actions">
+                  <el-button
+                    type="primary"
+                    class="regenerate-review-button"
+                    :disabled="assignmentSubmitted"
+                    :loading="reviews.generating.value"
+                    @click="reviews.runAiReview"
+                  >
+                    {{ selectedReport ? '重新生成辅助评审' : '生成辅助评审' }}
+                  </el-button>
+                </div>
+              </div>
 
-            <el-tab-pane label="评语意见" name="comments">
-              <ReviewCommentsTab
-                :comments="comments"
-                :selected-report="selectedReport"
-              />
-            </el-tab-pane>
+              <div class="review-progress-strip" aria-label="评审流程">
+                <button
+                  v-for="step in reviewSteps"
+                  :key="step.key"
+                  class="review-step"
+                  :class="{ active: activeReviewTab === step.key, done: activeReviewTab !== step.key && isReviewStepDone(step.key) }"
+                  type="button"
+                  @click="setActiveReviewTab(step.key)"
+                >
+                  <span>{{ step.label }}</span>
+                  <small>{{ step.caption }}</small>
+                </button>
+              </div>
+            </article>
 
-            <el-tab-pane label="留档信息" name="audit">
-              <ReviewAuditTab :selected-report="selectedReport" :task-id="selectedTask?.id ?? null" />
-            </el-tab-pane>
-          </el-tabs>
-        </template>
+            <section class="review-work-area">
+              <div class="review-tab-surface">
+                <ReviewParseTab
+                  v-if="activeReviewTab === 'parse'"
+                  :structured-parse="structuredParse"
+                  :structured-content="structuredContent"
+                  :selected-task="selectedTask"
+                  :missing-fields="missingFields"
+                  :low-confidence-fields="lowConfidenceFields"
+                  :assignment-submitted="assignmentSubmitted"
+                  :structured-parse-loading="reviews.structuredParseLoading.value"
+                  :regenerating-structured-parse="reviews.regeneratingStructuredParse.value"
+                  @rerun-structured-parse="reviews.rerunStructuredParse"
+                />
 
-        <el-empty
-          v-else
-          :description="showLeaderEmptyState ? '你当前没有被分配个人评审任务。作为组长，请前往组长工作台分配任务或主动加入评审。' : '请选择一篇论文进行评审'"
-        >
-          <el-button v-if="showLeaderEmptyState" type="primary" @click="router.push('/review-leader')">
-            前往组长工作台
-          </el-button>
-        </el-empty>
-      </main>
-    </section>
+                <ReviewRisksTab
+                  v-else-if="activeReviewTab === 'risks'"
+                  :risk-records="riskRecords"
+                  :risk-loading="reviews.riskLoading.value"
+                  :risk-status-updating-ids="reviews.riskStatusUpdatingIds.value"
+                  @set-risk-status="reviews.setRiskStatus"
+                />
+
+                <ReviewScoresTab
+                  v-else-if="activeReviewTab === 'scores'"
+                  :score-items="scoreItems"
+                  :selected-report="selectedReport"
+                  :assignment-submitted="assignmentSubmitted"
+                  :saving="reviews.saving.value"
+                  :submitting-assignment="reviews.submittingAssignment.value"
+                  :report-form="reviews.reportForm"
+                  :criteria="reviews.criteria.value"
+                  @update-score="handleScoreInput"
+                  @save-report="reviews.saveReport"
+                  @submit-assignment="reviews.submitCurrentAssignment"
+                />
+
+                <ReviewCommentsTab
+                  v-else-if="activeReviewTab === 'comments'"
+                  :comments="comments"
+                  :selected-report="selectedReport"
+                />
+
+                <ReviewAuditTab v-else :selected-report="selectedReport" :task-id="selectedTask?.id ?? null" />
+              </div>
+
+              <aside class="review-assist-rail" aria-label="辅助信息">
+                <article class="review-assist-card accent">
+                  <span>AI 辅助摘要</span>
+                  <p>{{ reviewSummary }}</p>
+                </article>
+                <article class="review-assist-card">
+                  <span>当前总分</span>
+                  <strong>{{ reportScoreLabel }}</strong>
+                  <p>评分表调整后，保存草稿会重新计算总分。</p>
+                </article>
+                <article class="review-assist-card">
+                  <span>风险提示</span>
+                  <strong>{{ riskRecords.length }}</strong>
+                  <p>高风险项建议在提交前逐条确认或忽略。</p>
+                </article>
+              </aside>
+            </section>
+          </template>
+
+          <section v-else class="review-empty-state">
+            <div class="review-doc-icon" aria-hidden="true"></div>
+            <strong>{{ showLeaderEmptyState ? '当前没有个人评审任务' : '请选择一篇论文开始评审' }}</strong>
+            <p>
+              {{ showLeaderEmptyState ? '作为组长，你可以前往组长工作台分配任务或主动加入评审。' : '从左侧任务收件箱选择论文后，这里会展示解析、评分和提交流程。' }}
+            </p>
+            <el-button v-if="showLeaderEmptyState" type="primary" @click="router.push('/review-leader')">
+              前往组长工作台
+            </el-button>
+          </section>
+        </main>
+      </section>
+    </main>
+
+    <footer v-if="selectedTask" class="review-bottom-bar">
+      <p>{{ bottomStatusText }}</p>
+      <div class="review-bottom-actions">
+        <el-button :disabled="assignmentSubmitted || !selectedReport" :loading="reviews.saving.value" @click="reviews.saveReport">
+          保存草稿
+        </el-button>
+        <el-popconfirm title="提交后个人评审将只读，是否继续？" @confirm="reviews.submitCurrentAssignment">
+          <template #reference>
+            <el-button
+              type="primary"
+              class="review-submit-button"
+              :disabled="assignmentSubmitted || reviews.submittingAssignment.value || !selectedReport"
+              :loading="reviews.submittingAssignment.value"
+            >
+              提交评审
+            </el-button>
+          </template>
+        </el-popconfirm>
+      </div>
+    </footer>
   </MainLayout>
 </template>
 
 <style scoped>
 .review-page {
-  gap: 24px;
-  padding: 28px;
+  gap: 0;
+  min-height: 100vh;
+  padding: 0 36px 104px;
   background: var(--claude-canvas);
 }
 
-.review-page :deep([class~="page-header"]) {
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  background: transparent;
-  box-shadow: none;
+.review-page :deep(.el-button) {
+  border-radius: var(--app-radius-md);
 }
 
-.review-page :deep([class~="page-eyebrow"]) {
-  margin-bottom: 6px;
+.review-top-nav,
+.review-workspace,
+.review-bottom-bar {
+  width: min(100%, 1360px);
+  margin-inline: auto;
+}
+
+.review-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  border-bottom: 1px solid var(--app-border-light);
+}
+
+.review-brand,
+.review-nav-links,
+.review-nav-actions {
+  display: flex;
+  align-items: center;
+}
+
+.review-brand {
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--app-text);
+  padding: 0;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-brand-mark {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.review-brand-mark::before,
+.review-brand-mark::after,
+.review-brand-mark span::before,
+.review-brand-mark span::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--app-text);
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.review-brand-mark::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.review-brand-mark span::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.review-brand-mark span::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.review-nav-links {
+  gap: 4px;
+}
+
+.review-nav-link {
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  color: var(--app-text-muted);
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.review-nav-link.active,
+.review-nav-link:hover {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+.review-nav-actions {
+  gap: 10px;
+}
+
+.review-account-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.review-account-pill {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.review-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: end;
+  padding: 40px 0 22px;
+}
+
+.review-eyebrow {
+  margin: 0 0 8px;
   color: var(--app-primary);
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 1.5px;
+  letter-spacing: 0;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
-.review-page :deep([class~="page-header"] h1) {
+.review-hero h1 {
+  margin: 0;
   color: var(--app-text);
-  font-size: clamp(34px, 4vw, 48px);
+  font-family: var(--claude-serif);
+  font-size: 44px;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.08;
 }
 
-.review-page :deep([class~="page-description"]) {
-  margin-top: 8px;
+.review-hero-copy p:last-child {
+  max-width: 760px;
+  margin: 12px 0 0;
   color: var(--app-text-muted);
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.7;
 }
 
-.review-page :deep([class~="el-button"]) {
-  border-radius: var(--app-radius-sm);
-}
-
-.review-page .app-card,
-.review-detail {
+.review-hero-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  overflow: hidden;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  background: var(--claude-canvas);
+  background: var(--app-border);
 }
 
-.stats-bar {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
-  padding: 16px 24px;
+.review-hero-summary div {
+  min-height: 96px;
   background: var(--app-surface-soft);
+  padding: 18px;
 }
 
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 16px;
-}
-
-.stat-item:first-child {
-  padding-left: 0;
-}
-
-.stat-item:last-child {
-  padding-right: 0;
-}
-
-.stat-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.stat-dot.pending {
-  background: var(--app-primary);
-}
-
-.stat-dot.reviewing {
-  background: var(--app-warning);
-}
-
-.stat-dot.completed {
-  background: var(--app-success);
-}
-
-.stat-dot.criteria {
-  background: var(--app-accent);
-}
-
-.stat-label {
+.review-hero-summary span {
+  display: block;
   color: var(--app-text-muted);
   font-size: 13px;
   font-weight: 500;
 }
 
-.stat-item strong {
+.review-hero-summary strong {
+  display: block;
+  margin-top: 8px;
   color: var(--app-text);
-  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-  font-size: 20px;
+  font-family: var(--claude-serif);
+  font-size: 32px;
   font-weight: 500;
-  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
-.stat-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--app-border);
-  flex-shrink: 0;
+.review-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.review-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-filter-chip {
+  min-height: 32px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface);
+  color: var(--app-text-muted);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.review-filter-chip.active,
+.review-filter-chip:hover {
+  border-color: rgba(204, 120, 92, 0.34);
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
 }
 
 .review-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 348px) minmax(0, 1fr);
-  gap: 20px;
-  min-height: 640px;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
 }
 
 .review-detail {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.review-paper-header,
+.review-tab-surface,
+.review-assist-card {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface);
+}
+
+.review-paper-header {
   padding: 24px;
 }
 
-.detail-header {
+.review-paper-header-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 20px;
+  gap: 18px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--app-border);
 }
 
-.detail-title h2 {
-  margin: 0;
-  color: var(--app-text);
-  font-size: 30px;
-  font-weight: 500;
-  line-height: 1.3;
+.review-paper-title {
+  min-width: 0;
 }
 
-.detail-meta {
+.review-paper-title h2 {
+  margin: 0;
+  color: var(--app-text);
+  font-family: var(--claude-serif);
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.24;
+}
+
+.review-paper-meta {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 6px;
-  color: var(--app-text-subtle);
+  margin-top: 10px;
+  color: var(--app-text-muted);
   font-size: 13px;
 }
 
-.meta-dot {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--app-text-subtle);
-}
-
-.detail-actions {
+.review-paper-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -415,44 +689,268 @@ onMounted(async () => {
   --el-button-disabled-text-color: var(--app-text-subtle);
 }
 
-.review-tabs {
-  margin-top: 20px;
+.review-progress-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 18px;
 }
 
-.review-tabs :deep(.el-tabs__header .el-tabs__item:nth-child(2)) {
-  padding-left: 14px;
+.review-step {
+  min-width: 0;
+  min-height: 58px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--app-surface-strong);
+  color: var(--app-text-muted);
+  padding: 9px 10px;
+  cursor: pointer;
+  text-align: center;
 }
 
-.review-tabs :deep(.el-tabs__header .el-tabs__item:last-child) {
-  padding-right: 14px;
+.review-step span,
+.review-step small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-step span {
+  color: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.review-step small {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.review-step.done {
+  background: var(--app-success-soft);
+  color: var(--app-success-hover);
+}
+
+.review-step.active {
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+}
+
+.review-work-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.review-tab-surface {
+  min-width: 0;
+  padding: 4px 20px 20px;
+}
+
+.review-assist-rail {
+  display: grid;
+  gap: 12px;
+}
+
+.review-assist-card {
+  padding: 18px;
+}
+
+.review-assist-card.accent {
+  border-left: 4px solid var(--app-primary);
+  background: var(--app-surface-soft);
+}
+
+.review-assist-card span {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.review-assist-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--app-text);
+  font-family: var(--claude-serif);
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.review-assist-card p {
+  margin: 8px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.review-empty-state {
+  display: grid;
+  justify-items: center;
+  min-height: 520px;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, rgba(245, 240, 232, 0.58), rgba(250, 249, 245, 0));
+  padding: 72px 24px;
+  text-align: center;
+}
+
+.review-doc-icon {
+  position: relative;
+  width: 36px;
+  height: 46px;
+  margin-bottom: 14px;
+  border: 1.5px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+}
+
+.review-doc-icon::before {
+  position: absolute;
+  top: -1.5px;
+  right: -1.5px;
+  width: 14px;
+  height: 14px;
+  border-bottom: 1.5px solid var(--app-border);
+  border-left: 1.5px solid var(--app-border);
+  border-radius: 0 7px 0 4px;
+  background: var(--app-surface-strong);
+  content: "";
+}
+
+.review-doc-icon::after {
+  position: absolute;
+  top: 21px;
+  left: 9px;
+  right: 9px;
+  height: 1.5px;
+  background: var(--app-border);
+  box-shadow: 0 7px 0 var(--app-border);
+  content: "";
+}
+
+.review-empty-state strong {
+  color: var(--app-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.review-empty-state p {
+  max-width: 420px;
+  margin: 8px 0 18px;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.review-bottom-bar {
+  position: fixed;
+  right: 36px;
+  bottom: 20px;
+  left: 36px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: rgba(250, 249, 245, 0.94);
+  padding: 12px 14px;
+  box-shadow: var(--app-shadow-lg);
+  backdrop-filter: blur(12px);
+}
+
+.review-bottom-bar p {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+}
+
+.review-bottom-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.review-submit-button {
+  --el-button-bg-color: var(--app-surface-muted);
+  --el-button-border-color: var(--app-border-strong);
+  --el-button-text-color: var(--app-text);
+  --el-button-hover-bg-color: var(--app-surface-soft);
+  --el-button-hover-border-color: var(--app-primary);
+  --el-button-hover-text-color: var(--app-primary-active);
+  --el-button-active-bg-color: var(--app-surface-muted);
+  --el-button-active-border-color: var(--app-primary-active);
+  --el-button-active-text-color: var(--app-primary-active);
+  --el-button-disabled-bg-color: var(--app-surface-muted);
+  --el-button-disabled-border-color: var(--app-border);
+  --el-button-disabled-text-color: var(--app-text-muted);
+  min-width: 108px;
 }
 
 @media (max-width: 1180px) {
   .review-page {
-    padding: 16px;
+    padding: 0 18px 104px;
   }
 
-  .review-layout {
+  .review-top-nav {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px 0;
+  }
+
+  .review-nav-links,
+  .review-nav-actions {
+    flex-wrap: wrap;
+  }
+
+  .review-hero,
+  .review-layout,
+  .review-work-area {
     grid-template-columns: 1fr;
   }
 
-  .stats-bar {
-    flex-wrap: wrap;
-    gap: 8px;
+  .review-filter-row,
+  .review-paper-header-top,
+  .review-bottom-bar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
-  .stat-divider {
-    display: none;
+  .review-paper-actions {
+    justify-content: flex-start;
   }
 
-  .stat-item {
-    padding: 4px 12px 4px 0;
+  .review-bottom-bar {
+    right: 18px;
+    left: 18px;
+    width: auto;
   }
 }
 
 @media (max-width: 720px) {
-  .detail-header {
-    flex-direction: column;
+  .review-hero h1 {
+    font-size: 34px;
+  }
+
+  .review-hero-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .review-progress-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .review-bottom-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
   }
 }
 </style>
