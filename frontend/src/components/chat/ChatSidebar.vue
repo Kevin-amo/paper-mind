@@ -725,10 +725,13 @@ function conversationTitle(conversation: Conversation) {
 .logout-confirm-footer .logout-confirm-button {
   --el-button-bg-color: var(--app-danger);
   --el-button-border-color: var(--app-danger);
+  --el-button-text-color: var(--app-text-on-primary);
   --el-button-hover-bg-color: var(--app-danger-hover);
   --el-button-hover-border-color: var(--app-danger-hover);
+  --el-button-hover-text-color: var(--app-text-on-primary);
   --el-button-active-bg-color: #a03028;
   --el-button-active-border-color: #a03028;
+  --el-button-active-text-color: var(--app-text-on-primary);
   transition: background var(--app-transition-fast), border-color var(--app-transition-fast);
 }
 

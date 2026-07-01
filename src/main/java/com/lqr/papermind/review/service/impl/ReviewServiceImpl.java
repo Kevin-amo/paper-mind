@@ -632,7 +632,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public List<ReviewCriterionResponse> batchUpdateWeights(ReviewCriterionWeightBatchRequest request) {
-        // First validate all IDs exist
         for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
             ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
             if (entity == null) {
@@ -643,8 +642,6 @@ public class ReviewServiceImpl implements ReviewService {
             }
         }
 
-        // Calculate total weight sum for all enabled criteria after update
-        // Get all enabled criteria that are NOT in the update list
         List<UUID> updateIds = request.weights().stream().map(ReviewCriterionWeightBatchRequest.WeightItem::id).toList();
         LambdaQueryWrapper<ReviewCriterionEntity> wrapper = new LambdaQueryWrapper<ReviewCriterionEntity>()
                 .eq(ReviewCriterionEntity::getEnabled, true)
@@ -652,7 +649,6 @@ public class ReviewServiceImpl implements ReviewService {
         List<ReviewCriterionEntity> otherEnabled = criterionMapper.selectList(wrapper);
         int otherWeightSum = otherEnabled.stream().mapToInt(e -> e.getWeight() == null ? 20 : e.getWeight()).sum();
 
-        // Add weights from the update list for enabled criteria
         int updateWeightSum = 0;
         for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
             ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
@@ -667,7 +663,6 @@ public class ReviewServiceImpl implements ReviewService {
                     "启用指标权重之和必须等于100，当前总和为" + totalSum + "，请调整权重配置");
         }
 
-        // Apply updates
         OffsetDateTime now = OffsetDateTime.now();
         for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
             ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
@@ -698,7 +693,6 @@ public class ReviewServiceImpl implements ReviewService {
                                 displayName = user.getDisplayName();
                             }
                         } catch (Exception ignored) {
-                            // fallback: leave username/displayName as null
                         }
                     }
                     return ReviewAuditLogResponse.from(log, username, displayName);
