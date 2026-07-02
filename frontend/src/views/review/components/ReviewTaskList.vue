@@ -2,13 +2,18 @@
 import { computed } from 'vue';
 import { statusLabel } from '../../../constants/review';
 import { formatDate, textValue } from '../../../utils/format';
-import type { ReviewTask } from '../../../types';
+import type { ReviewAssignmentStatus, ReviewTask } from '../../../types';
 
 const props = defineProps<{
   tasks: ReviewTask[];
   selectedTaskId: string | null;
   loading: boolean;
   keyword: string;
+  statusFilter: ReviewAssignmentStatus | '';
+  totalCount: number;
+  pendingCount: number;
+  reviewingCount: number;
+  completedCount: number;
   pagination: { page: number; size: number; total: number };
 }>();
 
@@ -16,6 +21,7 @@ defineEmits<{
   'update:keyword': [value: string];
   search: [];
   select: [taskId: string];
+  'status-filter': [value: ReviewAssignmentStatus | ''];
   'page-change': [page: number];
 }>();
 
@@ -48,6 +54,20 @@ function taskKeywords(task: ReviewTask) {
         @update:model-value="$emit('update:keyword', $event)"
         @keyup.enter="$emit('search')"
       />
+      <div class="task-filter-row" aria-label="任务筛选">
+        <button class="task-filter-chip" :class="{ active: statusFilter === '' }" type="button" @click="$emit('status-filter', '')">
+          全部 {{ totalCount }}
+        </button>
+        <button class="task-filter-chip" :class="{ active: statusFilter === 'ASSIGNED' }" type="button" @click="$emit('status-filter', 'ASSIGNED')">
+          待评审 {{ pendingCount }}
+        </button>
+        <button class="task-filter-chip" :class="{ active: statusFilter === 'REVIEWING' }" type="button" @click="$emit('status-filter', 'REVIEWING')">
+          评审中 {{ reviewingCount }}
+        </button>
+        <button class="task-filter-chip" :class="{ active: statusFilter === 'SUBMITTED' }" type="button" @click="$emit('status-filter', 'SUBMITTED')">
+          已提交 {{ completedCount }}
+        </button>
+      </div>
     </div>
 
     <div v-loading="loading" class="task-list">
@@ -102,8 +122,11 @@ function taskKeywords(task: ReviewTask) {
   flex-direction: column;
   gap: 14px;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-md);
   background: var(--app-surface);
+  height: calc(100vh - 250px);
+  min-height: 650px;
+  overflow: hidden;
   padding: 22px;
 }
 
@@ -140,11 +163,44 @@ function taskKeywords(task: ReviewTask) {
   gap: 10px;
 }
 
+.task-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.task-filter-chip {
+  min-height: 30px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface);
+  color: var(--app-text-muted);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.task-filter-chip.active,
+.task-filter-chip:hover {
+  border-color: rgba(204, 120, 92, 0.34);
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+}
+
 .task-list {
   display: grid;
+  flex: 1;
   gap: 10px;
-  min-height: 420px;
+  min-height: 0;
   align-content: start;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-color: var(--app-border-strong) transparent;
 }
 
 .task-card {
@@ -153,7 +209,7 @@ function taskKeywords(task: ReviewTask) {
   gap: 10px;
   width: 100%;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-md);
   background: #fffefa;
   color: inherit;
   padding: 14px;
@@ -247,7 +303,7 @@ function taskKeywords(task: ReviewTask) {
   display: grid;
   justify-items: center;
   border: 1px dashed var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-md);
   background: linear-gradient(180deg, rgba(245, 240, 232, 0.58), rgba(250, 249, 245, 0));
   padding: 26px 18px;
   text-align: center;
@@ -303,6 +359,7 @@ function taskKeywords(task: ReviewTask) {
 .inbox-pagination {
   display: grid;
   gap: 8px;
+  flex-shrink: 0;
   padding-top: 10px;
   border-top: 1px solid var(--app-border);
 }
@@ -311,5 +368,16 @@ function taskKeywords(task: ReviewTask) {
 .inbox-footer-note {
   color: var(--app-text-subtle);
   font-size: 12px;
+}
+
+@media (max-width: 1180px) {
+  .review-task-inbox {
+    height: auto;
+    min-height: 0;
+  }
+
+  .task-list {
+    max-height: 360px;
+  }
 }
 </style>

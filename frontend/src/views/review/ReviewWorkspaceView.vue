@@ -196,32 +196,21 @@ onMounted(async () => {
         </aside>
       </section>
 
-      <section class="review-filter-row">
-        <div class="review-filter-chips" aria-label="任务筛选">
-          <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === '' }" type="button" @click="applyStatusFilter('')">
-            全部 {{ reviews.pagination.total || reviews.tasks.value.length }}
-          </button>
-          <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'ASSIGNED' }" type="button" @click="applyStatusFilter('ASSIGNED')">
-            待评审 {{ reviews.pendingCount.value }}
-          </button>
-          <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'REVIEWING' }" type="button" @click="applyStatusFilter('REVIEWING')">
-            评审中 {{ reviews.reviewingCount.value }}
-          </button>
-          <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'SUBMITTED' }" type="button" @click="applyStatusFilter('SUBMITTED')">
-            已提交 {{ reviews.completedCount.value }}
-          </button>
-        </div>
-      </section>
-
       <section class="review-layout">
         <ReviewTaskList
           :tasks="reviews.tasks.value"
           :selected-task-id="selectedTask?.id ?? null"
           :loading="reviews.loading.value"
           :keyword="reviews.keyword.value"
+          :status-filter="reviews.statusFilter.value"
+          :total-count="reviews.pagination.total || reviews.tasks.value.length"
+          :pending-count="reviews.pendingCount.value"
+          :reviewing-count="reviews.reviewingCount.value"
+          :completed-count="reviews.completedCount.value"
           :pagination="reviews.pagination"
           @update:keyword="updateTaskKeyword"
           @select="reviews.selectTask"
+          @status-filter="applyStatusFilter"
           @search="reviews.loadTasks(0)"
           @page-change="handlePageChange"
         />
@@ -264,6 +253,28 @@ onMounted(async () => {
                   <span>{{ step.label }}</span>
                   <small>{{ step.caption }}</small>
                 </button>
+              </div>
+
+              <div class="review-summary-strip" aria-label="当前论文评审摘要">
+                <article class="review-summary-item">
+                  <span>当前总分</span>
+                  <strong>{{ reportScoreLabel }}</strong>
+                  <p>评分表调整后，保存草稿会重新计算总分。</p>
+                </article>
+                <article class="review-summary-item">
+                  <span>AI 辅助摘要</span>
+                  <p>{{ reviewSummary }}</p>
+                </article>
+                <article class="review-summary-item">
+                  <span>风险提示</span>
+                  <strong>{{ riskRecords.length }}</strong>
+                  <p>高风险项建议在提交前逐条确认或忽略。</p>
+                </article>
+                <article class="review-summary-item">
+                  <span>工作状态</span>
+                  <strong>{{ assignmentSubmitted ? '已提交' : selectedReport ? '可编辑' : '待生成' }}</strong>
+                  <p>{{ assignmentSubmitted ? '本次评审已进入只读留档。' : '右侧工作台内完成评分、评语和提交。' }}</p>
+                </article>
               </div>
             </article>
 
@@ -312,23 +323,6 @@ onMounted(async () => {
 
                 <ReviewAuditTab v-else :selected-report="selectedReport" :task-id="selectedTask?.id ?? null" />
               </div>
-
-              <aside class="review-assist-rail" aria-label="辅助信息">
-                <article class="review-assist-card accent">
-                  <span>AI 辅助摘要</span>
-                  <p>{{ reviewSummary }}</p>
-                </article>
-                <article class="review-assist-card">
-                  <span>当前总分</span>
-                  <strong>{{ reportScoreLabel }}</strong>
-                  <p>评分表调整后，保存草稿会重新计算总分。</p>
-                </article>
-                <article class="review-assist-card">
-                  <span>风险提示</span>
-                  <strong>{{ riskRecords.length }}</strong>
-                  <p>高风险项建议在提交前逐条确认或忽略。</p>
-                </article>
-              </aside>
             </section>
           </template>
 
@@ -371,9 +365,16 @@ onMounted(async () => {
 
 <style scoped>
 .review-page {
+  --review-page-gutter: 36px;
+  --review-list-width: 360px;
+  --review-layout-gap: 26px;
+  --review-shell-width: min(calc(100vw - (var(--review-page-gutter) * 2)), 1360px);
+  --review-shell-left: calc((100vw - var(--review-shell-width)) / 2);
+  --review-workbench-left: calc(var(--review-shell-left) + var(--review-list-width) + var(--review-layout-gap));
+  --review-workbench-width: calc(var(--review-shell-width) - var(--review-list-width) - var(--review-layout-gap));
   gap: 0;
   min-height: 100vh;
-  padding: 0 36px 104px;
+  padding: 0 var(--review-page-gutter) 104px;
   background: var(--claude-canvas);
 }
 
@@ -382,9 +383,8 @@ onMounted(async () => {
 }
 
 .review-top-nav,
-.review-workspace,
-.review-bottom-bar {
-  width: min(100%, 1360px);
+.review-workspace {
+  width: var(--review-shell-width);
   margin-inline: auto;
 }
 
@@ -478,10 +478,10 @@ onMounted(async () => {
 
 .review-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 424px;
+  gap: 28px;
   align-items: end;
-  padding: 40px 0 22px;
+  padding: 38px 0 22px;
 }
 
 .review-eyebrow {
@@ -498,15 +498,15 @@ onMounted(async () => {
   margin: 0;
   color: var(--app-text);
   font-family: var(--claude-serif);
-  font-size: 44px;
+  font-size: clamp(38px, 4vw, 58px);
   font-weight: 500;
   letter-spacing: 0;
   line-height: 1.08;
 }
 
 .review-hero-copy p:last-child {
-  max-width: 760px;
-  margin: 12px 0 0;
+  max-width: 840px;
+  margin: 14px 0 0;
   color: var(--app-text-muted);
   font-size: 15px;
   line-height: 1.7;
@@ -518,7 +518,7 @@ onMounted(async () => {
   gap: 1px;
   overflow: hidden;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-md);
   background: var(--app-border);
 }
 
@@ -545,43 +545,10 @@ onMounted(async () => {
   line-height: 1;
 }
 
-.review-filter-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.review-filter-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.review-filter-chip {
-  min-height: 32px;
-  border: 1px solid var(--app-border);
-  border-radius: 999px;
-  background: var(--app-surface);
-  color: var(--app-text-muted);
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.review-filter-chip.active,
-.review-filter-chip:hover {
-  border-color: rgba(204, 120, 92, 0.34);
-  background: var(--app-primary-soft);
-  color: var(--app-primary);
-}
-
 .review-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-  gap: 22px;
+  grid-template-columns: var(--review-list-width) minmax(0, 1fr);
+  gap: var(--review-layout-gap);
   align-items: start;
 }
 
@@ -589,18 +556,26 @@ onMounted(async () => {
   min-width: 0;
   display: grid;
   gap: 16px;
+  height: calc(100vh - 250px);
+  min-height: 650px;
+  overflow-y: auto;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  padding: 22px;
+  scrollbar-color: var(--app-border-strong) transparent;
 }
 
 .review-paper-header,
-.review-tab-surface,
-.review-assist-card {
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
-  background: var(--app-surface);
+.review-tab-surface {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .review-paper-header {
-  padding: 24px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--app-border);
 }
 
 .review-paper-header-top {
@@ -676,11 +651,56 @@ onMounted(async () => {
   margin-top: 18px;
 }
 
+.review-summary-strip {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1.3fr) minmax(180px, 1fr) 150px;
+  gap: 1px;
+  overflow: hidden;
+  margin-top: 18px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-border);
+}
+
+.review-summary-item {
+  min-width: 0;
+  background: var(--app-surface-strong);
+  padding: 14px 16px;
+}
+
+.review-summary-item span {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.review-summary-item strong {
+  display: block;
+  margin-top: 7px;
+  color: var(--app-text);
+  font-family: var(--claude-serif);
+  font-size: 31px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.review-summary-item p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 6px 0 0;
+  color: var(--app-text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
 .review-step {
   min-width: 0;
   min-height: 58px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--app-radius-md);
   background: var(--app-surface-strong);
   color: var(--app-text-muted);
   padding: 9px 10px;
@@ -720,52 +740,14 @@ onMounted(async () => {
 
 .review-work-area {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: 1fr;
   gap: 16px;
   align-items: start;
 }
 
 .review-tab-surface {
   min-width: 0;
-  padding: 4px 20px 20px;
-}
-
-.review-assist-rail {
-  display: grid;
-  gap: 12px;
-}
-
-.review-assist-card {
-  padding: 18px;
-}
-
-.review-assist-card.accent {
-  border-left: 4px solid var(--app-primary);
-  background: var(--app-surface-soft);
-}
-
-.review-assist-card span {
-  display: block;
-  color: var(--app-text-muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.review-assist-card strong {
-  display: block;
-  margin-top: 8px;
-  color: var(--app-text);
-  font-family: var(--claude-serif);
-  font-size: 32px;
-  font-weight: 500;
-  line-height: 1;
-}
-
-.review-assist-card p {
-  margin: 8px 0 0;
-  color: var(--app-text-muted);
-  font-size: 13px;
-  line-height: 1.7;
+  padding: 4px 0 0;
 }
 
 .review-empty-state {
@@ -773,7 +755,7 @@ onMounted(async () => {
   justify-items: center;
   min-height: 520px;
   border: 1px dashed var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-md);
   background: linear-gradient(180deg, rgba(245, 240, 232, 0.58), rgba(250, 249, 245, 0));
   padding: 72px 24px;
   text-align: center;
@@ -829,15 +811,16 @@ onMounted(async () => {
 
 .review-bottom-bar {
   position: fixed;
-  right: 36px;
+  right: auto;
   bottom: 20px;
-  left: 36px;
+  left: var(--review-shell-left);
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: var(--review-shell-width);
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-md);
   background: rgba(250, 249, 245, 0.94);
   padding: 12px 14px;
   box-shadow: var(--app-shadow-lg);
@@ -875,7 +858,8 @@ onMounted(async () => {
 
 @media (max-width: 1180px) {
   .review-page {
-    padding: 0 18px 104px;
+    --review-page-gutter: 18px;
+    padding: 0 var(--review-page-gutter) 104px;
   }
 
   .review-top-nav {
@@ -896,7 +880,11 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
-  .review-filter-row,
+  .review-detail {
+    height: auto;
+    min-height: 0;
+  }
+
   .review-paper-header-top,
   .review-bottom-bar {
     align-items: flex-start;
@@ -920,6 +908,10 @@ onMounted(async () => {
   }
 
   .review-hero-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .review-summary-strip {
     grid-template-columns: 1fr;
   }
 
