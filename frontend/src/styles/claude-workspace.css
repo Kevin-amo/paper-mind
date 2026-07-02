@@ -280,6 +280,22 @@
   --el-button-hover-text-color: var(--app-text-on-primary);
   --el-button-active-bg-color: var(--app-primary-active);
   --el-button-active-border-color: var(--app-primary-active);
+  --el-button-disabled-bg-color: var(--app-primary);
+  --el-button-disabled-border-color: var(--app-primary);
+  --el-button-disabled-text-color: var(--app-text-on-primary);
+}
+
+.admin-layout .el-button--primary.is-disabled,
+.review-page .el-button--primary.is-disabled,
+.leader-page .el-button--primary.is-disabled,
+.auth-layout .el-button--primary.is-disabled,
+.user-app-shell .el-button--primary.is-disabled,
+.admin-layout .el-button--primary.is-disabled:hover,
+.review-page .el-button--primary.is-disabled:hover,
+.leader-page .el-button--primary.is-disabled:hover,
+.auth-layout .el-button--primary.is-disabled:hover,
+.user-app-shell .el-button--primary.is-disabled:hover {
+  opacity: 0.45;
 }
 
 .admin-layout .el-button--success,
@@ -291,6 +307,22 @@
   --el-button-border-color: var(--app-success);
   --el-button-hover-bg-color: var(--app-success-hover);
   --el-button-hover-border-color: var(--app-success-hover);
+  --el-button-disabled-bg-color: var(--app-success);
+  --el-button-disabled-border-color: var(--app-success);
+  --el-button-disabled-text-color: #fff;
+}
+
+.admin-layout .el-button--success.is-disabled,
+.review-page .el-button--success.is-disabled,
+.leader-page .el-button--success.is-disabled,
+.auth-layout .el-button--success.is-disabled,
+.user-app-shell .el-button--success.is-disabled,
+.admin-layout .el-button--success.is-disabled:hover,
+.review-page .el-button--success.is-disabled:hover,
+.leader-page .el-button--success.is-disabled:hover,
+.auth-layout .el-button--success.is-disabled:hover,
+.user-app-shell .el-button--success.is-disabled:hover {
+  opacity: 0.45;
 }
 
 .admin-layout .el-button.is-text,
@@ -704,6 +736,16 @@
   --el-button-active-bg-color: var(--app-primary-active);
   --el-button-active-border-color: var(--app-primary-active);
   --el-button-active-text-color: var(--app-text-on-primary);
+  --el-button-disabled-bg-color: var(--app-primary);
+  --el-button-disabled-border-color: var(--app-primary);
+  --el-button-disabled-text-color: var(--app-text-on-primary);
+}
+
+.el-dialog.claude-workspace-dialog .el-button--primary.is-disabled,
+.el-drawer.claude-workspace-drawer .el-button--primary.is-disabled,
+.el-dialog.claude-workspace-dialog .el-button--primary.is-disabled:hover,
+.el-drawer.claude-workspace-drawer .el-button--primary.is-disabled:hover {
+  opacity: 0.45;
 }
 
 .el-dialog.claude-workspace-dialog .el-input__wrapper,
@@ -939,4 +981,12 @@
   --el-button-active-bg-color: var(--app-primary-active);
   --el-button-active-border-color: var(--app-primary-active);
   --el-button-active-text-color: var(--app-text-on-primary);
+  --el-button-disabled-bg-color: var(--app-primary);
+  --el-button-disabled-border-color: var(--app-primary);
+  --el-button-disabled-text-color: var(--app-text-on-primary);
+}
+
+.el-message-box .el-button--primary.is-disabled,
+.el-message-box .el-button--primary.is-disabled:hover {
+  opacity: 0.45;
 }

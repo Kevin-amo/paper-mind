@@ -26,7 +26,7 @@ const adminUsersStore = {
   passwordDialogVisible: ref(false),
   selectedUser: ref<AdminUser | null>(null),
   formMode: ref<AdminUserFormMode>('create'),
-  pagination: reactive({ page: 0, size: 20, total: 0 }),
+  pagination: reactive({ page: 0, size: 10, total: 0 }),
   userForm: reactive({
     username: '',
     password: '',

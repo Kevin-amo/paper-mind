@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
+import { Refresh } from '@element-plus/icons-vue';
 import AdminShell from '../../components/admin/AdminShell.vue';
 import { listAdminAuditLogs, listAdminAuditOperators } from '../../api/adminReviews';
 import { getErrorMessage } from '../../api/http';
@@ -20,7 +21,7 @@ const filters = reactive({
 
 const pagination = reactive({
   page: 0,
-  size: 20,
+  size: 10,
 });
 
 function formatDate(value: string | null | undefined) {
@@ -138,28 +139,53 @@ onMounted(async () => {
           class="filter-daterange"
         />
         <el-button type="primary" @click="handleSearch">查询</el-button>
+        <el-button @click="loadAuditLogs(0)">
+          <el-icon :class="{ 'is-rotating': loading }"><Refresh /></el-icon>
+          刷新
+        </el-button>
         <el-button @click="handleReset">重置</el-button>
       </div>
 
-      <el-table :data="auditLogs" v-loading="loading" empty-text="暂无审计日志" class="audit-table">
-        <el-table-column label="动作" min-width="160">
-          <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ reviewAuditActionLabel(row.action) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作人" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">{{ operatorLabel(row) }}</template>
-        </el-table-column>
-        <el-table-column label="操作时间" min-width="180">
-          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-        </el-table-column>
-        <el-table-column label="关联任务" min-width="200" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.taskId }}</template>
-        </el-table-column>
-        <el-table-column label="操作备注" min-width="240" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.note || '-' }}</template>
-        </el-table-column>
-      </el-table>
+      <div class="table-wrapper" :class="{ 'is-loading': loading }">
+        <!-- Skeleton placeholder during loading -->
+        <div v-if="loading && auditLogs.length === 0" class="skeleton-container">
+          <div v-for="i in 5" :key="i" class="skeleton-row">
+            <div class="skeleton-cell skeleton-action"></div>
+            <div class="skeleton-cell skeleton-operator"></div>
+            <div class="skeleton-cell skeleton-time"></div>
+            <div class="skeleton-cell skeleton-task"></div>
+            <div class="skeleton-cell skeleton-note"></div>
+          </div>
+        </div>
+
+        <!-- Actual table with fade transition -->
+        <transition name="fade-content">
+          <el-table
+            v-show="!loading || auditLogs.length > 0"
+            :data="auditLogs"
+            empty-text="暂无审计日志"
+            class="audit-table"
+          >
+            <el-table-column label="动作" min-width="160">
+              <template #default="{ row }">
+                <el-tag size="small" effect="plain">{{ reviewAuditActionLabel(row.action) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作人" min-width="160" show-overflow-tooltip>
+              <template #default="{ row }">{{ operatorLabel(row) }}</template>
+            </el-table-column>
+            <el-table-column label="操作时间" min-width="180">
+              <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+            </el-table-column>
+            <el-table-column label="关联任务" min-width="200" show-overflow-tooltip>
+              <template #default="{ row }">{{ row.taskId }}</template>
+            </el-table-column>
+            <el-table-column label="操作备注" min-width="240" show-overflow-tooltip>
+              <template #default="{ row }">{{ row.note || '-' }}</template>
+            </el-table-column>
+          </el-table>
+        </transition>
+      </div>
 
       <div class="pagination-wrap">
         <el-pagination
@@ -207,9 +233,22 @@ onMounted(async () => {
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(280px, 1.6fr) auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(280px, 1.6fr) auto auto auto;
   gap: 10px;
   margin-bottom: 16px;
+}
+
+.toolbar .el-icon.is-rotating {
+  animation: rotate-icon 0.8s linear infinite;
+}
+
+@keyframes rotate-icon {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .filter-select {
@@ -242,6 +281,84 @@ onMounted(async () => {
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   overflow: hidden;
+}
+
+.table-wrapper {
+  position: relative;
+  min-height: 200px;
+}
+
+/* Skeleton Loading Animation */
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 160px 160px 180px 200px 240px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.skeleton-cell {
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--app-surface-muted) 25%,
+    var(--app-surface-soft) 50%,
+    var(--app-surface-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-action {
+  width: 80px;
+  height: 24px;
+}
+
+.skeleton-operator {
+  width: 120px;
+}
+
+.skeleton-time {
+  width: 140px;
+}
+
+.skeleton-task {
+  width: 160px;
+}
+
+.skeleton-note {
+  width: 200px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Fade Transition for Content */
+.fade-content-enter-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-content-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-content-enter-from,
+.fade-content-leave-to {
+  opacity: 0;
 }
 
 .pagination-wrap {

@@ -7,7 +7,7 @@ export default {
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Avatar, CircleClose, EditPen, MoreFilled, User, UserFilled } from '@element-plus/icons-vue';
+import { Avatar, CircleClose, EditPen, MoreFilled, Refresh, User, UserFilled } from '@element-plus/icons-vue';
 import StatusTag from '../common/StatusTag.vue';
 import RoleTag from '../common/RoleTag.vue';
 import { useAdminUsers } from '../../composables/useAdminUsers';
@@ -127,70 +127,70 @@ function handlePageSizeChange(nextSize: number) {
 </script>
 
 <template>
+  <section class="admin-users-overview admin-reused-summary-grid" aria-label="用户概览">
+    <div
+      class="summary-card animate slide-up"
+      v-animate="{ type: 'slide-up', delay: '0ms', duration: '0.6s' }"
+    >
+      <div class="summary-icon coral">
+        <el-icon :size="20"><User /></el-icon>
+      </div>
+      <div class="summary-body">
+        <span class="summary-label">当前页用户</span>
+        <strong class="summary-value">{{ admin.users.value.length }}</strong>
+      </div>
+    </div>
+    <div
+      class="summary-card animate slide-up"
+      v-animate="{ type: 'slide-up', delay: '80ms', duration: '0.6s' }"
+    >
+      <div class="summary-icon green">
+        <el-icon :size="20"><UserFilled /></el-icon>
+      </div>
+      <div class="summary-body">
+        <span class="summary-label">启用账号</span>
+        <strong class="summary-value">{{ admin.activeCount.value }}</strong>
+      </div>
+    </div>
+    <div
+      class="summary-card animate slide-up"
+      v-animate="{ type: 'slide-up', delay: '160ms', duration: '0.6s' }"
+    >
+      <div class="summary-icon teal">
+        <el-icon :size="20"><Avatar /></el-icon>
+      </div>
+      <div class="summary-body">
+        <span class="summary-label">管理员</span>
+        <strong class="summary-value">{{ admin.adminCount.value }}</strong>
+      </div>
+    </div>
+    <div
+      class="summary-card animate slide-up"
+      v-animate="{ type: 'slide-up', delay: '240ms', duration: '0.6s' }"
+    >
+      <div class="summary-icon red">
+        <el-icon :size="20"><CircleClose /></el-icon>
+      </div>
+      <div class="summary-body">
+        <span class="summary-label">禁用账号</span>
+        <strong class="summary-value">{{ admin.disabledCount.value }}</strong>
+      </div>
+    </div>
+  </section>
+
   <section
-    class="paper-mind-workspace-card users-panel animate fade-in"
+    class="paper-mind-workspace-card users-panel animate fade-in reused-management-panel"
     v-animate="{ type: 'fade-in', delay: '0.1s', duration: '0.6s' }"
   >
-    <div class="panel-heading">
+    <div class="reused-panel-heading">
       <div>
         <h2>用户列表</h2>
-        <p>管理账号、角色、状态和密码重置。</p>
+        <p>管理账号、角色、状态和密码重置；复用全局进度页的卡片、筛选栏、表格和分页结构。</p>
       </div>
-      <el-button type="primary" @click="admin.openCreateDialog">新建用户</el-button>
+      <el-button type="primary" class="primary-action" @click="admin.openCreateDialog">新建用户</el-button>
     </div>
 
-    <section class="summary-grid">
-      <div
-        class="summary-card animate slide-up"
-        v-animate="{ type: 'slide-up', delay: '0ms', duration: '0.6s' }"
-      >
-        <div class="summary-icon blue">
-          <el-icon :size="20"><User /></el-icon>
-        </div>
-        <div class="summary-body">
-          <span class="summary-label">当前页用户</span>
-          <strong class="summary-value">{{ admin.users.value.length }}</strong>
-        </div>
-      </div>
-      <div
-        class="summary-card animate slide-up"
-        v-animate="{ type: 'slide-up', delay: '80ms', duration: '0.6s' }"
-      >
-        <div class="summary-icon green">
-          <el-icon :size="20"><UserFilled /></el-icon>
-        </div>
-        <div class="summary-body">
-          <span class="summary-label">启用账号</span>
-          <strong class="summary-value">{{ admin.activeCount.value }}</strong>
-        </div>
-      </div>
-      <div
-        class="summary-card animate slide-up"
-        v-animate="{ type: 'slide-up', delay: '160ms', duration: '0.6s' }"
-      >
-        <div class="summary-icon indigo">
-          <el-icon :size="20"><Avatar /></el-icon>
-        </div>
-        <div class="summary-body">
-          <span class="summary-label">管理员</span>
-          <strong class="summary-value">{{ admin.adminCount.value }}</strong>
-        </div>
-      </div>
-      <div
-        class="summary-card animate slide-up"
-        v-animate="{ type: 'slide-up', delay: '240ms', duration: '0.6s' }"
-      >
-        <div class="summary-icon red">
-          <el-icon :size="20"><CircleClose /></el-icon>
-        </div>
-        <div class="summary-body">
-          <span class="summary-label">禁用账号</span>
-          <strong class="summary-value">{{ admin.disabledCount.value }}</strong>
-        </div>
-      </div>
-    </section>
-
-    <div class="toolbar">
+    <div class="reused-toolbar">
       <el-input
         v-model="admin.keyword.value"
         clearable
@@ -202,148 +202,171 @@ function handlePageSizeChange(nextSize: number) {
         <el-option label="禁用" value="DISABLED" />
       </el-select>
       <el-button @click="admin.loadUsers(0)">搜索</el-button>
-      <el-button type="primary" @click="admin.loadUsers(admin.pagination.page)">刷新</el-button>
+      <el-button @click="admin.loadUsers(admin.pagination.page)">
+        <el-icon :class="{ 'is-rotating': admin.loading.value }"><Refresh /></el-icon>
+        刷新
+      </el-button>
     </div>
 
-    <el-table :data="admin.users.value" :loading="admin.loading.value" class="users-table">
-      <el-table-column label="用户" min-width="200">
-        <template #default="{ row }">
-          <div class="user-cell">
-            <strong>{{ row.displayName || row.username }}</strong>
-            <span>{{ row.username }}</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.email || '-' }}</template>
-      </el-table-column>
-      <el-table-column label="角色" min-width="220">
-        <template #default="{ row }">
-          <div class="inline-edit-cell">
-            <div class="tag-list">
-              <RoleTag v-for="role in row.roles" :key="role" :role="role" />
-            </div>
-            <el-popover
-              :visible="roleEditorUserId === row.id"
-              placement="bottom-start"
-              trigger="manual"
-              width="280"
-              popper-class="admin-inline-popover"
-            >
-              <template #reference>
-                <el-button
-                  circle
-                  text
-                  class="cell-edit-button"
-                  :icon="EditPen"
-                  aria-label="编辑角色"
-                  title="编辑角色"
-                  @click.stop="openRoleEditor(row)"
-                />
-              </template>
-              <div class="inline-editor" @click.stop @keydown.esc.stop="closeRoleEditor">
-                <div class="inline-editor-title">调整角色</div>
-                <el-checkbox-group v-model="roleDraft" class="role-choice-list">
-                  <el-checkbox-button v-for="option in roleOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </el-checkbox-button>
-                </el-checkbox-group>
-                <div class="inline-editor-actions">
-                  <el-button size="small" @click="closeRoleEditor">取消</el-button>
-                  <el-button
-                    size="small"
-                    type="primary"
-                    :loading="inlineSavingUserId === row.id"
-                    @click="saveRoleEditor(row)"
-                  >
-                    保存
-                  </el-button>
-                </div>
+    <div class="reused-table-card table-wrapper" :class="{ 'is-loading': admin.loading.value }">
+      <div v-if="admin.loading.value && admin.users.value.length === 0" class="skeleton-container">
+        <div v-for="i in 5" :key="i" class="skeleton-row">
+          <div class="skeleton-cell skeleton-user"></div>
+          <div class="skeleton-cell skeleton-email"></div>
+          <div class="skeleton-cell skeleton-roles"></div>
+          <div class="skeleton-cell skeleton-status"></div>
+          <div class="skeleton-cell skeleton-date"></div>
+          <div class="skeleton-cell skeleton-date"></div>
+          <div class="skeleton-cell skeleton-actions"></div>
+        </div>
+      </div>
+
+      <transition name="fade-content">
+        <el-table
+          v-show="!admin.loading.value || admin.users.value.length > 0"
+          :data="admin.users.value"
+          class="users-table"
+        >
+          <el-table-column label="用户" min-width="200">
+            <template #default="{ row }">
+              <div class="user-cell">
+                <strong>{{ row.displayName || row.username }}</strong>
+                <span>{{ row.username }}</span>
               </div>
-            </el-popover>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="140">
-        <template #default="{ row }">
-          <div class="inline-edit-cell compact">
-            <StatusTag :status="row.status" />
-            <el-popover
-              :visible="statusEditorUserId === row.id"
-              placement="bottom-start"
-              trigger="manual"
-              width="220"
-              popper-class="admin-inline-popover"
-            >
-              <template #reference>
-                <el-button
-                  circle
-                  text
-                  class="cell-edit-button"
-                  :icon="EditPen"
-                  aria-label="编辑状态"
-                  title="编辑状态"
-                  @click.stop="openStatusEditor(row)"
-                />
-              </template>
-              <div class="inline-editor" @click.stop @keydown.esc.stop="closeStatusEditor">
-                <div class="inline-editor-title">调整状态</div>
-                <el-radio-group v-model="statusDraft" class="status-choice-list">
-                  <el-radio-button v-for="option in statusOptions" :key="option.value" :value="option.value">
-                    {{ option.label }}
-                  </el-radio-button>
-                </el-radio-group>
-                <div class="inline-editor-actions">
-                  <el-button size="small" @click="closeStatusEditor">取消</el-button>
-                  <el-button
-                    size="small"
-                    type="primary"
-                    :loading="inlineSavingUserId === row.id"
-                    @click="saveStatusEditor(row)"
-                  >
-                    保存
-                  </el-button>
-                </div>
-              </div>
-            </el-popover>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="最近登录" min-width="160">
-        <template #default="{ row }">{{ formatDate(row.lastLoginAt) }}</template>
-      </el-table-column>
-      <el-table-column label="创建时间" min-width="160">
-        <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-      </el-table-column>
-      <el-table-column label="操作" width="100" fixed="right" align="center">
-        <template #default="{ row }">
-          <el-dropdown
-            trigger="click"
-            placement="bottom-end"
-            popper-class="user-actions-menu"
-            @command="(command: UserActionCommand) => handleUserAction(command, row)"
-          >
-            <button class="action-menu-trigger" type="button" aria-label="更多操作">
-              <el-icon><MoreFilled /></el-icon>
-            </button>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                <el-dropdown-item command="reset-password">重置密码</el-dropdown-item>
-                <el-dropdown-item
-                  command="delete"
-                  divided
-                  class="danger-menu-item"
-                  :disabled="admin.deletingUserId.value === row.id"
-                >
-                  删除
-                </el-dropdown-item>
-              </el-dropdown-menu>
             </template>
-          </el-dropdown>
-        </template>
-      </el-table-column>
-    </el-table>
+          </el-table-column>
+          <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.email || '-' }}</template>
+          </el-table-column>
+          <el-table-column label="角色" min-width="220">
+            <template #default="{ row }">
+              <div class="inline-edit-cell">
+                <div class="tag-list">
+                  <RoleTag v-for="role in row.roles" :key="role" :role="role" />
+                </div>
+                <el-popover
+                  :visible="roleEditorUserId === row.id"
+                  placement="bottom-start"
+                  trigger="manual"
+                  width="280"
+                  popper-class="admin-inline-popover"
+                >
+                  <template #reference>
+                    <el-button
+                      circle
+                      text
+                      class="cell-edit-button"
+                      :icon="EditPen"
+                      aria-label="编辑角色"
+                      title="编辑角色"
+                      @click.stop="openRoleEditor(row)"
+                    />
+                  </template>
+                  <div class="inline-editor" @click.stop @keydown.esc.stop="closeRoleEditor">
+                    <div class="inline-editor-title">调整角色</div>
+                    <el-checkbox-group v-model="roleDraft" class="role-choice-list">
+                      <el-checkbox-button v-for="option in roleOptions" :key="option.value" :value="option.value">
+                        {{ option.label }}
+                      </el-checkbox-button>
+                    </el-checkbox-group>
+                    <div class="inline-editor-actions">
+                      <el-button size="small" @click="closeRoleEditor">取消</el-button>
+                      <el-button
+                        size="small"
+                        type="primary"
+                        :loading="inlineSavingUserId === row.id"
+                        @click="saveRoleEditor(row)"
+                      >
+                        保存
+                      </el-button>
+                    </div>
+                  </div>
+                </el-popover>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="140">
+            <template #default="{ row }">
+              <div class="inline-edit-cell compact">
+                <StatusTag :status="row.status" />
+                <el-popover
+                  :visible="statusEditorUserId === row.id"
+                  placement="bottom-start"
+                  trigger="manual"
+                  width="220"
+                  popper-class="admin-inline-popover"
+                >
+                  <template #reference>
+                    <el-button
+                      circle
+                      text
+                      class="cell-edit-button"
+                      :icon="EditPen"
+                      aria-label="编辑状态"
+                      title="编辑状态"
+                      @click.stop="openStatusEditor(row)"
+                    />
+                  </template>
+                  <div class="inline-editor" @click.stop @keydown.esc.stop="closeStatusEditor">
+                    <div class="inline-editor-title">调整状态</div>
+                    <el-radio-group v-model="statusDraft" class="status-choice-list">
+                      <el-radio-button v-for="option in statusOptions" :key="option.value" :value="option.value">
+                        {{ option.label }}
+                      </el-radio-button>
+                    </el-radio-group>
+                    <div class="inline-editor-actions">
+                      <el-button size="small" @click="closeStatusEditor">取消</el-button>
+                      <el-button
+                        size="small"
+                        type="primary"
+                        :loading="inlineSavingUserId === row.id"
+                        @click="saveStatusEditor(row)"
+                      >
+                        保存
+                      </el-button>
+                    </div>
+                  </div>
+                </el-popover>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="最近登录" min-width="160">
+            <template #default="{ row }">{{ formatDate(row.lastLoginAt) }}</template>
+          </el-table-column>
+          <el-table-column label="创建时间" min-width="160">
+            <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-dropdown
+                trigger="click"
+                placement="bottom-end"
+                popper-class="user-actions-menu"
+                @command="(command: UserActionCommand) => handleUserAction(command, row)"
+              >
+                <button class="action-menu-trigger" type="button" aria-label="更多操作">
+                  <el-icon><MoreFilled /></el-icon>
+                </button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                    <el-dropdown-item command="reset-password">重置密码</el-dropdown-item>
+                    <el-dropdown-item
+                      command="delete"
+                      divided
+                      class="danger-menu-item"
+                      :disabled="admin.deletingUserId.value === row.id"
+                    >
+                      删除
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </template>
+          </el-table-column>
+        </el-table>
+      </transition>
+    </div>
 
     <div class="pagination-wrap">
       <el-pagination
@@ -401,56 +424,66 @@ function handlePageSizeChange(nextSize: number) {
 </template>
 
 <style scoped>
+.admin-reused-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-self: start;
+  align-items: start;
+  gap: 16px;
+}
+
 .users-panel {
   display: grid;
+  min-width: 0;
   gap: 16px;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   padding: 24px;
+  overflow-x: hidden;
   background: var(--claude-canvas);
 }
 
-.panel-heading {
-  display: flex;
+.reused-panel-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   border-bottom: 1px solid var(--app-border);
   padding-bottom: 14px;
 }
 
-.panel-heading h2 {
+.reused-panel-heading h2 {
   margin: 0;
   color: var(--app-text);
   font-size: 22px;
   font-weight: 500;
 }
 
-.panel-heading p {
+.reused-panel-heading p {
   margin: 4px 0 0;
   color: var(--app-text-muted);
   font-size: 13px;
+  line-height: 1.6;
 }
 
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+.primary-action {
+  min-width: 108px;
 }
 
 .summary-card {
   display: flex;
   align-items: center;
   gap: 14px;
+  height: 100px;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  padding: 20px;
+  padding: 12px 18px;
   background: var(--app-surface-soft);
 }
 
 .summary-icon {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -458,7 +491,7 @@ function handlePageSizeChange(nextSize: number) {
   flex-shrink: 0;
 }
 
-.summary-icon.blue {
+.summary-icon.coral {
   background: var(--app-primary-soft);
   color: var(--app-primary);
 }
@@ -468,7 +501,7 @@ function handlePageSizeChange(nextSize: number) {
   color: var(--app-success);
 }
 
-.summary-icon.indigo {
+.summary-icon.teal {
   background: var(--app-accent-soft);
   color: var(--app-accent);
 }
@@ -490,62 +523,181 @@ function handlePageSizeChange(nextSize: number) {
   margin-top: 4px;
   color: var(--app-text);
   font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
-.toolbar {
+.reused-toolbar {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) 140px auto auto;
+  grid-template-columns: minmax(200px, 1fr) 160px auto auto;
+  min-width: 0;
   gap: 10px;
+  align-items: center;
+}
+
+.reused-toolbar .el-icon.is-rotating {
+  animation: rotate-icon 0.8s linear infinite;
+}
+
+@keyframes rotate-icon {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .status-filter {
-  width: 140px;
+  width: 160px;
 }
 
-.toolbar :deep([class~="el-input__wrapper"]),
-.toolbar :deep([class~="el-select__wrapper"]) {
+.reused-toolbar :deep([class~="el-input__wrapper"]),
+.reused-toolbar :deep([class~="el-select__wrapper"]) {
   min-height: 36px;
   border-radius: var(--app-radius-sm) !important;
   box-shadow: none !important;
   border: 1px solid var(--app-border);
 }
 
-.toolbar :deep([class~="el-input__wrapper"]:hover),
-.toolbar :deep([class~="el-select__wrapper"]:hover) {
+.reused-toolbar :deep([class~="el-input__wrapper"]:hover),
+.reused-toolbar :deep([class~="el-select__wrapper"]:hover) {
   border-color: var(--app-border-strong);
 }
 
-.toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
-.toolbar :deep([class~="el-select__wrapper"]:focus-within) {
+.reused-toolbar :deep([class~="el-input__wrapper"][class~="is-focus"]),
+.reused-toolbar :deep([class~="el-select__wrapper"]:focus-within) {
   border-color: var(--app-primary);
 }
 
-.users-table {
+.reused-table-card {
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
+  border-radius: var(--app-radius-sm);
+  background: var(--app-surface);
+}
+
+.users-table {
+  width: 100%;
+  min-width: 1160px;
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
-  background: var(--claude-canvas);
+  background: var(--app-surface);
+}
+
+.table-wrapper {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 200px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+:deep(.users-table .el-table__header th.el-table__cell) {
+  background: var(--app-surface-soft);
+  color: var(--app-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.skeleton-row {
+  display: grid;
+  grid-template-columns: 200px 180px 220px 140px 160px 160px 100px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.skeleton-cell {
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--app-surface-muted) 25%,
+    var(--app-surface-soft) 50%,
+    var(--app-surface-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-user {
+  width: 160px;
+  height: 36px;
+}
+
+.skeleton-email {
+  width: 140px;
+}
+
+.skeleton-roles {
+  width: 180px;
+}
+
+.skeleton-status {
+  width: 80px;
+  height: 24px;
+}
+
+.skeleton-date {
+  width: 120px;
+}
+
+.skeleton-actions {
+  width: 60px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.fade-content-enter-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-content-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-content-enter-from,
+.fade-content-leave-to {
+  opacity: 0;
 }
 
 .user-cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .user-cell strong {
   color: var(--app-text);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .user-cell span {
   color: var(--app-text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .inline-edit-cell {
@@ -635,19 +787,19 @@ function handlePageSizeChange(nextSize: number) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 38px;
+  height: 38px;
   border: 0;
   padding: 0;
   background: transparent;
   color: var(--app-text-subtle);
   cursor: pointer;
-  border-radius: var(--app-radius-xs);
-  transition: all 0.15s ease;
+  border-radius: var(--app-radius-md);
+  transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 .action-menu-trigger:hover {
-  background: var(--app-surface-soft);
+  background: var(--app-primary-soft);
   color: var(--app-primary);
 }
 
@@ -699,19 +851,29 @@ function handlePageSizeChange(nextSize: number) {
   backdrop-filter: blur(2px);
 }
 
-@media (max-width: 980px) {
-  .summary-grid,
-  .toolbar {
+@media (max-width: 1180px) {
+  .admin-reused-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-reused-summary-grid,
+  .reused-toolbar,
+  .reused-panel-heading {
     grid-template-columns: 1fr;
+  }
+
+  .users-panel {
+    padding: 18px;
   }
 
   .status-filter {
     width: 100%;
   }
 
-  .panel-heading {
-    align-items: flex-start;
-    flex-direction: column;
+  .primary-action {
+    justify-self: start;
   }
 }
 </style>

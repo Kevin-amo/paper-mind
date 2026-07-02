@@ -77,8 +77,8 @@ for (const fileKey of ['adminShell', 'adminUsers', 'adminReviews', 'review', 'le
   requireIncludes(fileKey, 'var(--claude-canvas)', `${fileKey} uses DESIGN canvas token`);
 }
 
-requireIncludes('adminUsers', 'class="paper-mind-workspace-card users-panel animate fade-in"', 'global-progress fade-in panel motion');
-requireIncludes('adminUsers', 'class="summary-grid"', 'global-progress summary grid');
+requireIncludes('adminUsers', 'users-panel animate fade-in reused-management-panel', 'reused fade-in panel motion');
+requireIncludes('adminUsers', 'admin-reused-summary-grid', 'reused summary grid');
 requireNotIncludes('adminUsers', 'class="admin-summary"', 'old compact user summary layout');
 for (const delay of ['0ms', '80ms', '160ms', '240ms']) {
   requireIncludes('adminUsers', `delay: '${delay}'`, `summary slide-up delay ${delay}`);

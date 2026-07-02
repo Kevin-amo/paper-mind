@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { UploadFilled } from '@element-plus/icons-vue';
+import { UploadFilled, Refresh } from '@element-plus/icons-vue';
 import StatusTag from '../common/StatusTag.vue';
 import { formatDate } from '../../utils/format';
 import type { ReviewSubmission } from '../../types';
@@ -60,55 +60,74 @@ function openReport(row: ReviewSubmission) {
       >
         <el-button type="primary" :icon="UploadFilled" :loading="props.uploading">上传投稿</el-button>
       </el-upload>
-      <el-button :loading="props.loading" @click="emit('refresh')">刷新</el-button>
+      <el-button @click="emit('refresh')">
+        <el-icon :class="{ 'is-rotating': props.loading }"><Refresh /></el-icon>
+        刷新
+      </el-button>
     </div>
 
-    <el-table
-      v-loading="props.loading"
-      :data="props.submissions"
-      row-key="sourceId"
-      class="submission-table"
-      empty-text="暂无评审投稿"
-    >
-      <el-table-column label="论文" min-width="220">
-        <template #default="{ row }: { row: ReviewSubmission }">
-          <div class="paper-cell">
-            <strong>{{ row.title || row.fileName || row.sourceId }}</strong>
-            <span>{{ row.fileName || row.sourceId }}</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="文档状态" width="120">
-        <template #default="{ row }: { row: ReviewSubmission }">
-          <StatusTag :status="row.documentStatus" />
-        </template>
-      </el-table-column>
-      <el-table-column label="评审状态" width="150">
-        <template #default="{ row }: { row: ReviewSubmission }">
-          <StatusTag v-if="row.reviewStatus" :status="row.reviewStatus" />
-          <span v-else class="muted-text">待生成任务</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="提交时间" width="170">
-        <template #default="{ row }: { row: ReviewSubmission }">
-          {{ formatDate(row.submittedAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="110" fixed="right">
-        <template #default="{ row }: { row: ReviewSubmission }">
-          <el-button
-            v-if="row.reviewReport"
-            type="primary"
-            size="small"
-            class="report-link"
-            @click="openReport(row)"
-          >
-            查看报告
-          </el-button>
-          <span v-else class="muted-text">-</span>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="submission-table-wrapper" :class="{ 'is-loading': props.loading }">
+      <!-- Skeleton placeholder during loading -->
+      <div v-if="props.loading && props.submissions.length === 0" class="skeleton-container">
+        <div v-for="i in 5" :key="i" class="skeleton-row">
+          <div class="skeleton-cell skeleton-title"></div>
+          <div class="skeleton-cell skeleton-status"></div>
+          <div class="skeleton-cell skeleton-status"></div>
+          <div class="skeleton-cell skeleton-date"></div>
+          <div class="skeleton-cell skeleton-action"></div>
+        </div>
+      </div>
+
+      <!-- Actual table with fade transition -->
+      <transition name="fade-content">
+        <el-table
+          v-show="!props.loading || props.submissions.length > 0"
+          :data="props.submissions"
+          row-key="sourceId"
+          class="submission-table"
+          empty-text="暂无评审投稿"
+        >
+          <el-table-column label="论文" min-width="220">
+            <template #default="{ row }: { row: ReviewSubmission }">
+              <div class="paper-cell">
+                <strong>{{ row.title || row.fileName || row.sourceId }}</strong>
+                <span>{{ row.fileName || row.sourceId }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="文档状态" width="120">
+            <template #default="{ row }: { row: ReviewSubmission }">
+              <StatusTag :status="row.documentStatus" />
+            </template>
+          </el-table-column>
+          <el-table-column label="评审状态" width="150">
+            <template #default="{ row }: { row: ReviewSubmission }">
+              <StatusTag v-if="row.reviewStatus" :status="row.reviewStatus" />
+              <span v-else class="muted-text">待生成任务</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="提交时间" width="170">
+            <template #default="{ row }: { row: ReviewSubmission }">
+              {{ formatDate(row.submittedAt) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="110" fixed="right">
+            <template #default="{ row }: { row: ReviewSubmission }">
+              <el-button
+                v-if="row.reviewReport"
+                type="primary"
+                size="small"
+                class="report-link"
+                @click="openReport(row)"
+              >
+                查看报告
+              </el-button>
+              <span v-else class="muted-text">-</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </transition>
+    </div>
 
     <div class="drawer-pagination">
       <el-pagination
@@ -186,8 +205,95 @@ function openReport(row: ReviewSubmission) {
   margin-bottom: 16px;
 }
 
+.submission-toolbar .el-icon.is-rotating {
+  animation: rotate-icon 0.8s linear infinite;
+}
+
+@keyframes rotate-icon {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .submission-table {
   width: 100%;
+}
+
+.submission-table-wrapper {
+  position: relative;
+  min-height: 200px;
+}
+
+/* Skeleton Loading Animation */
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.skeleton-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) 120px 150px 170px 110px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.skeleton-cell {
+  height: 20px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--app-surface-muted) 25%,
+    var(--app-surface-soft) 50%,
+    var(--app-surface-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-title {
+  height: 36px;
+}
+
+.skeleton-status {
+  height: 24px;
+  width: 80px;
+}
+
+.skeleton-date {
+  width: 140px;
+}
+
+.skeleton-action {
+  width: 80px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Fade Transition for Content */
+.fade-content-enter-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-content-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-content-enter-from,
+.fade-content-leave-to {
+  opacity: 0;
 }
 
 .paper-cell {

@@ -35,7 +35,7 @@ function taskKeywords(task: ReviewTask) {
     <div class="inbox-header">
       <div>
         <p>Inbox</p>
-        <h2>任务收件箱</h2>
+        <h2>论文列表</h2>
       </div>
       <el-button size="small" :loading="loading" @click="$emit('search')">刷新</el-button>
     </div>

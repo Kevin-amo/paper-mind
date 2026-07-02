@@ -6,6 +6,7 @@ import {
   DataAnalysis,
   Files,
   Setting,
+  SwitchButton,
   User,
 } from '@element-plus/icons-vue';
 import { useAuth } from '../../composables/useAuth';
@@ -162,6 +163,7 @@ async function handleLogout() {
 <style scoped>
 .admin-layout {
   min-height: 100vh;
+  height: 100vh;
   display: grid;
   grid-template-columns: 268px minmax(0, 1fr);
   background: var(--claude-canvas);
@@ -172,7 +174,9 @@ async function handleLogout() {
 .admin-sidebar {
   position: sticky;
   top: 0;
+  align-self: start;
   height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--claude-dark);
@@ -318,9 +322,11 @@ async function handleLogout() {
 
 .admin-main {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--claude-canvas);
+  overflow: hidden;
 }
 
 .admin-topbar {
@@ -360,10 +366,13 @@ async function handleLogout() {
 
 .admin-content {
   display: grid;
+  align-content: start;
   gap: 20px;
   min-width: 0;
   padding: 28px;
-  overflow-x: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
 }
 
 .admin-content > :deep(*) {
