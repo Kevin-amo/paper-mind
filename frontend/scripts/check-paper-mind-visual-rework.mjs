@@ -123,12 +123,12 @@ requireIncludes('review', 'class="review-submit-button"', 'review submit button 
 for (const marker of [
   'score-summary',
   'score-total',
+  'score-number',
   'recommendation-box',
-  'decision-strip',
+  'recommendation-editor',
   'metric-row',
   'submitted-panel',
   'readonly-pill',
-  'edit-panel',
 ]) {
   requireIncludes('reviewScores', marker, `review scoring table demo marker ${marker}`);
 }
@@ -149,6 +149,9 @@ requireNotIncludes('reviewTaskList', '<el-empty', 'Element Plus default empty st
 requireNotIncludes('reviewScores', 'score-grid', 'old scoring card grid layout');
 requireNotIncludes('reviewScores', 'score-card', 'old large scoring cards');
 requireNotIncludes('reviewScores', 'manual-section', 'old always-visible manual adjustment section');
+requireNotIncludes('reviewScores', 'decision-strip', 'removed reviewer decision shortcut strip');
+requireNotIncludes('reviewScores', 'edit-panel', 'removed duplicate score/recommendation edit panel');
+requireNotIncludes('reviewScores', 'score-editor', 'removed editable final total score control');
 requireNotIncludes('reviewScores', '<el-empty', 'Element Plus default empty state in review scores tab');
 
 const reviewSubmitButton = findRuleBlock(files.review, '.review-submit-button');

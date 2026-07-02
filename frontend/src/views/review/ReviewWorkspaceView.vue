@@ -34,7 +34,6 @@ const reviewSteps: Array<{ key: ReviewTabKey; label: string; caption: string }> 
   { key: 'audit', label: '提交', caption: '留档记录' },
 ];
 
-const currentUserName = computed(() => auth.state.user?.displayName || auth.state.user?.username || '评审员');
 const selectedTask = computed(() => reviews.selectedTask.value);
 const selectedReport = computed(() => reviews.selectedReport.value);
 const assignmentSubmitted = computed(() => selectedTask.value?.currentAssignment?.status === 'SUBMITTED');
@@ -165,8 +164,7 @@ onMounted(async () => {
       </nav>
 
       <div class="review-nav-actions">
-        <span class="review-account-pill">{{ currentUserName }}</span>
-        <el-button @click="logoutDialogVisible = true">退出登录</el-button>
+        <el-button text @click="logoutDialogVisible = true">退出</el-button>
       </div>
     </header>
 
@@ -211,9 +209,6 @@ onMounted(async () => {
           </button>
           <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'SUBMITTED' }" type="button" @click="applyStatusFilter('SUBMITTED')">
             已提交 {{ reviews.completedCount.value }}
-          </button>
-          <button class="review-filter-chip" type="button" @click="focusCriteria">
-            评审指标 {{ reviews.criteria.value.length }}
           </button>
         </div>
       </section>
@@ -394,16 +389,16 @@ onMounted(async () => {
 }
 
 .review-top-nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
+  gap: 24px;
   min-height: 64px;
   border-bottom: 1px solid var(--app-border-light);
 }
 
 .review-brand,
-.review-nav-links,
-.review-nav-actions {
+.review-nav-links {
   display: flex;
   align-items: center;
 }
@@ -476,24 +471,9 @@ onMounted(async () => {
 }
 
 .review-nav-actions {
-  gap: 10px;
-}
-
-.review-account-pill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  min-height: 28px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.review-account-pill {
-  border: 1px solid var(--app-border);
-  background: var(--app-surface-soft);
-  color: var(--app-text);
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 500;
+  justify-content: flex-end;
 }
 
 .review-hero {

@@ -12,15 +12,6 @@ const props = defineProps<{
   criteria: ReviewCriterion[];
 }>();
 
-const decisionOptions = [
-  { key: 'pass', label: '通过' },
-  { key: 'revise', label: '修改后通过' },
-  { key: 'return', label: '退回' },
-  { key: 'review', label: '需复核' },
-] as const;
-
-type DecisionKey = typeof decisionOptions[number]['key'];
-
 const finalScoreLabel = computed(() => {
   const score = props.assignmentSubmitted
     ? props.selectedReport?.totalScore ?? props.reportForm.totalScore
@@ -32,24 +23,7 @@ const finalRecommendationText = computed(() => {
   const recommendation = props.reportForm.finalRecommendation?.trim()
     || props.selectedReport?.finalRecommendation?.trim()
     || '';
-  return recommendation || '暂无最终意见';
-});
-
-const activeDecisionKey = computed<DecisionKey>(() => {
-  const recommendation = finalRecommendationText.value;
-  if (/退回|不通过|拒绝/.test(recommendation)) {
-    return 'return';
-  }
-  if (/复核|仲裁|争议|再审/.test(recommendation)) {
-    return 'review';
-  }
-  if (/修改|修订|补充|完善/.test(recommendation)) {
-    return 'revise';
-  }
-  if (/通过|同意/.test(recommendation)) {
-    return 'pass';
-  }
-  return 'revise';
+  return recommendation || '暂无最终评审意见';
 });
 
 function getWeight(code: string): number {
@@ -76,10 +50,6 @@ function metricPercent(item: ReviewScoreItem): number {
   return Math.min(100, Math.max(0, percent));
 }
 
-function isDecisionActive(key: DecisionKey): boolean {
-  return activeDecisionKey.value === key;
-}
-
 defineEmits<{
   'update-score': [code: string, score: number];
 }>();
@@ -89,7 +59,7 @@ defineEmits<{
   <section class="detail-section" :aria-busy="saving || submittingAssignment">
     <div class="section-header">
       <h3>维度化辅助评分</h3>
-      <p>把总分、结论和各维度证据收在同一张评分表里，提交后自动进入只读留档。</p>
+      <p>总分和最终评审意见只保留这一处。维度评分调整后，会同步更新最终总分。</p>
     </div>
 
     <div v-if="scoreItems.length" class="score-sheet">
@@ -97,25 +67,22 @@ defineEmits<{
         <article class="score-total">
           <span>最终总分</span>
           <div class="score-number">{{ finalScoreLabel }}<small>/100</small></div>
-          <p>{{ assignmentSubmitted ? '已提交留档，不再接受调整。' : '保存草稿时会按维度权重重新计算。' }}</p>
+          <p>{{ assignmentSubmitted ? '已提交留档，不再接受调整。' : '由维度评分和权重自动计算。' }}</p>
         </article>
 
         <article class="recommendation-box">
           <span>最终评审意见</span>
-          <p>{{ finalRecommendationText }}</p>
+          <p v-if="assignmentSubmitted">{{ finalRecommendationText }}</p>
+          <el-input
+            v-else
+            v-model="reportForm.finalRecommendation"
+            class="recommendation-editor"
+            type="textarea"
+            :rows="4"
+            placeholder="填写或调整最终评审意见"
+          />
         </article>
       </section>
-
-      <div class="decision-strip" aria-label="最终结论">
-        <div
-          v-for="option in decisionOptions"
-          :key="option.key"
-          class="decision"
-          :class="{ active: isDecisionActive(option.key) }"
-        >
-          {{ option.label }}
-        </div>
-      </div>
 
       <section class="metrics" aria-label="评分维度">
         <article v-for="item in scoreItems" :key="item.code" class="metric-row">
@@ -149,34 +116,6 @@ defineEmits<{
           <span class="readonly-pill">只读留档</span>
           <p>本次个人评审已提交，评分、结论和最终意见不可继续调整。</p>
         </div>
-      </section>
-
-      <section v-else class="edit-panel">
-        <div class="edit-form">
-          <div class="field">
-            <label>总分</label>
-            <el-input-number
-              v-model="reportForm.totalScore"
-              class="score-editor"
-              :min="0"
-              :max="100"
-              controls-position="right"
-            />
-          </div>
-          <div class="field">
-            <label>最终评审意见</label>
-            <el-input
-              v-model="reportForm.finalRecommendation"
-              class="recommendation-editor"
-              type="textarea"
-              :rows="3"
-              placeholder="填写或调整最终评审意见"
-            />
-          </div>
-        </div>
-        <p class="edit-note">
-          {{ selectedReport ? '完成调整后，请使用页面底部操作栏保存草稿或提交评审。' : '生成辅助评审后可填写最终意见。' }}
-        </p>
       </section>
     </div>
 
@@ -272,28 +211,23 @@ defineEmits<{
   color: var(--app-text);
 }
 
-.decision-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+.recommendation-editor {
+  margin-top: 10px;
 }
 
-.decision {
-  min-height: 38px;
-  border: 1px solid var(--app-border);
-  border-radius: 10px;
+.recommendation-editor :deep(.el-textarea__inner) {
+  min-height: 104px;
+  border-radius: var(--app-radius-md);
   background: var(--app-surface);
-  color: var(--app-text-muted);
-  padding: 9px 10px;
-  font-size: 13px;
-  font-weight: 500;
-  text-align: center;
+  color: var(--app-text);
+  line-height: 1.65;
+  box-shadow: 0 0 0 1px var(--app-border) inset;
 }
 
-.decision.active {
-  border-color: rgba(204, 120, 92, 0.34);
-  background: var(--app-primary-soft);
-  color: var(--app-primary-active);
+.recommendation-editor :deep(.el-textarea__inner:focus) {
+  box-shadow:
+    0 0 0 1px var(--app-primary) inset,
+    var(--app-shadow-focus);
 }
 
 .metrics {
@@ -404,8 +338,7 @@ defineEmits<{
   line-height: 1.6;
 }
 
-.submitted-panel,
-.edit-panel {
+.submitted-panel {
   border-top: 1px solid var(--app-border);
   padding-top: 18px;
 }
@@ -436,63 +369,6 @@ defineEmits<{
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-}
-
-.edit-form {
-  display: grid;
-  grid-template-columns: 174px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.field label {
-  display: block;
-  margin-bottom: 8px;
-  color: var(--app-text-muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.score-editor {
-  width: 100%;
-}
-
-.score-editor :deep(.el-input__wrapper),
-.recommendation-editor :deep(.el-textarea__inner) {
-  border-radius: var(--app-radius-md);
-  background: var(--app-surface);
-  box-shadow: 0 0 0 1px var(--app-border) inset;
-}
-
-.score-editor :deep(.el-input__wrapper) {
-  min-height: 48px;
-}
-
-.score-editor :deep(.el-input__inner) {
-  color: var(--app-primary-active);
-  font-family: var(--claude-serif);
-  font-size: 24px;
-  font-weight: 500;
-}
-
-.recommendation-editor :deep(.el-textarea__inner) {
-  min-height: 90px;
-  color: var(--app-text);
-  line-height: 1.65;
-}
-
-.score-editor :deep(.el-input__wrapper.is-focus),
-.recommendation-editor :deep(.el-textarea__inner:focus) {
-  box-shadow:
-    0 0 0 1px var(--app-primary) inset,
-    var(--app-shadow-focus);
-}
-
-.edit-note {
-  margin: 12px 0 0;
-  color: var(--app-text-muted);
-  font-size: 13px;
-  line-height: 1.65;
 }
 
 .review-empty-state {
@@ -553,17 +429,12 @@ defineEmits<{
 }
 
 @media (max-width: 1180px) {
-  .score-summary,
-  .edit-form {
+  .score-summary {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
-  .decision-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .metric-row {
     grid-template-columns: 1fr;
     gap: 10px;

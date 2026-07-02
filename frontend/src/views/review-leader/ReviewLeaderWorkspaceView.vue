@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -55,7 +55,6 @@ const consensusForm = reactive({
   finalRecommendation: '',
 });
 
-const currentUserName = computed(() => auth.state.user?.displayName || auth.state.user?.username || '评审组长');
 const selectedGroup = computed(() => groups.value.find((group) => group.id === selectedGroupId.value) ?? null);
 const selectedTask = computed(() => tasks.value.find((task) => task.id === selectedTaskId.value) ?? null);
 const reviewerMembers = computed(() => members.value.filter((member) => member.memberRole === 'REVIEWER' && member.status === 'ACTIVE'));
@@ -254,9 +253,34 @@ async function recalculateConsensus() {
   if (!selectedGroupId.value || !selectedTask.value) return;
   consensusRecalculating.value = true;
   try {
-    consensus.value = await recalculateLeaderTaskConsensus(selectedGroupId.value, selectedTask.value.id);
-    ElMessage.success('共识汇总已重新计算');
+    const result = await recalculateLeaderTaskConsensus(selectedGroupId.value, selectedTask.value.id);
+    consensus.value = result;
     await loadGroupScope();
+    // 检查是否存在评分分歧，若有则弹出提示
+    const disagreements = Array.isArray(result.disagreementItems) ? result.disagreementItems : [];
+    if (disagreements.length > 0) {
+      const scoreSummary = result.scoreSummary ?? {};
+      const avg = scoreSummary.overallAverage ?? '-';
+      const min = scoreSummary.overallMin ?? '-';
+      const max = scoreSummary.overallMax ?? '-';
+      const detailHtml = disagreements.map((item) => {
+        const typeLabel = item.type === 'OVERALL_SCORE'
+          ? '总分分歧'
+          : `指标分歧（${item.criterionCode ?? '-'}）`;
+        const diff = Number(item.maxScore) - Number(item.minScore);
+        return `<li><strong>${typeLabel}</strong>：最低 ${item.minScore} 分 / 最高 ${item.maxScore} 分，分差 ${diff}（阈值 ${item.threshold}）</li>`;
+      }).join('');
+      await ElMessageBox.alert(
+        `<p>检测到 <strong>${disagreements.length}</strong> 项评分分歧，共识状态已变更为 “讨论中”。</p>` +
+        `<ul style="margin: 12px 0; padding-left: 20px;">${detailHtml}</ul>` +
+        `<p style="color: #909399; font-size: 13px;">平均分参考值：${avg}（最低 ${min} / 最高 ${max}）</p>` +
+        `<p style="color: #E6A23C;">请组长协调各评审人意见后，手动填写最终分数并保存。</p>`,
+        '评分存在分歧',
+        { confirmButtonText: '我知道了', dangerouslyUseHTMLString: true },
+      );
+    } else {
+      ElMessage.success('共识汇总已重新计算');
+    }
   } catch (error) {
     ElMessage.error(getErrorMessage(error));
   } finally {
@@ -329,10 +353,11 @@ onMounted(async () => {
         <button v-if="auth.isAdmin.value" class="leader-nav-link" type="button" @click="router.push('/admin/reviews')">
           管理后台
         </button>
+        <button v-if="auth.hasRole('USER')" class="leader-nav-link" type="button" @click="router.push('/user')">用户端</button>
       </nav>
-      <div class="leader-top-actions">
-        <span class="leader-account-pill">{{ currentUserName }}</span>
-        <el-button @click="logoutDialogVisible = true">退出登录</el-button>
+
+      <div class="leader-nav-actions">
+        <el-button text @click="logoutDialogVisible = true">退出</el-button>
       </div>
     </header>
 
@@ -645,21 +670,20 @@ onMounted(async () => {
 .leader-stats-grid,
 .leader-shell,
 .detail-grid {
-  width: min(100%, 1200px);
+  width: min(100%, 1360px);
   margin-inline: auto;
 }
 
 .leader-top-nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
+  gap: 24px;
   min-height: 64px;
   border-bottom: 1px solid var(--claude-hairline-soft);
 }
 
 .leader-brand,
-.leader-top-actions,
 .leader-nav-links {
   display: flex;
   align-items: center;
@@ -734,23 +758,10 @@ onMounted(async () => {
   color: var(--app-text);
 }
 
-.leader-top-actions {
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.leader-account-pill {
-  display: inline-flex;
+.leader-nav-actions {
+  display: flex;
   align-items: center;
-  min-height: 34px;
-  border: 1px solid var(--app-border);
-  border-radius: 999px;
-  background: var(--app-surface-soft);
-  color: var(--app-text);
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
+  justify-content: flex-end;
 }
 
 .leader-hero {
@@ -1305,8 +1316,7 @@ onMounted(async () => {
     padding: 14px 0;
   }
 
-  .leader-nav-links,
-  .leader-top-actions {
+  .leader-nav-links {
     width: 100%;
     flex-wrap: wrap;
     justify-content: flex-start;

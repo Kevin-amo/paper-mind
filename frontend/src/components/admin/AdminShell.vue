@@ -6,7 +6,6 @@ import {
   DataAnalysis,
   Files,
   Setting,
-  SwitchButton,
   User,
 } from '@element-plus/icons-vue';
 import { useAuth } from '../../composables/useAuth';
