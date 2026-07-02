@@ -6,14 +6,9 @@ const pkg = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
 const missing = [];
 
 for (const token of [
-  'activeConfigTab',
-  'filteredBatches',
   'filteredGroups',
-  'review-config-overview',
-  'admin-reused-summary-grid',
   'reused-management-panel',
   'reused-panel-heading',
-  'config-tabs',
   'config-tab-pane',
   'reused-toolbar',
   'reused-table-card',
@@ -23,27 +18,15 @@ for (const token of [
   }
 }
 
-if (!panel.includes(':data="filteredBatches"')) {
-  missing.push('Batch table must render filteredBatches in the tab layout');
-}
-
 if (!panel.includes(':data="filteredGroups"')) {
-  missing.push('Group table must render filteredGroups in the tab layout');
+  missing.push('Group table must render filteredGroups in the management panel');
 }
 
 if (!pkg.includes('check:admin-review-layout')) {
   missing.push('package.json must wire check:admin-review-layout');
 }
 
-if (!/review-config-overview[\s\S]*<section class="config-section reused-management-panel"/.test(panel)) {
-  missing.push('Review batch/group summary cards must sit above the main reused panel');
-}
-
-if (!/\.config-card\s*\{[^}]*min-height:\s*124px/s.test(panel)) {
-  missing.push('Review batch/group summary cards must match the approved demo card height');
-}
-
-if (!/\.reused-toolbar\s*\{[^}]*grid-template-columns:\s*minmax\(260px,\s*1fr\)\s+200px\s+auto/s.test(panel)) {
+if (!/\.reused-toolbar\s*\{[^}]*grid-template-columns:\s*minmax\(200px,\s*1fr\)\s+160px\s+auto/s.test(panel)) {
   missing.push('Review batch/group toolbar must match the approved demo filter layout');
 }
 
@@ -51,11 +34,16 @@ if (panel.includes('listReviewGroups(selectedBatchId.value || undefined)')) {
   missing.push('Group tab must not be implicitly filtered by selectedBatchId');
 }
 
-if (!panel.includes('当前展示：全部小组')) {
-  missing.push('Group tab must tell admins it is showing all groups');
-}
-
 for (const token of [
+  'activeConfigTab',
+  'filteredBatches',
+  'review-config-overview',
+  'admin-reused-summary-grid',
+  'config-card',
+  'summary-icon',
+  '小组总数',
+  '启用小组',
+  'activeGroupCount',
   'configLayoutMode',
   'ConfigLayoutMode',
   'config-view-switch',
@@ -73,4 +61,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('Admin review batch/group layout uses the reused demo tab layout.');
+console.log('Admin review group layout uses the reused management panel.');

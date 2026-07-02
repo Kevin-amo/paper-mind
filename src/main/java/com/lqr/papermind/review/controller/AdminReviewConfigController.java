@@ -2,17 +2,12 @@ package com.lqr.papermind.review.controller;
 
 import com.lqr.papermind.auth.security.RoleCodes;
 import com.lqr.papermind.auth.security.SecurityUserPrincipal;
-import com.lqr.papermind.document.dto.PageResponse;
-import com.lqr.papermind.review.dto.ReviewBatchRequest;
-import com.lqr.papermind.review.dto.ReviewBatchResponse;
 import com.lqr.papermind.review.dto.ReviewGroupMemberResponse;
 import com.lqr.papermind.review.dto.ReviewGroupMemberUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewGroupRequest;
 import com.lqr.papermind.review.dto.ReviewGroupResponse;
 import com.lqr.papermind.review.service.ReviewGroupService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,7 +18,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -32,7 +26,7 @@ import java.util.UUID;
 
 /**
  * 管理员评审配置控制器
- * <p>提供评审批次、评审组和评审组成员的管理API接口</p>
+ * <p>提供评审组和评审组成员的管理API接口</p>
  */
 @RestController
 @RequestMapping("/admin/reviews")
@@ -42,63 +36,15 @@ public class AdminReviewConfigController {
     private final ReviewGroupService reviewGroupService;
 
     /**
-     * 分页查询评审批次列表
-     *
-     * @param principal 当前认证用户
-     * @param page      页码（从0开始）
-     * @param size      每页大小
-     * @return 分页后的评审批次列表
-     */
-    @GetMapping("/batches")
-    public PageResponse<ReviewBatchResponse> listBatches(@AuthenticationPrincipal SecurityUserPrincipal principal,
-                                                         @RequestParam(value = "page", defaultValue = "0") @Min(0) int page,
-                                                         @RequestParam(value = "size", defaultValue = "20") @Min(1) @Max(100) int size) {
-        requireAdmin(principal);
-        return reviewGroupService.listBatches(page, size);
-    }
-
-    /**
-     * 创建评审批次
-     *
-     * @param principal 当前认证用户
-     * @param request   评审批次创建请求
-     * @return 创建的评审批次
-     */
-    @PostMapping("/batches")
-    public ReviewBatchResponse createBatch(@AuthenticationPrincipal SecurityUserPrincipal principal,
-                                           @Valid @RequestBody ReviewBatchRequest request) {
-        requireAdmin(principal);
-        return reviewGroupService.createBatch(principal.getId(), request);
-    }
-
-    /**
-     * 更新评审批次
-     *
-     * @param principal 当前认证用户
-     * @param batchId   评审批次ID
-     * @param request   评审批次更新请求
-     * @return 更新后的评审批次
-     */
-    @PatchMapping("/batches/{batchId}")
-    public ReviewBatchResponse updateBatch(@AuthenticationPrincipal SecurityUserPrincipal principal,
-                                           @PathVariable UUID batchId,
-                                           @Valid @RequestBody ReviewBatchRequest request) {
-        requireAdmin(principal);
-        return reviewGroupService.updateBatch(batchId, request);
-    }
-
-    /**
      * 获取评审组列表
      *
      * @param principal 当前认证用户
-     * @param batchId   评审批次ID（可选）
      * @return 评审组列表
      */
     @GetMapping("/groups")
-    public List<ReviewGroupResponse> listGroups(@AuthenticationPrincipal SecurityUserPrincipal principal,
-                                                @RequestParam(value = "batchId", required = false) UUID batchId) {
+    public List<ReviewGroupResponse> listGroups(@AuthenticationPrincipal SecurityUserPrincipal principal) {
         requireAdmin(principal);
-        return reviewGroupService.listGroups(batchId);
+        return reviewGroupService.listGroups();
     }
 
     /**

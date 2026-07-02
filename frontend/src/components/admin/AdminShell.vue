@@ -42,8 +42,8 @@ const navItems: Array<{
   },
   {
     key: 'config',
-    title: '批次与小组',
-    description: '批次、组长、成员',
+    title: '评审小组',
+    description: '组长、成员',
     path: '/admin/reviews',
     query: { tab: 'config' },
     icon: Setting,

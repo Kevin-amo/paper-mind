@@ -17,8 +17,6 @@ public record ReviewTaskResponse(
         UUID documentId,
         /* 提交者用户ID */
         UUID submitterUserId,
-        /* 所属评审批次ID */
-        UUID batchId,
         /* 所属评审小组ID */
         UUID groupId,
         /* 分配人用户ID */
@@ -85,7 +83,6 @@ public record ReviewTaskResponse(
                 entity.getId(),
                 entity.getDocumentId(),
                 entity.getSubmitterUserId(),
-                entity.getBatchId(),
                 entity.getGroupId(),
                 entity.getAssignedByUserId(),
                 entity.getLeaderUserId(),

@@ -129,7 +129,6 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
     @Update("""
             update public.review_task
             set status = 'PENDING_ASSIGNMENT',
-                batch_id = #{batchId},
                 group_id = #{groupId},
                 assigned_by_user_id = #{assignedByUserId},
                 leader_user_id = #{leaderUserId},
@@ -139,7 +138,6 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
             where id = #{id}
             """)
     int dispatchToGroup(@Param("id") UUID id,
-                        @Param("batchId") UUID batchId,
                         @Param("groupId") UUID groupId,
                         @Param("assignedByUserId") UUID assignedByUserId,
                         @Param("leaderUserId") UUID leaderUserId,
@@ -151,7 +149,6 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
     @Update("""
             update public.review_task
             set status = 'ASSIGNED',
-                batch_id = #{batchId},
                 group_id = #{groupId},
                 reviewer_user_id = #{reviewerUserId},
                 assigned_by_user_id = #{assignedByUserId},
@@ -162,7 +159,6 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
             where id = #{id}
             """)
     int markAssignedByAdminOverride(@Param("id") UUID id,
-                                    @Param("batchId") UUID batchId,
                                     @Param("groupId") UUID groupId,
                                     @Param("assignedByUserId") UUID assignedByUserId,
                                     @Param("leaderUserId") UUID leaderUserId,

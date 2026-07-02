@@ -7,12 +7,10 @@ import com.lqr.papermind.auth.security.RoleCodes;
 import com.lqr.papermind.review.dto.ReviewGroupMemberUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewGroupRequest;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
-import com.lqr.papermind.review.entity.ReviewBatchEntity;
 import com.lqr.papermind.review.entity.ReviewGroupEntity;
 import com.lqr.papermind.review.entity.ReviewGroupMemberEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
-import com.lqr.papermind.review.mapper.ReviewBatchMapper;
 import com.lqr.papermind.review.mapper.ReviewConsensusMapper;
 import com.lqr.papermind.review.mapper.ReviewGroupMapper;
 import com.lqr.papermind.review.mapper.ReviewGroupMemberMapper;
@@ -33,7 +31,6 @@ import static org.mockito.Mockito.when;
 
 class ReviewGroupServiceImplTest {
 
-    private ReviewBatchMapper batchMapper;
     private ReviewGroupMapper groupMapper;
     private ReviewGroupMemberMapper memberMapper;
     private ReviewTaskMapper taskMapper;
@@ -45,7 +42,6 @@ class ReviewGroupServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        batchMapper = mock(ReviewBatchMapper.class);
         groupMapper = mock(ReviewGroupMapper.class);
         memberMapper = mock(ReviewGroupMemberMapper.class);
         taskMapper = mock(ReviewTaskMapper.class);
@@ -53,19 +49,17 @@ class ReviewGroupServiceImplTest {
         consensusMapper = mock(ReviewConsensusMapper.class);
         userMapper = mock(SysUserMapper.class);
         roleMapper = mock(SysRoleMapper.class);
-        service = new ReviewGroupServiceImpl(batchMapper, groupMapper, memberMapper, taskMapper, assignmentMapper, consensusMapper, userMapper, roleMapper);
+        service = new ReviewGroupServiceImpl(groupMapper, memberMapper, taskMapper, assignmentMapper, consensusMapper, userMapper, roleMapper);
     }
 
     @Test
     void createGroupCreatesLeaderMembershipAndReturnsLeaderProfile() {
         UUID operatorId = UUID.randomUUID();
-        UUID batchId = UUID.randomUUID();
         UUID leaderId = UUID.randomUUID();
-        when(batchMapper.selectById(batchId)).thenReturn(batch(batchId));
         when(userMapper.selectById(leaderId)).thenReturn(user(leaderId, "leader-a", "组长A", "ACTIVE"));
         when(roleMapper.selectRoleCodesByUserId(leaderId)).thenReturn(List.of(RoleCodes.REVIEWER));
 
-        var response = service.createGroup(operatorId, new ReviewGroupRequest(batchId, "第一评审组", leaderId, "ACTIVE"));
+        var response = service.createGroup(operatorId, new ReviewGroupRequest("第一评审组", leaderId, "ACTIVE"));
 
         ArgumentCaptor<ReviewGroupEntity> groupCaptor = ArgumentCaptor.forClass(ReviewGroupEntity.class);
         ArgumentCaptor<ReviewGroupMemberEntity> memberCaptor = ArgumentCaptor.forClass(ReviewGroupMemberEntity.class);
@@ -74,7 +68,6 @@ class ReviewGroupServiceImplTest {
         ReviewGroupEntity savedGroup = groupCaptor.getValue();
         ReviewGroupMemberEntity savedMember = memberCaptor.getValue();
         assertThat(savedGroup.getId()).isNotNull();
-        assertThat(savedGroup.getBatchId()).isEqualTo(batchId);
         assertThat(savedGroup.getName()).isEqualTo("第一评审组");
         assertThat(savedGroup.getLeaderUserId()).isEqualTo(leaderId);
         assertThat(savedGroup.getCreatedByUserId()).isEqualTo(operatorId);
@@ -90,25 +83,21 @@ class ReviewGroupServiceImplTest {
 
     @Test
     void createGroupRejectsDisabledLeader() {
-        UUID batchId = UUID.randomUUID();
         UUID leaderId = UUID.randomUUID();
-        when(batchMapper.selectById(batchId)).thenReturn(batch(batchId));
         when(userMapper.selectById(leaderId)).thenReturn(user(leaderId, "leader-a", "组长A", "DISABLED"));
 
-        assertThatThrownBy(() -> service.createGroup(UUID.randomUUID(), new ReviewGroupRequest(batchId, "第一评审组", leaderId, "ACTIVE")))
+        assertThatThrownBy(() -> service.createGroup(UUID.randomUUID(), new ReviewGroupRequest("第一评审组", leaderId, "ACTIVE")))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("组长用户不可用");
     }
 
     @Test
     void createGroupRejectsLeaderWithoutReviewerRole() {
-        UUID batchId = UUID.randomUUID();
         UUID leaderId = UUID.randomUUID();
-        when(batchMapper.selectById(batchId)).thenReturn(batch(batchId));
         when(userMapper.selectById(leaderId)).thenReturn(user(leaderId, "leader-a", "组长A", "ACTIVE"));
         when(roleMapper.selectRoleCodesByUserId(leaderId)).thenReturn(List.of(RoleCodes.USER));
 
-        assertThatThrownBy(() -> service.createGroup(UUID.randomUUID(), new ReviewGroupRequest(batchId, "第一评审组", leaderId, "ACTIVE")))
+        assertThatThrownBy(() -> service.createGroup(UUID.randomUUID(), new ReviewGroupRequest("第一评审组", leaderId, "ACTIVE")))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("组长用户不可用");
     }
@@ -118,7 +107,7 @@ class ReviewGroupServiceImplTest {
         UUID groupId = UUID.randomUUID();
         UUID leaderId = UUID.randomUUID();
         UUID memberId = UUID.randomUUID();
-        ReviewGroupEntity group = group(groupId, UUID.randomUUID(), leaderId, "ACTIVE");
+        ReviewGroupEntity group = group(groupId, leaderId, "ACTIVE");
         when(groupMapper.selectById(groupId)).thenReturn(group);
         when(userMapper.selectById(leaderId)).thenReturn(user(leaderId, "leader-a", "组长A", "ACTIVE"));
         when(userMapper.selectById(memberId)).thenReturn(user(memberId, "reviewer-a", "评审员A", "ACTIVE"));
@@ -145,7 +134,7 @@ class ReviewGroupServiceImplTest {
     void listLeaderGroupsUsesLeaderUserScope() {
         UUID leaderId = UUID.randomUUID();
         UUID groupId = UUID.randomUUID();
-        ReviewGroupEntity group = group(groupId, UUID.randomUUID(), leaderId, "ACTIVE");
+        ReviewGroupEntity group = group(groupId, leaderId, "ACTIVE");
         when(groupMapper.selectActiveByLeader(leaderId)).thenReturn(List.of(group));
         when(userMapper.selectById(leaderId)).thenReturn(user(leaderId, "leader-a", "组长A", "ACTIVE"));
 
@@ -163,7 +152,7 @@ class ReviewGroupServiceImplTest {
         UUID groupId = UUID.randomUUID();
         UUID taskId = UUID.randomUUID();
         ReviewTaskEntity task = task(taskId, groupId, leaderId);
-        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), leaderId, "ACTIVE"));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, leaderId, "ACTIVE"));
         when(taskMapper.selectUnassignedByGroupId(groupId)).thenReturn(List.of(task));
         when(assignmentMapper.selectByTaskId(taskId)).thenReturn(List.of());
 
@@ -182,7 +171,7 @@ class ReviewGroupServiceImplTest {
         UUID taskId = UUID.randomUUID();
         ReviewTaskEntity task = task(taskId, groupId, leaderId);
         task.setStatus("SUBMITTED");
-        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), leaderId, "ACTIVE"));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, leaderId, "ACTIVE"));
         when(taskMapper.selectVisibleByGroupId(groupId)).thenReturn(List.of(task));
         when(assignmentMapper.selectByTaskId(taskId)).thenReturn(List.of());
 
@@ -207,7 +196,7 @@ class ReviewGroupServiceImplTest {
         assignment.setGroupId(groupId);
         assignment.setReviewerUserId(leaderId);
         assignment.setStatus("REVIEWING");
-        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), leaderId, "ACTIVE"));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, leaderId, "ACTIVE"));
         when(taskMapper.selectVisibleByGroupId(groupId)).thenReturn(List.of(task));
         when(assignmentMapper.selectByTaskId(taskId)).thenReturn(List.of(assignment));
 
@@ -223,25 +212,16 @@ class ReviewGroupServiceImplTest {
         UUID groupId = UUID.randomUUID();
         UUID currentUserId = UUID.randomUUID();
         UUID otherLeaderId = UUID.randomUUID();
-        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), otherLeaderId, "ACTIVE"));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, otherLeaderId, "ACTIVE"));
 
         assertThatThrownBy(() -> service.listGroupMembersForLeader(currentUserId, groupId))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("只能管理自己负责的小组");
     }
 
-    private ReviewBatchEntity batch(UUID batchId) {
-        ReviewBatchEntity batch = new ReviewBatchEntity();
-        batch.setId(batchId);
-        batch.setName("批次");
-        batch.setStatus("ACTIVE");
-        return batch;
-    }
-
-    private ReviewGroupEntity group(UUID groupId, UUID batchId, UUID leaderId, String status) {
+    private ReviewGroupEntity group(UUID groupId, UUID leaderId, String status) {
         ReviewGroupEntity group = new ReviewGroupEntity();
         group.setId(groupId);
-        group.setBatchId(batchId);
         group.setName("第一评审组");
         group.setLeaderUserId(leaderId);
         group.setStatus(status);

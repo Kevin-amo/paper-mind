@@ -573,28 +573,8 @@ on conflict (code) do update set
     sort_order = excluded.sort_order,
     updated_at = now();
 
-create table if not exists public.review_batch (
-    id uuid primary key default uuid_generate_v4(),
-    name varchar(160) not null,
-    description text,
-    status varchar(32) not null default 'DRAFT',
-    starts_at timestamptz,
-    ends_at timestamptz,
-    created_by_user_id uuid references public.sys_user(id) on delete set null,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    constraint chk_review_batch_status check (status in ('DRAFT', 'ACTIVE', 'CLOSED', 'ARCHIVED'))
-);
-
-comment on table public.review_batch is '评审批次表';
-comment on column public.review_batch.status is '批次状态：DRAFT、ACTIVE、CLOSED、ARCHIVED';
-
-create index if not exists idx_review_batch_status_updated_at
-    on public.review_batch using btree (status, updated_at desc);
-
 create table if not exists public.review_group (
     id uuid primary key default uuid_generate_v4(),
-    batch_id uuid not null references public.review_batch(id) on delete cascade,
     name varchar(160) not null,
     leader_user_id uuid not null references public.sys_user(id) on delete restrict,
     status varchar(32) not null default 'ACTIVE',
@@ -607,8 +587,6 @@ create table if not exists public.review_group (
 comment on table public.review_group is '评审小组表';
 comment on column public.review_group.leader_user_id is '小组长用户 ID';
 
-create index if not exists idx_review_group_batch_status
-    on public.review_group using btree (batch_id, status);
 create index if not exists idx_review_group_leader_status
     on public.review_group using btree (leader_user_id, status);
 
@@ -639,7 +617,6 @@ create table if not exists public.review_task (
     document_id uuid not null references public.document(id) on delete cascade,
     submitter_user_id uuid not null references public.sys_user(id) on delete cascade,
     reviewer_user_id uuid references public.sys_user(id) on delete set null,
-    batch_id uuid references public.review_batch(id) on delete set null,
     group_id uuid references public.review_group(id) on delete set null,
     assigned_by_user_id uuid references public.sys_user(id) on delete set null,
     leader_user_id uuid references public.sys_user(id) on delete set null,
@@ -668,8 +645,8 @@ create index if not exists idx_review_task_submitter
 create index if not exists idx_review_task_reviewer
     on public.review_task using btree (reviewer_user_id, updated_at desc);
 
-create index if not exists idx_review_task_batch_group_status
-    on public.review_task using btree (batch_id, group_id, status, updated_at desc);
+create index if not exists idx_review_task_group_status
+    on public.review_task using btree (group_id, status, updated_at desc);
 
 create index if not exists idx_review_task_leader_status
     on public.review_task using btree (leader_user_id, status, updated_at desc);
@@ -978,18 +955,7 @@ comment on column public.review_criterion.sort_order is '排序序号';
 comment on column public.review_criterion.created_at is '创建时间';
 comment on column public.review_criterion.updated_at is '更新时间';
 
-comment on column public.review_batch.id is '评审批次主键 ID';
-comment on column public.review_batch.name is '评审批次名称';
-comment on column public.review_batch.description is '评审批次描述';
-comment on column public.review_batch.status is '批次状态';
-comment on column public.review_batch.starts_at is '批次开始时间';
-comment on column public.review_batch.ends_at is '批次结束时间';
-comment on column public.review_batch.created_by_user_id is '批次创建人用户 ID';
-comment on column public.review_batch.created_at is '创建时间';
-comment on column public.review_batch.updated_at is '更新时间';
-
 comment on column public.review_group.id is '评审小组主键 ID';
-comment on column public.review_group.batch_id is '所属评审批次 ID';
 comment on column public.review_group.name is '评审小组名称';
 comment on column public.review_group.leader_user_id is '小组长用户 ID';
 comment on column public.review_group.status is '小组状态';
@@ -1011,7 +977,6 @@ comment on column public.review_task.id is '评审任务主键 ID';
 comment on column public.review_task.document_id is '关联文档 ID';
 comment on column public.review_task.submitter_user_id is '提交人用户 ID';
 comment on column public.review_task.reviewer_user_id is '评审人用户 ID';
-comment on column public.review_task.batch_id is '所属评审批次 ID';
 comment on column public.review_task.group_id is '所属评审小组 ID';
 comment on column public.review_task.assigned_by_user_id is '分配人用户 ID';
 comment on column public.review_task.leader_user_id is '小组长用户 ID';

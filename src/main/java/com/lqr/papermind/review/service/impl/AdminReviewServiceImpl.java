@@ -122,8 +122,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         }
         OffsetDateTime dueAt = request == null ? null : request.dueAt();
         Map<String, Object> beforeSnapshot = taskScopeSnapshot(task);
-        taskMapper.dispatchToGroup(taskId, group.getBatchId(), group.getId(), operatorUserId, group.getLeaderUserId(), dueAt);
-        task.setBatchId(group.getBatchId());
+        taskMapper.dispatchToGroup(taskId, group.getId(), operatorUserId, group.getLeaderUserId(), dueAt);
         task.setGroupId(group.getId());
         task.setAssignedByUserId(operatorUserId);
         task.setLeaderUserId(group.getLeaderUserId());
@@ -317,7 +316,6 @@ public class AdminReviewServiceImpl implements AdminReviewService {
     private Map<String, Object> taskScopeSnapshot(ReviewTaskEntity task) {
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("taskStatus", task.getStatus());
-        snapshot.put("batchId", task.getBatchId());
         snapshot.put("groupId", task.getGroupId());
         snapshot.put("assignedByUserId", task.getAssignedByUserId());
         snapshot.put("leaderUserId", task.getLeaderUserId());

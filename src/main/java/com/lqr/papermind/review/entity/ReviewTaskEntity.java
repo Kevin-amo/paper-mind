@@ -24,8 +24,6 @@ public class ReviewTaskEntity {
     private UUID submitterUserId;
     /** 被分配的评审人用户ID */
     private UUID reviewerUserId;
-    /** 所属评审批次ID */
-    private UUID batchId;
     /** 所属评审小组ID */
     private UUID groupId;
     /** 分配该任务的用户ID */

@@ -25,7 +25,7 @@ const submittedTotal = computed(() => adminReviews.tasks.value.reduce((sum, task
 const assignmentTotal = computed(() => adminReviews.tasks.value.reduce((sum, task) => sum + task.assignmentCount, 0));
 const activeSectionTitle = computed(() => {
   const titles: Record<ReviewAdminTab, string> = {
-    config: '批次与小组',
+    config: '评审小组',
     tasks: '全局进度',
     criteria: '评审指标',
   };
@@ -139,7 +139,6 @@ onMounted(async () => {
     >
       <div v-if="activeTab === 'tasks'">
         <div class="section-header">
-          <h3>全局进度</h3>
           <p>查看所有评审任务进度；普通分配与共识确认由评审组长处理。</p>
         </div>
         <div class="toolbar">
@@ -183,7 +182,6 @@ onMounted(async () => {
 
       <div v-if="activeTab === 'criteria'">
         <div class="section-header">
-          <h3>评审指标</h3>
           <p>查看当前评审标准、评分维度和权重说明。</p>
         </div>
         <ReviewCriteriaPanel />

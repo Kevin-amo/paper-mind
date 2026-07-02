@@ -19,8 +19,6 @@ public class ReviewGroupEntity {
     /** 小组唯一标识 */
     private UUID id;
 
-    /** 所属评审批次ID */
-    private UUID batchId;
     /** 小组名称 */
     private String name;
     /** 小组负责人用户ID */

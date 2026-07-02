@@ -78,12 +78,11 @@ class AdminReviewServiceImplTest {
     void dispatchTaskToGroupKeepsPendingAssignmentAndAssignsVisibleLeaderScope() {
         UUID adminId = UUID.randomUUID();
         UUID taskId = UUID.randomUUID();
-        UUID batchId = UUID.randomUUID();
         UUID groupId = UUID.randomUUID();
         UUID leaderId = UUID.randomUUID();
         OffsetDateTime dueAt = OffsetDateTime.now().plusDays(4);
         ReviewTaskEntity task = task(taskId, ReviewTaskStatuses.PENDING_ASSIGNMENT);
-        ReviewGroupEntity group = group(groupId, batchId, leaderId, "ACTIVE");
+        ReviewGroupEntity group = group(groupId, leaderId, "ACTIVE");
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task);
         when(groupMapper.selectById(groupId)).thenReturn(group);
         when(assignmentMapper.countActiveByTaskId(taskId)).thenReturn(0L);
@@ -91,7 +90,7 @@ class AdminReviewServiceImplTest {
 
         var response = service.dispatchTaskToGroup(taskId, adminId, new AdminTaskDispatchRequest(groupId, dueAt));
 
-        verify(taskMapper).dispatchToGroup(taskId, batchId, groupId, adminId, leaderId, dueAt);
+        verify(taskMapper).dispatchToGroup(taskId, groupId, adminId, leaderId, dueAt);
         assertThat(response.id()).isEqualTo(taskId);
         assertThat(response.status()).isEqualTo(ReviewTaskStatuses.PENDING_ASSIGNMENT);
         assertThat(response.assignmentCount()).isZero();
@@ -106,13 +105,13 @@ class AdminReviewServiceImplTest {
         UUID groupId = UUID.randomUUID();
         ReviewTaskEntity task = task(taskId, ReviewTaskStatuses.PENDING_ASSIGNMENT);
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task);
-        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), UUID.randomUUID(), "ACTIVE"));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), "ACTIVE"));
         when(assignmentMapper.countActiveByTaskId(taskId)).thenReturn(1L);
 
         assertThatThrownBy(() -> service.dispatchTaskToGroup(taskId, UUID.randomUUID(), new AdminTaskDispatchRequest(groupId, null)))
                 .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
 
-        verify(taskMapper, never()).dispatchToGroup(any(), any(), any(), any(), any(), any());
+        verify(taskMapper, never()).dispatchToGroup(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -227,10 +226,9 @@ class AdminReviewServiceImplTest {
         return consensus;
     }
 
-    private ReviewGroupEntity group(UUID groupId, UUID batchId, UUID leaderId, String status) {
+    private ReviewGroupEntity group(UUID groupId, UUID leaderId, String status) {
         ReviewGroupEntity group = new ReviewGroupEntity();
         group.setId(groupId);
-        group.setBatchId(batchId);
         group.setLeaderUserId(leaderId);
         group.setStatus(status);
         return group;

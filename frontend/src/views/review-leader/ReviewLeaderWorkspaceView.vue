@@ -271,7 +271,7 @@ async function recalculateConsensus() {
         return `<li><strong>${typeLabel}</strong>：最低 ${item.minScore} 分 / 最高 ${item.maxScore} 分，分差 ${diff}（阈值 ${item.threshold}）</li>`;
       }).join('');
       await ElMessageBox.alert(
-        `<p>检测到 <strong>${disagreements.length}</strong> 项评分分歧，共识状态已变更为 “讨论中”。</p>` +
+        `<p>检测到 <strong>${disagreements.length}</strong> 项评分分歧。</p>` +
         `<ul style="margin: 12px 0; padding-left: 20px;">${detailHtml}</ul>` +
         `<p style="color: #909399; font-size: 13px;">平均分参考值：${avg}（最低 ${min} / 最高 ${max}）</p>` +
         `<p style="color: #E6A23C;">请组长协调各评审人意见后，手动填写最终分数并保存。</p>`,
