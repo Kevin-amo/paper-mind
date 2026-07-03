@@ -60,10 +60,10 @@ public class LiteratureSearchAgentTool implements AgentTool {
         String dateFrom = stringValue(input.get("dateFrom"));
         String dateTo = stringValue(input.get("dateTo"));
         List<String> categories = stringList(input.get("categories"));
-        log.info("agent.tool.literature_search.start ownerUserId={} queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} categoryCount={}",
+        log.info("智能体工具文献搜索开始 ownerUserId={} queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} categoryCount={}",
                 ownerUserId, LogSanitizer.safeExcerpt(query, 160), limit, sortBy, dateFrom, dateTo, categories.size());
         if (query.isBlank()) {
-            log.warn("agent.tool.literature_search.skipped ownerUserId={} reason=EMPTY_QUERY", ownerUserId);
+            log.warn("智能体工具文献搜索跳过 ownerUserId={} reason=EMPTY_QUERY", ownerUserId);
             return new AgentToolResult("文献搜索跳过：query 为空。", "", List.of(), literatureMetadata(query, limit, sortBy, dateFrom, dateTo, categories, List.of()));
         }
         LiteratureSearchResponse response = literatureSearchService.search(new LiteratureSearchRequest(
@@ -80,7 +80,7 @@ public class LiteratureSearchAgentTool implements AgentTool {
                 .reduce((left, right) -> left + "\n" + right)
                 .orElse("未找到外部文献结果。");
         Map<String, Object> metadata = literatureMetadata(query, limit, sortBy, dateFrom, dateTo, categories, items);
-        log.info("agent.tool.literature_search.done ownerUserId={} queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} categoryCount={} resultCount={} metadataKeys={} costMs={}",
+        log.info("智能体工具文献搜索完成 ownerUserId={} queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} categoryCount={} resultCount={} metadataKeys={} costMs={}",
                 ownerUserId, LogSanitizer.safeExcerpt(query, 160), limit, sortBy, dateFrom, dateTo, categories.size(), items.size(), metadata.keySet(), elapsedMs(startNanos));
         return new AgentToolResult(
                 "外部文献搜索完成，找到 " + items.size() + " 篇论文。",

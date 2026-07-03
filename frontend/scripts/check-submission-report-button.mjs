@@ -53,4 +53,4 @@ if (issues.length) {
   process.exit(1);
 }
 
-console.log('Submission report button uses a visible Claude-style primary action.');
+console.log('提交报告按钮使用可见的Claude风格主要操作按钮。');

@@ -59,18 +59,18 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
     @Transactional
     public DocumentIngestionResult ingest(UUID ownerUserId, String fileName, byte[] content, Map<String, Object> metadata) {
         long startNanos = System.nanoTime();
-        log.info("document.ingest.start ownerUserId={} sourceId={} fileName={} fileSize={}",
+        log.info("文档入库开始 ownerUserId={} sourceId={} fileName={} fileSize={}",
                 ownerUserId, metadataValue(metadata, MetadataKeys.SOURCE_ID), fileName, contentLength(content));
         try {
             ParsedDocument parsedDocument = documentParsingService.parse(fileName, content, metadata);
-            log.info("document.ingest.parse.done ownerUserId={} sourceId={} fileName={} textLength={} assetCount={} costMs={}",
+            log.info("文档入库解析完成 ownerUserId={} sourceId={} fileName={} textLength={} assetCount={} costMs={}",
                     ownerUserId, parsedDocument.source().sourceId(), fileName, textLength(parsedDocument.text()), assetCount(parsedDocument), elapsedMs(startNanos));
             DocumentIngestionResult result = processParsedDocument(ownerUserId, parsedDocument);
-            log.info("document.ingest.done ownerUserId={} sourceId={} fileName={} chunkCount={} costMs={}",
+            log.info("文档入库完成 ownerUserId={} sourceId={} fileName={} chunkCount={} costMs={}",
                     ownerUserId, result.source().sourceId(), fileName, result.chunkCount(), elapsedMs(startNanos));
             return result;
         } catch (RuntimeException ex) {
-            log.error("document.ingest.failed ownerUserId={} sourceId={} fileName={} fileSize={} costMs={}",
+            log.error("文档入库失败 ownerUserId={} sourceId={} fileName={} fileSize={} costMs={}",
                     ownerUserId, metadataValue(metadata, MetadataKeys.SOURCE_ID), fileName, contentLength(content), elapsedMs(startNanos), ex);
             throw ex;
         }
@@ -87,7 +87,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
     @Transactional
     public DocumentIngestionResult processJob(DocumentIngestionJob job) {
         long startNanos = System.nanoTime();
-        log.info("document.ingest.start ownerUserId={} jobId={} sourceId={} fileName={}",
+        log.info("文档入库开始 ownerUserId={} jobId={} sourceId={} fileName={}",
                 job.getOwnerUserId(), job.getId(), job.getSourceId(), job.getFileName());
         try {
             Map<String, Object> metadata = new LinkedHashMap<>();
@@ -102,28 +102,28 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             }
             // 读取上传的文件
             byte[] content = documentUploadStorageService.read(job.getFilePath());
-            log.info("document.ingest.read.done ownerUserId={} jobId={} sourceId={} fileName={} fileSize={} costMs={}",
+            log.info("文档入库读取完成 ownerUserId={} jobId={} sourceId={} fileName={} fileSize={} costMs={}",
                     job.getOwnerUserId(), job.getId(), job.getSourceId(), job.getFileName(), contentLength(content), elapsedMs(startNanos));
             markJobStage(job, DocumentIngestionJobService.STATUS_PARSING, 20);
             ParsedDocument parsedDocument = documentParsingService.parse(job.getFileName(), content, metadata);
-            log.info("document.ingest.parse.done ownerUserId={} jobId={} sourceId={} fileName={} textLength={} assetCount={} costMs={}",
+            log.info("文档入库解析完成 ownerUserId={} jobId={} sourceId={} fileName={} textLength={} assetCount={} costMs={}",
                     job.getOwnerUserId(), job.getId(), parsedDocument.source().sourceId(), job.getFileName(), textLength(parsedDocument.text()), assetCount(parsedDocument), elapsedMs(startNanos));
             DocumentIngestionResult result = processParsedDocument(job, parsedDocument, startNanos);
             if (!documentIngestionProperties.keepUploadFile()) {
                 documentUploadStorageService.delete(job.getFilePath());
             }
-            log.info("document.ingest.done ownerUserId={} jobId={} sourceId={} fileName={} chunkCount={} costMs={}",
+            log.info("文档入库完成 ownerUserId={} jobId={} sourceId={} fileName={} chunkCount={} costMs={}",
                     job.getOwnerUserId(), job.getId(), result.source().sourceId(), job.getFileName(), result.chunkCount(), elapsedMs(startNanos));
             return result;
         } catch (IOException ex) {
             String message = ex.getMessage() == null ? "读取上传文件失败" : ex.getMessage();
             documentIngestionJobService.markFailed(job.getOwnerUserId(), job.getId(), job.getSourceId(), message);
-            log.error("document.ingest.failed ownerUserId={} jobId={} sourceId={} fileName={} stage=READ costMs={}",
+            log.error("文档入库失败 ownerUserId={} jobId={} sourceId={} fileName={} stage=读取 costMs={}",
                     job.getOwnerUserId(), job.getId(), job.getSourceId(), job.getFileName(), elapsedMs(startNanos), ex);
             throw new IllegalStateException("读取上传文件失败", ex);
         } catch (RuntimeException ex) {
             documentIngestionJobService.markFailed(job.getOwnerUserId(), job.getId(), job.getSourceId(), ex.getMessage());
-            log.error("document.ingest.failed ownerUserId={} jobId={} sourceId={} fileName={} costMs={}",
+            log.error("文档入库失败 ownerUserId={} jobId={} sourceId={} fileName={} costMs={}",
                     job.getOwnerUserId(), job.getId(), job.getSourceId(), job.getFileName(), elapsedMs(startNanos), ex);
             throw ex;
         }
@@ -141,25 +141,25 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
         String text = parsedDocument.text();
         try {
             documentPersistenceService.markParsing(ownerUserId, source, text);
-            log.info("document.ingest.status ownerUserId={} sourceId={} status=PARSING progress={}", ownerUserId, source.sourceId(), 30);
+            log.info("文档入库状态 ownerUserId={} sourceId={} status=解析中 progress={}", ownerUserId, source.sourceId(), 30);
             documentPersistenceService.replaceAssets(ownerUserId, source.sourceId(), parsedDocument.assets());
             List<DocumentChunk> chunks = documentSplittingService.split(source, text);
-            log.info("document.ingest.split.done ownerUserId={} sourceId={} textLength={} chunkCount={}",
+            log.info("文档入库切分完成 ownerUserId={} sourceId={} textLength={} chunkCount={}",
                     ownerUserId, source.sourceId(), textLength(text), chunks.size());
             vectorWriteService.deleteBySourceId(ownerUserId, source.sourceId());
             documentPersistenceService.replaceChunks(ownerUserId, source.sourceId(), chunks);
             List<EmbeddingService.EmbeddingVector> vectors = embeddingService.embed(chunks);
-            log.info("document.ingest.embed.done ownerUserId={} sourceId={} chunkCount={} vectorCount={}",
+            log.info("文档入库嵌入完成 ownerUserId={} sourceId={} chunkCount={} vectorCount={}",
                     ownerUserId, source.sourceId(), chunks.size(), vectors.size());
             vectorWriteService.upsert(ownerUserId, vectors);
-            log.info("document.ingest.vector.done ownerUserId={} sourceId={} vectorCount={}", ownerUserId, source.sourceId(), vectors.size());
+            log.info("文档入库向量写入完成 ownerUserId={} sourceId={} vectorCount={}", ownerUserId, source.sourceId(), vectors.size());
             documentPersistenceService.markIndexed(ownerUserId, source.sourceId(), chunks.size());
             generateStructuredParseQuietly(ownerUserId, source.sourceId());
-            log.info("document.ingest.status ownerUserId={} sourceId={} status=INDEXED progress={}", ownerUserId, source.sourceId(), 100);
+            log.info("文档入库状态 ownerUserId={} sourceId={} status=已索引 progress={}", ownerUserId, source.sourceId(), 100);
             return new DocumentIngestionResult(source, chunks.size());
         } catch (RuntimeException ex) {
             documentPersistenceService.markFailed(ownerUserId, source.sourceId(), ex.getMessage());
-            log.info("document.ingest.status ownerUserId={} sourceId={} status=FAILED progress={}", ownerUserId, source.sourceId(), 100);
+            log.info("文档入库状态 ownerUserId={} sourceId={} status=失败 progress={}", ownerUserId, source.sourceId(), 100);
             throw ex;
         }
     }
@@ -181,7 +181,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
 
         markJobStage(job, DocumentIngestionJobService.STATUS_CHUNKING, 45);
         List<DocumentChunk> chunks = documentSplittingService.split(source, text);
-        log.info("document.ingest.split.done ownerUserId={} jobId={} sourceId={} textLength={} chunkCount={} costMs={}",
+        log.info("文档入库切分完成 ownerUserId={} jobId={} sourceId={} textLength={} chunkCount={} costMs={}",
                 job.getOwnerUserId(), job.getId(), source.sourceId(), textLength(text), chunks.size(), elapsedMs(startNanos));
 
         markJobStage(job, DocumentIngestionJobService.STATUS_INDEXING, 65);
@@ -190,16 +190,16 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
 
         markJobStage(job, DocumentIngestionJobService.STATUS_EMBEDDING, 80);
         List<EmbeddingService.EmbeddingVector> vectors = embeddingService.embed(chunks);
-        log.info("document.ingest.embed.done ownerUserId={} jobId={} sourceId={} chunkCount={} vectorCount={} costMs={}",
+        log.info("文档入库嵌入完成 ownerUserId={} jobId={} sourceId={} chunkCount={} vectorCount={} costMs={}",
                 job.getOwnerUserId(), job.getId(), source.sourceId(), chunks.size(), vectors.size(), elapsedMs(startNanos));
 
         markJobStage(job, DocumentIngestionJobService.STATUS_INDEXING, 90);
         vectorWriteService.upsert(job.getOwnerUserId(), vectors);
-        log.info("document.ingest.vector.done ownerUserId={} jobId={} sourceId={} vectorCount={} costMs={}",
+        log.info("文档入库向量写入完成 ownerUserId={} jobId={} sourceId={} vectorCount={} costMs={}",
                 job.getOwnerUserId(), job.getId(), source.sourceId(), vectors.size(), elapsedMs(startNanos));
         documentPersistenceService.markIndexed(job.getOwnerUserId(), source.sourceId(), chunks.size());
         documentIngestionJobService.markIndexed(job.getOwnerUserId(), job.getId(), source.sourceId());
-        log.info("document.ingest.status ownerUserId={} jobId={} sourceId={} status=INDEXED progress={}",
+        log.info("文档入库状态 ownerUserId={} jobId={} sourceId={} status=已索引 progress={}",
                 job.getOwnerUserId(), job.getId(), source.sourceId(), 100);
         return new DocumentIngestionResult(source, chunks.size());
     }
@@ -224,7 +224,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
         try {
             paperStructuredParseService.generate(ownerUserId, sourceId);
         } catch (RuntimeException ex) {
-            log.warn("paper.structured.parse.sync.failed ownerUserId={} sourceId={}", ownerUserId, sourceId, ex);
+            log.warn("论文结构化解析同步失败 ownerUserId={} sourceId={}", ownerUserId, sourceId, ex);
         }
     }
 
@@ -237,7 +237,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
      */
     private void markJobStage(DocumentIngestionJob job, String status, int progress) {
         documentIngestionJobService.markRunningStage(job.getOwnerUserId(), job.getId(), job.getSourceId(), status, progress);
-        log.info("document.ingest.status ownerUserId={} jobId={} sourceId={} status={} progress={}",
+        log.info("文档入库状态 ownerUserId={} jobId={} sourceId={} status={} progress={}",
                 job.getOwnerUserId(), job.getId(), job.getSourceId(), status, progress);
     }
 

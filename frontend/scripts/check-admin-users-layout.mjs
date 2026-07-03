@@ -1,4 +1,4 @@
-﻿import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const usersPanel = readFileSync(new URL('../src/components/admin/AdminUsersPanel.vue', import.meta.url), 'utf8');
 
@@ -48,4 +48,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('Admin users reused demo layout static checks passed.');
+console.log('管理后台用户复用演示布局静态检查通过。');

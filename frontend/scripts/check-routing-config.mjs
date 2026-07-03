@@ -1,4 +1,4 @@
-﻿import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -46,4 +46,4 @@ assert(
   'Nginx should proxy /api/ and rewrite it to backend root paths',
 );
 
-console.log('routing config avoids SPA/API path collisions');
+console.log('路由配置避免SPA/API路径冲突。');

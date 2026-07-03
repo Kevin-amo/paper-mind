@@ -43,4 +43,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('Admin review summary cards use compact half-height sizing.');
+console.log('管理后台审阅摘要卡片使用紧凑的半高尺寸。');

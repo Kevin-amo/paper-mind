@@ -93,7 +93,7 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
             return find(ownerUserId, sourceId).orElseThrow(() -> new IllegalStateException("结构化解析结果保存失败"));
         } catch (RuntimeException ex) {
             structuredParseMapper.upsertFailed(UUID.randomUUID(), ownerUserId, entity.getId(), sourceId, rawText, cut(ex.getMessage()));
-            log.warn("paper.structured.parse.failed ownerUserId={} sourceId={}", ownerUserId, sourceId, ex);
+            log.warn("论文结构化解析失败 ownerUserId={} sourceId={}", ownerUserId, sourceId, ex);
             return find(ownerUserId, sourceId).orElseThrow(() -> ex);
         }
     }

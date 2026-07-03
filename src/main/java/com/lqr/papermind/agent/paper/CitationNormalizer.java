@@ -27,7 +27,7 @@ public class CitationNormalizer {
      */
     public List<AnswerCitation> normalize(List<AnswerCitation> citations, Integer topK) {
         if (citations == null || citations.isEmpty()) {
-            log.info("citation.normalize.done rawCount={} dedupCount={} citationLimit={} finalCount={} duplicateDroppedCount={} truncatedCount={}",
+            log.info("引用归一化完成 rawCount={} dedupCount={} citationLimit={} finalCount={} duplicateDroppedCount={} truncatedCount={}",
                     0, 0, citationLimit(topK), 0, 0, 0);
             return List.of();
         }
@@ -55,7 +55,7 @@ public class CitationNormalizer {
                 .limit(limit)
                 .toList();
         int truncatedCount = Math.max(0, citationByKey.size() - finalCitations.size());
-        log.info("citation.normalize.done rawCount={} dedupCount={} citationLimit={} finalCount={} duplicateDroppedCount={} truncatedCount={}",
+        log.info("引用归一化完成 rawCount={} dedupCount={} citationLimit={} finalCount={} duplicateDroppedCount={} truncatedCount={}",
                 rawCount, citationByKey.size(), limit, finalCitations.size(), duplicateDroppedCount, truncatedCount);
         logDebugCitations(finalCitations);
         return finalCitations;
@@ -84,7 +84,7 @@ public class CitationNormalizer {
             return;
         }
         for (AnswerCitation citation : citations) {
-            log.debug("citation.final sourceId={} chunkId={} chunkIndex={} rankScore={} excerpt={}",
+            log.debug("最终引用 sourceId={} chunkId={} chunkIndex={} rankScore={} excerpt={}",
                     citation.sourceId(),
                     citation.chunkId(),
                     citation.chunkIndex(),

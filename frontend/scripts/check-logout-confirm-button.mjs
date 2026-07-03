@@ -39,4 +39,4 @@ for (const file of [
   }
 }
 
-console.log('Logout confirm buttons keep readable white text.');
+console.log('退出确认按钮保持可读的白色文本。');

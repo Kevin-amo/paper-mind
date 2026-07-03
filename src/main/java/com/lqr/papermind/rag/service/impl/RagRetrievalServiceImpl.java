@@ -47,14 +47,14 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
     public List<RetrievedChunk> retrieve(UUID ownerUserId, String question, int topK) {
         long startNanos = System.nanoTime();
         if (ownerUserId == null || question == null || question.isBlank()) {
-            log.warn("rag.retrieve.skipped ownerUserId={} queryLength={} requestedTopK={} reason=INVALID_ARGUMENT",
+            log.warn("RAG检索跳过 ownerUserId={} queryLength={} requestedTopK={} reason=INVALID_ARGUMENT",
                     ownerUserId, question == null ? 0 : question.length(), topK);
             return List.of();
         }
         int resolvedTopK = topK > 0 ? topK : ragProperties.defaultTopK();
         int candidateTopK = rerankCandidateTopK(resolvedTopK);
         double similarityThreshold = ragProperties.similarityThreshold();
-        log.info("rag.retrieve.start ownerUserId={} queryExcerpt={} requestedTopK={} resolvedTopK={} candidateTopK={} similarityThreshold={}",
+        log.info("RAG检索开始 ownerUserId={} queryExcerpt={} requestedTopK={} resolvedTopK={} candidateTopK={} similarityThreshold={}",
                 ownerUserId, LogSanitizer.safeExcerpt(question, 160), topK, resolvedTopK, candidateTopK, similarityThreshold);
         try {
             SearchRequest.Builder builder = SearchRequest.builder()
@@ -117,11 +117,11 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
                 Double vectorScore = document.getScore();
                 vectorChunks.add(new RetrievedChunk(chunk, vectorRankContribution(vectorScore, currentIndex, documents.size())));
             }
-            log.info("rag.retrieve.vector.done ownerUserId={} vectorRawCount={} vectorFilteredCount={} ownerMismatchCount={} reviewSourceCount={} invalidSourceCount={} notIndexedCount={} costMs={}",
+            log.info("RAG检索向量完成 ownerUserId={} vectorRawCount={} vectorFilteredCount={} ownerMismatchCount={} reviewSourceCount={} invalidSourceCount={} notIndexedCount={} costMs={}",
                     ownerUserId, documents.size(), vectorChunks.size(), filterStats.ownerMismatchCount, filterStats.reviewSourceCount, filterStats.invalidSourceCount, filterStats.notIndexedCount, elapsedMs(startNanos));
 
             List<DocumentChunk> lexicalChunks = documentPersistenceService.searchChunks(ownerUserId, question, Math.max(resolvedTopK * 3, resolvedTopK));
-            log.info("rag.retrieve.lexical.done ownerUserId={} lexicalCount={} costMs={}", ownerUserId, lexicalChunks.size(), elapsedMs(startNanos));
+            log.info("RAG检索词汇完成 ownerUserId={} lexicalCount={} costMs={}", ownerUserId, lexicalChunks.size(), elapsedMs(startNanos));
             Map<String, DocumentChunk> chunkById = new LinkedHashMap<>();
             Map<String, Double> scoreById = new LinkedHashMap<>();
             for (int lexicalIndex = 0; lexicalIndex < lexicalChunks.size(); lexicalIndex++) {
@@ -141,18 +141,18 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
                             .thenComparingInt(retrieved -> retrieved.chunk().chunkIndex()))
                     .limit(candidateTopK)
                     .toList();
-            log.info("rag.retrieve.fusion.done ownerUserId={} vectorCount={} lexicalCount={} fusionCount={} candidateTopK={} costMs={}",
+            log.info("RAG检索融合完成 ownerUserId={} vectorCount={} lexicalCount={} fusionCount={} candidateTopK={} costMs={}",
                     ownerUserId, vectorChunks.size(), lexicalChunks.size(), fusionRankedCandidates.size(), candidateTopK, elapsedMs(startNanos));
             List<RetrievedChunk> reranked = rerankService.rerank(question, fusionRankedCandidates, resolvedTopK);
             List<RetrievedChunk> finalChunks = reranked.stream()
                     .limit(resolvedTopK)
                     .toList();
-            log.info("rag.retrieve.done ownerUserId={} resolvedTopK={} vectorCount={} lexicalCount={} fusionCount={} rerankBeforeCount={} rerankAfterCount={} finalCount={} costMs={}",
+            log.info("RAG检索完成 ownerUserId={} resolvedTopK={} vectorCount={} lexicalCount={} fusionCount={} rerankBeforeCount={} rerankAfterCount={} finalCount={} costMs={}",
                     ownerUserId, resolvedTopK, vectorChunks.size(), lexicalChunks.size(), fusionRankedCandidates.size(), fusionRankedCandidates.size(), reranked.size(), finalChunks.size(), elapsedMs(startNanos));
             logFinalChunks(finalChunks);
             return finalChunks;
         } catch (RuntimeException ex) {
-            log.error("rag.retrieve.failed ownerUserId={} queryExcerpt={} requestedTopK={} resolvedTopK={} candidateTopK={} costMs={}",
+            log.error("RAG检索失败 ownerUserId={} queryExcerpt={} requestedTopK={} resolvedTopK={} candidateTopK={} costMs={}",
                     ownerUserId, LogSanitizer.safeExcerpt(question, 160), topK, resolvedTopK, candidateTopK, elapsedMs(startNanos), ex);
             throw ex;
         }
@@ -181,7 +181,7 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
         for (RetrievedChunk retrieved : chunks) {
             DocumentChunk chunk = retrieved.chunk();
             Map<String, Object> metadata = chunk.metadata();
-            log.debug("rag.retrieve.finalChunk sourceId={} chunkId={} chunkIndex={} sectionTitle={} sectionType={} rankScore={} excerpt={}",
+            log.debug("RAG检索最终分块 sourceId={} chunkId={} chunkIndex={} sectionTitle={} sectionType={} rankScore={} excerpt={}",
                     chunk.sourceId(),
                     chunk.chunkId(),
                     chunk.chunkIndex(),

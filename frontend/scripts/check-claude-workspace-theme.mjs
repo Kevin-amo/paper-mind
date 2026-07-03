@@ -150,4 +150,4 @@ for (const file of themedScreens) {
   }
 }
 
-console.log('Claude workspace theme covers admin, review, login, user, and teleport overlays.');
+console.log('Claude工作区主题覆盖管理、审阅、登录、用户和传送门覆盖层。');

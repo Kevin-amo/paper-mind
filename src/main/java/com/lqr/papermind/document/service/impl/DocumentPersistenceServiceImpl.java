@@ -302,7 +302,7 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
                 contentText,
                 toJson(metadata)
         );
-        log.info("document.persistence.status ownerUserId={} sourceId={} status=PARSING progress={} fileName={} fileType={} fileSize={} contentLength={}",
+        log.info("文档持久化状态 ownerUserId={} sourceId={} status=解析中 progress={} fileName={} fileType={} fileSize={} contentLength={}",
                 ownerUserId,
                 source.sourceId(),
                 30,
@@ -327,13 +327,13 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
                 .eq(DocumentAssetEntity::getSourceId, sourceId));
         int assetCount = assets == null ? 0 : assets.size();
         if (assets == null || assets.isEmpty()) {
-            log.info("document.persistence.assets.replace ownerUserId={} sourceId={} assetCount={}", ownerUserId, sourceId, assetCount);
+            log.info("文档持久化资产替换 ownerUserId={} sourceId={} assetCount={}", ownerUserId, sourceId, assetCount);
             return;
         }
         for (DocumentAsset asset : assets) {
             assetMapper.insert(toAssetEntity(ownerUserId, asset));
         }
-        log.info("document.persistence.assets.replace ownerUserId={} sourceId={} assetCount={}", ownerUserId, sourceId, assetCount);
+        log.info("文档持久化资产替换 ownerUserId={} sourceId={} assetCount={}", ownerUserId, sourceId, assetCount);
     }
 
     /**
@@ -410,13 +410,13 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
                 .eq(DocumentChunkEntity::getSourceId, sourceId));
         int chunkCount = chunks == null ? 0 : chunks.size();
         if (chunks == null || chunks.isEmpty()) {
-            log.info("document.persistence.chunks.replace ownerUserId={} sourceId={} chunkCount={}", ownerUserId, sourceId, chunkCount);
+            log.info("文档持久化分块替换 ownerUserId={} sourceId={} chunkCount={}", ownerUserId, sourceId, chunkCount);
             return;
         }
         for (DocumentChunk chunk : chunks) {
             chunkMapper.insert(toChunkEntity(ownerUserId, chunk));
         }
-        log.info("document.persistence.chunks.replace ownerUserId={} sourceId={} chunkCount={}", ownerUserId, sourceId, chunkCount);
+        log.info("文档持久化分块替换 ownerUserId={} sourceId={} chunkCount={}", ownerUserId, sourceId, chunkCount);
     }
 
     /**
@@ -429,7 +429,7 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
     @Override
     public void markIndexed(UUID ownerUserId, String sourceId, int chunkCount) {
         documentMapper.markIndexed(ownerUserId, sourceId, chunkCount);
-        log.info("document.persistence.status ownerUserId={} sourceId={} status=INDEXED progress={} chunkCount={}",
+        log.info("文档持久化状态 ownerUserId={} sourceId={} status=已索引 progress={} chunkCount={}",
                 ownerUserId, sourceId, 100, chunkCount);
     }
 
@@ -443,7 +443,7 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
     @Override
     public void markFailed(UUID ownerUserId, String sourceId, String errorMessage) {
         documentMapper.markFailed(ownerUserId, sourceId, cut(errorMessage, 4000));
-        log.info("document.persistence.status ownerUserId={} sourceId={} status=FAILED progress={} errorMessageLength={}",
+        log.info("文档持久化状态 ownerUserId={} sourceId={} status=失败 progress={} errorMessageLength={}",
                 ownerUserId, sourceId, 100, errorMessage == null ? 0 : errorMessage.length());
     }
 

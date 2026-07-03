@@ -261,7 +261,7 @@ onMounted(async () => {
                   <strong>{{ reportScoreLabel }}</strong>
                   <p>评分表调整后，保存草稿会重新计算总分。</p>
                 </article>
-                <article class="review-summary-item">
+                <article class="review-summary-item review-summary-ai">
                   <span>AI 辅助摘要</span>
                   <p>{{ reviewSummary }}</p>
                 </article>
@@ -694,6 +694,26 @@ onMounted(async () => {
   line-height: 1.6;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.review-summary-ai p {
+  display: block;
+  max-height: 72px;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-color: var(--app-border-strong) transparent;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  -webkit-line-clamp: unset;
+}
+
+.review-summary-ai p::-webkit-scrollbar {
+  width: 6px;
+}
+
+.review-summary-ai p::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--app-border-strong);
 }
 
 .review-step {

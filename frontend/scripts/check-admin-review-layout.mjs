@@ -1,4 +1,4 @@
-﻿import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const panel = readFileSync(new URL('../src/components/admin/review/ReviewBatchGroupPanel.vue', import.meta.url), 'utf8');
 const pkg = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
@@ -61,4 +61,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('Admin review group layout uses the reused management panel.');
+console.log('管理后台审阅分组布局使用复用的管理面板。');

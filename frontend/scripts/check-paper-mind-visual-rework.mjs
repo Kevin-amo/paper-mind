@@ -178,4 +178,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('PaperMind visual rework markers match DESIGN.md scope.');
+console.log('PaperMind视觉重构标记与DESIGN.md范围匹配。');

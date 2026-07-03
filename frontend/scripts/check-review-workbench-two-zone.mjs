@@ -59,6 +59,18 @@ requireContains(
 
 requireMatch(
   reviewView,
+  /<article class="review-summary-item review-summary-ai">[\s\S]*?<p>\{\{ reviewSummary \}\}<\/p>[\s\S]*?<\/article>/,
+  'AI review summary must have a dedicated class so long text can scroll internally.',
+);
+
+requireMatch(
+  reviewView,
+  /\.review-summary-ai p\s*\{[\s\S]*?display:\s*block;[\s\S]*?max-height:\s*72px;[\s\S]*?overflow-y:\s*auto;[\s\S]*?padding-right:\s*8px;[\s\S]*?-webkit-line-clamp:\s*unset;[\s\S]*?\}/,
+  'AI review summary text must use an internal scrollbar instead of the shared two-line clamp.',
+);
+
+requireMatch(
+  reviewView,
   /\.review-work-area\s*\{[\s\S]*?grid-template-columns:\s*1fr;[\s\S]*?\}/,
   'Review work area must render as a single main workbench column.',
 );
@@ -104,4 +116,4 @@ if (issues.length) {
   process.exit(1);
 }
 
-console.log('Review workbench keeps the approved two-zone layout.');
+console.log('审阅工作台保持已批准的双区布局。');

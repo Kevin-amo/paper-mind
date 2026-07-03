@@ -23,7 +23,7 @@ public class StructuredParseDocumentIndexedListener {
         try {
             paperStructuredParseService.generate(event.ownerUserId(), event.sourceId());
         } catch (RuntimeException ex) {
-            log.warn("paper.structured.parse.listener.failed ownerUserId={} sourceId={}", event.ownerUserId(), event.sourceId(), ex);
+            log.warn("论文结构化解析监听器失败 ownerUserId={} sourceId={}", event.ownerUserId(), event.sourceId(), ex);
         }
     }
 }

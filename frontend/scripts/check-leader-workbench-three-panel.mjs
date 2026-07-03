@@ -96,4 +96,4 @@ if (issues.length) {
   process.exit(1);
 }
 
-console.log('Leader workbench keeps the approved fixed three-panel layout.');
+console.log('负责人工作台保持已批准的固定三面板布局。');

@@ -40,4 +40,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('Admin review task detail opens a visible drawer.');
+console.log('管理后台审阅任务详情可打开可见抽屉。');

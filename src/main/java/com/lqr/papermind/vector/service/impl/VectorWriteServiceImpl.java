@@ -43,14 +43,14 @@ public class VectorWriteServiceImpl implements VectorWriteService {
     @Transactional
     public void upsert(UUID ownerUserId, List<EmbeddingService.EmbeddingVector> vectors) {
         if (vectors == null || vectors.isEmpty()) {
-            log.info("vector.write.start ownerUserId={} vectorCount={} sourceIdDistribution={}", ownerUserId, 0, Map.of());
-            log.info("vector.write.done ownerUserId={} vectorCount={} sourceIdDistribution={} embeddingDimensions={} costMs={}",
+            log.info("向量写入开始 ownerUserId={} vectorCount={} sourceIdDistribution={}", ownerUserId, 0, Map.of());
+            log.info("向量写入完成 ownerUserId={} vectorCount={} sourceIdDistribution={} embeddingDimensions={} costMs={}",
                     ownerUserId, 0, Map.of(), embeddingDimensions, 0);
             return;
         }
         long startNanos = System.nanoTime();
         Map<String, Long> sourceDistribution = sourceDistribution(vectors);
-        log.info("vector.write.start ownerUserId={} vectorCount={} sourceIdDistribution={}", ownerUserId, vectors.size(), sourceDistribution);
+        log.info("向量写入开始 ownerUserId={} vectorCount={} sourceIdDistribution={}", ownerUserId, vectors.size(), sourceDistribution);
         try {
             for (EmbeddingService.EmbeddingVector vector : vectors) {
                 DocumentChunk chunk = vector.chunk();
@@ -71,10 +71,10 @@ public class VectorWriteServiceImpl implements VectorWriteService {
                 );
                 chunkMapper.updateVectorStoreId(ownerUserId, chunk.chunkId(), vectorStoreId);
             }
-            log.info("vector.write.done ownerUserId={} vectorCount={} sourceIdDistribution={} embeddingDimensions={} costMs={}",
+            log.info("向量写入完成 ownerUserId={} vectorCount={} sourceIdDistribution={} embeddingDimensions={} costMs={}",
                     ownerUserId, vectors.size(), sourceDistribution, embeddingDimensions, elapsedMs(startNanos));
         } catch (RuntimeException ex) {
-            log.error("vector.write.failed ownerUserId={} vectorCount={} sourceIdDistribution={} embeddingDimensions={} costMs={}",
+            log.error("向量写入失败 ownerUserId={} vectorCount={} sourceIdDistribution={} embeddingDimensions={} costMs={}",
                     ownerUserId, vectors.size(), sourceDistribution, embeddingDimensions, elapsedMs(startNanos), ex);
             throw ex;
         }
@@ -89,12 +89,12 @@ public class VectorWriteServiceImpl implements VectorWriteService {
     @Transactional
     public void deleteBySourceId(UUID ownerUserId, String sourceId) {
         if (ownerUserId == null || sourceId == null || sourceId.isBlank()) {
-            log.warn("vector.delete.skipped ownerUserId={} sourceId={} reason=INVALID_ARGUMENT", ownerUserId, sourceId);
+            log.warn("向量删除跳过 ownerUserId={} sourceId={} reason=INVALID_ARGUMENT", ownerUserId, sourceId);
             return;
         }
         long startNanos = System.nanoTime();
         vectorStoreMapper.deleteBySourceId(ownerUserId.toString(), sourceId);
-        log.info("vector.delete.done ownerUserId={} sourceId={} costMs={}", ownerUserId, sourceId, elapsedMs(startNanos));
+        log.info("向量删除完成 ownerUserId={} sourceId={} costMs={}", ownerUserId, sourceId, elapsedMs(startNanos));
     }
 
     /**
@@ -106,12 +106,12 @@ public class VectorWriteServiceImpl implements VectorWriteService {
     @Transactional
     public void deleteUserVectorsBySourceId(UUID ownerUserId, String sourceId) {
         if (ownerUserId == null || sourceId == null || sourceId.isBlank()) {
-            log.warn("vector.delete-user-source.skipped ownerUserId={} sourceId={} reason=INVALID_ARGUMENT", ownerUserId, sourceId);
+            log.warn("用户删除向量跳过 ownerUserId={} sourceId={} reason=INVALID_ARGUMENT", ownerUserId, sourceId);
             return;
         }
         long startNanos = System.nanoTime();
         vectorStoreMapper.deleteUserVectorsBySourceId(ownerUserId.toString(), sourceId);
-        log.info("vector.delete-user-source.done ownerUserId={} sourceId={} costMs={}", ownerUserId, sourceId, elapsedMs(startNanos));
+        log.info("用户删除向量完成 ownerUserId={} sourceId={} costMs={}", ownerUserId, sourceId, elapsedMs(startNanos));
     }
 
     /**
@@ -121,12 +121,12 @@ public class VectorWriteServiceImpl implements VectorWriteService {
     @Transactional
     public void deleteUserVectorsByOwnerUserId(UUID ownerUserId) {
         if (ownerUserId == null) {
-            log.warn("vector.delete-user-all.skipped ownerUserId={} reason=INVALID_ARGUMENT", ownerUserId);
+            log.warn("用户删除向量全部跳过 ownerUserId={} reason=INVALID_ARGUMENT", ownerUserId);
             return;
         }
         long startNanos = System.nanoTime();
         vectorStoreMapper.deleteUserVectorsByOwnerUserId(ownerUserId.toString());
-        log.info("vector.delete-user-all.done ownerUserId={} costMs={}", ownerUserId, elapsedMs(startNanos));
+        log.info("用户删除向量全部完成 ownerUserId={} costMs={}", ownerUserId, elapsedMs(startNanos));
     }
 
     /**

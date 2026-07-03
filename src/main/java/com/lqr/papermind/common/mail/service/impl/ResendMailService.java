@@ -101,17 +101,17 @@ public class ResendMailService implements MailService {
                     .body(request)
                     .retrieve()
                     .toBodilessEntity();
-            log.info("mail.send provider={} result=success email={} costMs={}", PROVIDER, to, elapsedMs(startNanos));
+            log.info("邮件发送 provider={} result=成功 email={} costMs={}", PROVIDER, to, elapsedMs(startNanos));
         } catch (RestClientResponseException ex) {
-            log.warn("mail.send provider={} result=fail email={} reason=HTTP_{} costMs={}",
+            log.warn("邮件发送 provider={} result=失败 email={} reason=HTTP_{} costMs={}",
                     PROVIDER, to, ex.getStatusCode().value(), elapsedMs(startNanos));
             throw new IllegalStateException("Resend 邮件服务响应失败", ex);
         } catch (ResourceAccessException ex) {
-            log.warn("mail.send provider={} result=fail email={} reason=CONNECTION_FAILED costMs={}",
+            log.warn("邮件发送 provider={} result=失败 email={} reason=CONNECTION_FAILED costMs={}",
                     PROVIDER, to, elapsedMs(startNanos), ex);
             throw new IllegalStateException("Resend 邮件服务连接失败", ex);
         } catch (RestClientException ex) {
-            log.warn("mail.send provider={} result=fail email={} reason=REQUEST_FAILED costMs={}",
+            log.warn("邮件发送 provider={} result=失败 email={} reason=REQUEST_FAILED costMs={}",
                     PROVIDER, to, elapsedMs(startNanos), ex);
             throw new IllegalStateException("Resend 邮件服务调用失败", ex);
         }

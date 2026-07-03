@@ -42,4 +42,4 @@ if (issues.length) {
   process.exit(1);
 }
 
-console.log('Review generation button hover keeps text readable and scales subtly.');
+console.log('审阅生成按钮悬停保持文本可读并轻微缩放。');
