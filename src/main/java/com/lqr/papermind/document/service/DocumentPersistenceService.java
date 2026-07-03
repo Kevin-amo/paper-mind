@@ -86,16 +86,6 @@ public interface DocumentPersistenceService {
     PageResult<DocumentChunkView> listChunks(UUID ownerUserId, String sourceId, int page, int size);
 
     /**
-     * 从已索引文档分块中执行关键词检索。
-     *
-     * @param ownerUserId 文档所属用户 ID
-     * @param question 检索问题
-     * @param limit 最大返回条数
-     * @return 匹配的文档分块列表
-     */
-    List<DocumentChunk> searchChunks(UUID ownerUserId, String question, int limit);
-
-    /**
      * 更新文档的可编辑元数据。
      *
      * @param ownerUserId 文档所属用户 ID
