@@ -130,6 +130,7 @@ public class DocumentController {
             log.info("document.upload.start ownerUserId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={}",
                     principal.getId(), item.sourceId(), fileName, file.getContentType(), file.getSize(), index, files.length);
             try {
+                // 创建并发布入库任务
                 DocumentIngestionJob job = documentUploadWorkflowService.createAndPublishJob(principal.getId(), file, item.sourceId(), item.title(), fileName, MetadataKeys.SOURCE_TYPE_USER);
                 log.info("document.upload.done ownerUserId={} jobId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={} costMs={}",
                         principal.getId(), job.getId(), job.getSourceId(), job.getFileName(), file.getContentType(), file.getSize(), index, files.length, elapsedMs(itemStartNanos));

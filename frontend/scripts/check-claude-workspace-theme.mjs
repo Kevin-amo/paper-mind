@@ -64,6 +64,13 @@ function findRuleBlock(selector) {
   return '';
 }
 
+for (const selector of ['.review-page .el-loading-mask', '.leader-page .el-loading-mask']) {
+  const block = findRuleBlock(selector);
+  if (!block.includes('background: rgba(250, 249, 245, 0.76);')) {
+    throw new Error(`${selector} must use the Claude canvas loading mask instead of Element Plus white.`);
+  }
+}
+
 const defaultButtonSelectors = [
   '.el-dialog.claude-workspace-dialog .el-button',
   '.el-drawer.claude-workspace-drawer .el-button',

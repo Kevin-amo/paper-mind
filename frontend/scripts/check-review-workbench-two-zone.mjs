@@ -29,7 +29,7 @@ requireContains(pkg, 'check:review-workbench-two-zone', 'package.json must wire 
 
 requireMatch(
   leaderView,
-  /\.leader-top-nav,\s*[\s\S]*?\.leader-shell,[\s\S]*?\{[\s\S]*?width:\s*min\(100%,\s*1360px\);[\s\S]*?\}/,
+  /\.leader-top-nav,\s*[\s\S]*?\.leader-workbench\s*\{[\s\S]*?width:\s*min\(100%,\s*1360px\);[\s\S]*?\}/,
   'Leader workspace width source must remain 1360px.',
 );
 

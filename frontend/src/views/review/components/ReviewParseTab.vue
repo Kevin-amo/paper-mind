@@ -26,9 +26,6 @@ defineEmits<{
         <p>独立于 AI 评审报告的论文结构化解析结果</p>
       </div>
       <div class="section-actions">
-        <el-tag :type="structuredParse?.status === 'FAILED' ? 'danger' : structuredParse ? 'success' : 'info'" size="small" effect="plain">
-          {{ structuredParse?.status || '未生成' }}
-        </el-tag>
         <el-button size="small" :disabled="assignmentSubmitted" :loading="regeneratingStructuredParse" @click="$emit('rerunStructuredParse')">
           生成解析
         </el-button>

@@ -193,6 +193,19 @@
   --app-dark-soft: var(--claude-dark-soft);
   --app-on-dark: var(--claude-on-dark);
   --app-on-dark-soft: var(--claude-on-dark-soft);
+  --el-mask-color: rgba(250, 249, 245, 0.76);
+  --el-mask-color-extra-light: rgba(250, 249, 245, 0.42);
+}
+
+.review-page .el-loading-mask,
+.leader-page .el-loading-mask {
+  background: rgba(250, 249, 245, 0.76);
+  backdrop-filter: blur(1px);
+}
+
+.review-page .el-loading-spinner .path,
+.leader-page .el-loading-spinner .path {
+  stroke: var(--app-primary);
 }
 
 .admin-layout h1,
