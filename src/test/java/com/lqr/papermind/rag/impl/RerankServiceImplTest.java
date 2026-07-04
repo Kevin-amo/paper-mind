@@ -1,9 +1,9 @@
-package com.lqr.papermind.ai.impl;
+package com.lqr.papermind.rag.impl;
 
-import com.lqr.papermind.ai.service.impl.RerankServiceImpl;
 import com.lqr.papermind.common.model.DocumentChunk;
 import com.lqr.papermind.common.model.RetrievedChunk;
 import com.lqr.papermind.rag.config.RagProperties;
+import com.lqr.papermind.rag.service.impl.RerankServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

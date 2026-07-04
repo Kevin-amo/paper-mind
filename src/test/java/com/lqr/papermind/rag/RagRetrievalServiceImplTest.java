@@ -1,9 +1,9 @@
 package com.lqr.papermind.rag;
 
-import com.lqr.papermind.ai.service.RerankService;
 import com.lqr.papermind.common.model.RetrievedChunk;
 import com.lqr.papermind.rag.config.RagProperties;
 import com.lqr.papermind.document.service.DocumentPersistenceService;
+import com.lqr.papermind.rag.service.RerankService;
 import com.lqr.papermind.rag.service.impl.RagRetrievalServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

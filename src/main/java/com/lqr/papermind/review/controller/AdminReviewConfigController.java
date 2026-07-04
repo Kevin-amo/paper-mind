@@ -26,7 +26,7 @@ import java.util.UUID;
 
 /**
  * 管理员评审配置控制器
- * <p>提供评审组和评审组成员的管理API接口</p>
+ * 提供评审组和评审组成员的管理API接口
  */
 @RestController
 @RequestMapping("/admin/reviews")

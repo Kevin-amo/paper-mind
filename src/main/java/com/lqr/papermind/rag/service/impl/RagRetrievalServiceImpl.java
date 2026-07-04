@@ -1,11 +1,11 @@
 package com.lqr.papermind.rag.service.impl;
 
-import com.lqr.papermind.ai.service.RerankService;
 import com.lqr.papermind.common.logging.LogSanitizer;
 import com.lqr.papermind.common.constant.MetadataKeys;
 import com.lqr.papermind.common.model.DocumentChunk;
 import com.lqr.papermind.common.model.RetrievedChunk;
 import com.lqr.papermind.rag.config.RagProperties;
+import com.lqr.papermind.rag.service.RerankService;
 import com.lqr.papermind.document.service.DocumentPersistenceService;
 import com.lqr.papermind.rag.service.RagRetrievalService;
 import lombok.RequiredArgsConstructor;

@@ -98,7 +98,7 @@ paper-mind/
 │   ├── main/
 │   │   ├── java/com/lqr/papermind/
 │   │   │   ├── agent/           # Agent 编排、工具调用和流式问答入口
-│   │   │   ├── ai/              # LLM、Embedding、Rerank、Prompt 构造
+│   │   │   ├── ai/              # LLM、Embedding、Prompt 构造
 │   │   │   ├── auth/            # 认证、用户、角色、JWT、验证码频控
 │   │   │   ├── common/          # 通用响应、异常、日志和类型处理
 │   │   │   ├── config/          # Spring Security、MyBatis 和应用配置
@@ -106,7 +106,7 @@ paper-mind/
 │   │   │   ├── document/        # 文档上传、解析、切分、入库、资源管理和结构化解析
 │   │   │   ├── literature/      # OpenAlex 外部文献检索、意图解析和缓存
 │   │   │   ├── mail/            # Resend 邮件发送配置和服务
-│   │   │   ├── rag/             # RAG 检索和回答
+│   │   │   ├── rag/             # RAG 检索、Rerank 和回答
 │   │   │   ├── review/          # 论文辅助评审任务、评分报告、评审标准、共识和留档
 │   │   │   ├── storage/         # 阿里云 OSS 对象存储
 │   │   │   └── vector/          # 向量写入

@@ -138,9 +138,6 @@ onMounted(async () => {
       v-animate="{ type: 'fade-in', delay: '0.1s', duration: '0.6s' }"
     >
       <div v-if="activeTab === 'tasks'">
-        <div class="section-header">
-          <p>查看所有评审任务进度；普通分配与共识确认由评审组长处理。</p>
-        </div>
         <div class="toolbar">
           <el-input
             v-model="adminReviews.keyword.value"
@@ -181,9 +178,6 @@ onMounted(async () => {
       </div>
 
       <div v-if="activeTab === 'criteria'">
-        <div class="section-header">
-          <p>查看当前评审标准、评分维度和权重说明。</p>
-        </div>
         <ReviewCriteriaPanel />
       </div>
     </section>

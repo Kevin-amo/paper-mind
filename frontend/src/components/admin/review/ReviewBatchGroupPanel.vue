@@ -186,9 +186,6 @@ function formatDate(value: string | null) {
 <template>
   <section class="review-config-panel">
     <section class="config-section reused-management-panel">
-      <div class="reused-panel-heading">
-        <p>配置评审小组、组长和组内成员；小组创建后可直接管理成员清单。</p>
-      </div>
 
       <div class="config-tab-pane" role="tabpanel">
         <div class="reused-toolbar">

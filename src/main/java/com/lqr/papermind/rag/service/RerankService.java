@@ -1,4 +1,4 @@
-package com.lqr.papermind.ai.service;
+package com.lqr.papermind.rag.service;
 
 import com.lqr.papermind.common.model.RetrievedChunk;
 

@@ -1,10 +1,10 @@
-package com.lqr.papermind.ai.service.impl;
+package com.lqr.papermind.rag.service.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lqr.papermind.ai.service.RerankService;
 import com.lqr.papermind.common.model.RetrievedChunk;
 import com.lqr.papermind.rag.config.RagProperties;
+import com.lqr.papermind.rag.service.RerankService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

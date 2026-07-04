@@ -45,7 +45,8 @@ public record SecurityProperties(
                 throw new IllegalArgumentException("app.security.jwt.secret must be configured");
             }
             if (accessTokenTtl == null || accessTokenTtl.isNegative() || accessTokenTtl.isZero()) {
-                accessTokenTtl = Duration.ofHours(2);
+                // 默认12小时失效
+                accessTokenTtl = Duration.ofHours(12);
             }
         }
     }

@@ -31,7 +31,7 @@ import java.util.UUID;
 
 /**
  * 评审组长控制器
- * <p>提供评审组长专用的评审组管理、任务分配和共识管理API接口</p>
+ * 提供评审组长专用的评审组管理、任务分配和共识管理API接口
  */
 @RestController
 @RequestMapping("/review-leader")

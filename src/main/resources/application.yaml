@@ -132,9 +132,12 @@ app:
   document-ingestion:
     storage-dir: ${DOCUMENT_INGESTION_STORAGE_DIR:storage/document-ingestion}
     keep-upload-file: ${DOCUMENT_INGESTION_KEEP_UPLOAD_FILE:false}
+    # 上传文件最大重试次数
     max-retry-count: ${DOCUMENT_INGESTION_MAX_RETRY_COUNT:3}
     cleanup:
+    # 清理任务是否启用
       enabled: ${DOCUMENT_INGESTION_CLEANUP_ENABLED:true}
+      # 清理任务保留时间
       retention: ${DOCUMENT_INGESTION_CLEANUP_RETENTION:24h}
       cron: "${DOCUMENT_INGESTION_CLEANUP_CRON:0 0 * * * *}"
     listener:

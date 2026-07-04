@@ -185,7 +185,6 @@ function handlePageSizeChange(nextSize: number) {
     <div class="reused-panel-heading">
       <div>
         <h2>用户列表</h2>
-        <p>管理账号、角色、状态和密码重置；复用全局进度页的卡片、筛选栏、表格和分页结构。</p>
       </div>
       <el-button type="primary" class="primary-action" @click="admin.openCreateDialog">新建用户</el-button>
     </div>

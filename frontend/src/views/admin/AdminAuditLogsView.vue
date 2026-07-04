@@ -101,9 +101,6 @@ onMounted(async () => {
 <template>
   <AdminShell active="audit-logs" title="审计日志">
     <section class="paper-mind-workspace-card audit-dashboard-panel">
-      <div class="section-header">
-        <p>追溯评审流程中的关键操作记录，支持按操作人、动作类型和时间范围组合查询。</p>
-      </div>
 
       <div class="toolbar">
         <el-select
