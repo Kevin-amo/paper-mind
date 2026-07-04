@@ -248,28 +248,7 @@ export function useReviews() {
     }
     saving.value = true;
     try {
-      const totalScore = calculateWeightedScore(report.scores, criteria.value);
-      reportForm.totalScore = totalScore;
-      const payload: UpdateReviewReportPayload = {
-        paperSections: report.paperSections,
-        scores: report.scores,
-        comments: report.comments,
-        risks: report.risks,
-        totalScore,
-        finalRecommendation: reportForm.finalRecommendation.trim() || null,
-        status: 'ADJUSTED',
-      };
-      const nextReport = await updateReviewReport(report.id, payload);
-      const currentAssignment = task.currentAssignment
-        ? { ...task.currentAssignment, status: 'REVIEWING' as const }
-        : null;
-      selectedTask.value = {
-        ...task,
-        status: currentAssignment ? 'IN_REVIEW' : 'REVIEWING',
-        currentAssignment,
-        report: nextReport,
-      };
-      syncReportForm(nextReport);
+      await persistCurrentReport(report, task);
       await loadTasks();
       ElMessage.success('评审调整已保存');
     } catch (error) {
@@ -293,6 +272,13 @@ export function useReviews() {
 
     submittingAssignment.value = true;
     try {
+      const report = selectedReport.value;
+      const task = selectedTask.value;
+      if (!report || !task) {
+        ElMessage.warning('请先生成辅助评审报告');
+        return;
+      }
+      await persistCurrentReport(report, task);
       await submitReviewAssignment(assignmentId);
       await loadTasks();
       if (selectedTask.value?.id === taskId) {
@@ -304,6 +290,32 @@ export function useReviews() {
     } finally {
       submittingAssignment.value = false;
     }
+  }
+
+  async function persistCurrentReport(report: ReviewReport, task: ReviewTask) {
+    const totalScore = calculateWeightedScore(report.scores, criteria.value);
+    reportForm.totalScore = totalScore;
+    const payload: UpdateReviewReportPayload = {
+      paperSections: report.paperSections,
+      scores: report.scores,
+      comments: report.comments,
+      risks: report.risks,
+      totalScore,
+      finalRecommendation: reportForm.finalRecommendation.trim() || null,
+      status: 'ADJUSTED',
+    };
+    const nextReport = await updateReviewReport(report.id, payload);
+    const currentAssignment = task.currentAssignment
+      ? { ...task.currentAssignment, status: 'REVIEWING' as const }
+      : null;
+    selectedTask.value = {
+      ...task,
+      status: currentAssignment ? 'IN_REVIEW' : 'REVIEWING',
+      currentAssignment,
+      report: nextReport,
+    };
+    syncReportForm(nextReport);
+    return nextReport;
   }
 
   async function loadRisks(reportId: string | null) {

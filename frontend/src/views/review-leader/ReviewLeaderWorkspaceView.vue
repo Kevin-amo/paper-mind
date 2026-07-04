@@ -342,6 +342,10 @@ async function confirmConsensus() {
   }
   consensusConfirming.value = true;
   try {
+    consensus.value = await updateLeaderTaskConsensus(selectedGroupId.value, selectedTask.value.id, {
+      finalScore: consensusForm.finalScore,
+      finalRecommendation: consensusForm.finalRecommendation,
+    });
     consensus.value = await confirmLeaderTaskConsensus(selectedGroupId.value, selectedTask.value.id);
     ElMessage.success('最终评分已确认');
     await loadGroupScope();
@@ -373,8 +377,8 @@ onMounted(async () => {
         <span>Paper Mind</span>
       </div>
       <nav class="leader-nav-links" aria-label="评审组长导航">
-        <button class="leader-nav-link active" type="button">组长工作台</button>
-        <button class="leader-nav-link" type="button" @click="router.push('/review')">评审工作台</button>
+        <button class="leader-nav-link active" type="button">组长面板</button>
+        <button class="leader-nav-link" type="button" @click="router.push('/review')">评审中心</button>
         <button v-if="auth.isAdmin.value" class="leader-nav-link" type="button" @click="router.push('/admin/reviews')">
           管理后台
         </button>
@@ -391,7 +395,7 @@ onMounted(async () => {
     <section class="leader-hero">
       <div class="leader-hero-copy">
         <p class="leader-eyebrow">Review Leader</p>
-        <h1>评审组长工作台</h1>
+        <h1>评审组长面板</h1>
         <p class="leader-lead">按评审小组处理任务分配、组内评分详情、最终评分与共识确认。</p>
         <div class="leader-hero-meta">
           <span class="leader-badge">负责小组 {{ groups.length }}</span>
@@ -458,7 +462,6 @@ onMounted(async () => {
       <aside class="group-panel" v-loading="loading || scopeLoading">
         <div class="panel-header">
           <h2>我的小组</h2>
-          <el-button size="small" @click="loadGroups">刷新</el-button>
         </div>
 
         <div class="group-panel-body">
@@ -495,7 +498,6 @@ onMounted(async () => {
       <main class="task-panel" v-loading="scopeLoading">
         <div class="panel-header">
           <h2>本组评审任务</h2>
-          <el-button type="primary" size="small" @click="loadGroupScope()">刷新任务</el-button>
         </div>
         <div class="task-toolbar">
           <p>按论文、状态、提交进度和截止时间快速扫描任务。</p>
@@ -559,7 +561,6 @@ onMounted(async () => {
                 <div class="leader-empty-icon" aria-hidden="true"></div>
                 <p class="empty-title">暂无本组任务</p>
                 <p class="empty-copy">任务分配后将在这里显示论文、评审员、截止时间和最终评分入口。</p>
-                <el-button type="primary" size="small" @click.stop="loadGroupScope()">刷新任务</el-button>
               </div>
             </template>
           </el-table>
@@ -599,7 +600,6 @@ onMounted(async () => {
                       <strong class="report-score">{{ report.totalScore ?? '-' }}<span>/100</span></strong>
                     </div>
                     <div class="report-meta">
-                      <el-tag size="small" effect="plain">{{ statusLabel(report.status) }}</el-tag>
                       <span>更新时间：{{ formatDate(report.updatedAt) }}</span>
                     </div>
                     <div v-if="scoreItems(report).length" class="score-list">

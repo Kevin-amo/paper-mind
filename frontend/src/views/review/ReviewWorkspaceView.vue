@@ -23,7 +23,7 @@ const router = useRouter();
 const auth = useAuth();
 const reviews = useReviews();
 const { canAccessLeaderWorkspace, refreshLeaderWorkspaceAccess } = useReviewLeaderAccess();
-const activeReviewTab = ref<ReviewTabKey>('scores');
+const activeReviewTab = ref<ReviewTabKey>('parse');
 const logoutDialogVisible = ref(false);
 
 const reviewSteps: Array<{ key: ReviewTabKey; label: string; caption: string }> = [
@@ -156,9 +156,9 @@ onMounted(async () => {
 
       <nav class="review-nav-links" aria-label="主导航">
         <button v-if="canAccessLeaderWorkspace" class="review-nav-link" type="button" @click="router.push('/review-leader')">
-          组长工作台
+          组长面板
         </button>
-        <button class="review-nav-link active" type="button">评审工作台</button>
+        <button class="review-nav-link active" type="button">评审中心</button>
         <button v-if="auth.hasRole('USER')" class="review-nav-link" type="button" @click="router.push('/user')">用户端</button>
         <button v-if="auth.isAdmin.value" class="review-nav-link" type="button" @click="router.push('/admin')">管理后台</button>
       </nav>
@@ -174,7 +174,7 @@ onMounted(async () => {
       <section class="review-hero">
         <div class="review-hero-copy">
           <p class="review-eyebrow">Review Workspace</p>
-          <h1>论文评审工作台</h1>
+          <h1>论文评审中心</h1>
           <p>
             像收件箱一样处理评审任务：左侧选择论文，右侧完成解析、AI 辅助、评分、评语和提交。
           </p>

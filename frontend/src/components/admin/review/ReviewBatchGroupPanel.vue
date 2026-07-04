@@ -265,7 +265,7 @@ function formatDate(value: string | null) {
           <el-input v-model="groupForm.name" placeholder="例如 第一评审组" />
         </el-form-item>
         <el-form-item label="组长" required>
-          <el-select v-model="groupForm.leaderUserId" filterable class="full-select" placeholder="选择具备 REVIEWER 角色的用户">
+          <el-select v-model="groupForm.leaderUserId" filterable class="full-select" placeholder="选择组长">
             <el-option
               v-for="user in reviewerOptions"
               :key="user.id"
@@ -553,6 +553,15 @@ function formatDate(value: string | null) {
 }
 
 .member-tag {
+  --el-tag-bg-color: #f7efe2;
+  --el-tag-border-color: #e7d3b7;
+  --el-tag-text-color: #8a5a2f;
   max-width: 100%;
+}
+
+.member-tag:hover {
+  --el-tag-bg-color: #f3e6d3;
+  --el-tag-border-color: #dcbf98;
+  --el-tag-text-color: #744922;
 }
 </style>
