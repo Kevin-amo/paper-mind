@@ -2,18 +2,13 @@
 import { computed } from 'vue';
 import { statusLabel } from '../../../constants/review';
 import { formatDate, textValue } from '../../../utils/format';
-import type { ReviewAssignmentStatus, ReviewTask } from '../../../types';
+import type { ReviewTask } from '../../../types';
 
 const props = defineProps<{
   tasks: ReviewTask[];
   selectedTaskId: string | null;
   loading: boolean;
   keyword: string;
-  statusFilter: ReviewAssignmentStatus | '';
-  totalCount: number;
-  pendingCount: number;
-  reviewingCount: number;
-  completedCount: number;
   pagination: { page: number; size: number; total: number };
 }>();
 
@@ -21,7 +16,6 @@ defineEmits<{
   'update:keyword': [value: string];
   search: [];
   select: [taskId: string];
-  'status-filter': [value: ReviewAssignmentStatus | ''];
   'page-change': [page: number];
 }>();
 
@@ -54,20 +48,6 @@ function taskKeywords(task: ReviewTask) {
         @update:model-value="$emit('update:keyword', $event)"
         @keyup.enter="$emit('search')"
       />
-      <div class="task-filter-row" aria-label="任务筛选">
-        <button class="task-filter-chip" :class="{ active: statusFilter === '' }" type="button" @click="$emit('status-filter', '')">
-          全部 {{ totalCount }}
-        </button>
-        <button class="task-filter-chip" :class="{ active: statusFilter === 'ASSIGNED' }" type="button" @click="$emit('status-filter', 'ASSIGNED')">
-          待评审 {{ pendingCount }}
-        </button>
-        <button class="task-filter-chip" :class="{ active: statusFilter === 'REVIEWING' }" type="button" @click="$emit('status-filter', 'REVIEWING')">
-          评审中 {{ reviewingCount }}
-        </button>
-        <button class="task-filter-chip" :class="{ active: statusFilter === 'SUBMITTED' }" type="button" @click="$emit('status-filter', 'SUBMITTED')">
-          已提交 {{ completedCount }}
-        </button>
-      </div>
     </div>
 
     <div v-loading="loading" class="task-list">
@@ -161,35 +141,6 @@ function taskKeywords(task: ReviewTask) {
 .task-toolbar {
   display: grid;
   gap: 10px;
-}
-
-.task-filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.task-filter-chip {
-  min-height: 30px;
-  border: 1px solid var(--app-border);
-  border-radius: 999px;
-  background: var(--app-surface);
-  color: var(--app-text-muted);
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.task-filter-chip.active,
-.task-filter-chip:hover {
-  border-color: rgba(204, 120, 92, 0.34);
-  background: var(--app-primary-soft);
-  color: var(--app-primary);
 }
 
 .task-list {

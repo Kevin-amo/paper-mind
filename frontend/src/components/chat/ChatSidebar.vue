@@ -330,7 +330,7 @@ function conversationTitle(conversation: Conversation) {
     <el-dialog
       v-model="deleteDialogVisible"
       title="删除会话"
-      width="min(450px, calc(100vw - 32px))"
+      width="min(500px, calc(100vw - 32px))"
       class="conversation-dialog danger-dialog claude-delete-dialog claude-workspace-dialog"
       append-to-body
       align-center

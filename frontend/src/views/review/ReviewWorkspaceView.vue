@@ -196,21 +196,30 @@ onMounted(async () => {
         </aside>
       </section>
 
+      <section class="review-filter-chips" aria-label="任务筛选">
+        <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === '' }" type="button" @click="applyStatusFilter('')">
+          全部 {{ reviews.pagination.total || reviews.tasks.value.length }}
+        </button>
+        <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'ASSIGNED' }" type="button" @click="applyStatusFilter('ASSIGNED')">
+          待评审 {{ reviews.pendingCount.value }}
+        </button>
+        <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'REVIEWING' }" type="button" @click="applyStatusFilter('REVIEWING')">
+          评审中 {{ reviews.reviewingCount.value }}
+        </button>
+        <button class="review-filter-chip" :class="{ active: reviews.statusFilter.value === 'SUBMITTED' }" type="button" @click="applyStatusFilter('SUBMITTED')">
+          已提交 {{ reviews.completedCount.value }}
+        </button>
+      </section>
+
       <section class="review-layout">
         <ReviewTaskList
           :tasks="reviews.tasks.value"
           :selected-task-id="selectedTask?.id ?? null"
           :loading="reviews.loading.value"
           :keyword="reviews.keyword.value"
-          :status-filter="reviews.statusFilter.value"
-          :total-count="reviews.pagination.total || reviews.tasks.value.length"
-          :pending-count="reviews.pendingCount.value"
-          :reviewing-count="reviews.reviewingCount.value"
-          :completed-count="reviews.completedCount.value"
           :pagination="reviews.pagination"
           @update:keyword="updateTaskKeyword"
           @select="reviews.selectTask"
-          @status-filter="applyStatusFilter"
           @search="reviews.loadTasks(0)"
           @page-change="handlePageChange"
         />
@@ -550,6 +559,36 @@ onMounted(async () => {
   grid-template-columns: var(--review-list-width) minmax(0, 1fr);
   gap: var(--review-layout-gap);
   align-items: start;
+}
+
+.review-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.review-filter-chip {
+  min-height: 34px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface);
+  color: var(--app-text-muted);
+  padding: 7px 13px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.review-filter-chip.active,
+.review-filter-chip:hover {
+  border-color: rgba(204, 120, 92, 0.34);
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
 }
 
 .review-detail {

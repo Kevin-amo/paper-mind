@@ -26,6 +26,14 @@ const emit = defineEmits<{
 const selectedSubmission = ref<ReviewSubmission | null>(null);
 const reportVisible = ref(false);
 const selectedReport = computed(() => selectedSubmission.value?.reviewReport ?? null);
+const scorePercent = (score: number | null | undefined, maxScore: number | null | undefined) => {
+  const numericScore = Number(score);
+  const numericMax = Number(maxScore || 100);
+  if (!Number.isFinite(numericScore) || !Number.isFinite(numericMax) || numericMax <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.max(0, (numericScore / numericMax) * 100));
+};
 
 function beforeUpload(file: File) {
   emit('upload', file);
@@ -142,55 +150,84 @@ function openReport(row: ReviewSubmission) {
 
     <el-dialog
       v-model="reportVisible"
-      title="评审报告"
-      width="640px"
-      class="review-report-dialog claude-workspace-dialog"
+      width="820px"
+      class="review-report-dialog paper-report-dialog"
       destroy-on-close
     >
+      <template #header>
+        <header class="report-dialog-header">
+          <p class="report-eyebrow">Confirmed Review Report</p>
+          <h2 id="submission-report-title">评审报告</h2>
+          <div class="report-header-meta" aria-label="报告元信息">
+            <span class="report-meta-pill">确认时间 <strong>{{ formatDate(selectedReport?.confirmedAt) }}</strong></span>
+          </div>
+        </header>
+      </template>
+
       <div v-if="selectedSubmission && selectedReport" class="report-detail">
-        <div class="report-heading">
-          <div>
+        <section class="report-summary-grid">
+          <article class="report-paper-card" aria-label="论文">
             <span class="report-label">论文</span>
             <strong>{{ selectedSubmission.title || selectedSubmission.fileName || selectedSubmission.sourceId }}</strong>
-          </div>
-          <div class="report-score">
-            <span>最终分数</span>
-            <strong>{{ selectedReport.finalScore ?? '-' }}</strong>
-          </div>
-        </div>
+          </article>
 
-        <el-descriptions :column="1" border size="small" class="report-summary">
-          <el-descriptions-item label="最终建议">
-            <span class="recommendation-text">{{ selectedReport.finalRecommendation || '暂无最终建议' }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="确认时间">
-            {{ formatDate(selectedReport.confirmedAt) }}
-          </el-descriptions-item>
-        </el-descriptions>
+          <aside class="report-score-card" :aria-label="`最终分数 ${selectedReport.finalScore ?? '-'} 分`">
+            <div
+              class="report-score-ring"
+              :style="{ '--score-degrees': `${scorePercent(selectedReport.finalScore, 100) * 3.6}deg` }"
+            >
+              <strong>{{ selectedReport.finalScore ?? '-' }}</strong>
+              <span>/ 100</span>
+            </div>
+            <p>最终分数</p>
+          </aside>
+        </section>
 
-        <div class="score-section">
-          <h3>维度评分</h3>
-          <el-table
-            :data="selectedReport.criteriaScores"
-            size="small"
-            class="report-score-table"
-            empty-text="暂无维度评分"
-          >
-            <el-table-column label="维度" min-width="180">
-              <template #default="{ row }">
-                <div class="criterion-cell">
-                  <strong>{{ row.name || row.code }}</strong>
-                  <span>{{ row.code }}</span>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column label="评分" width="120" align="right">
-              <template #default="{ row }">
-                {{ row.score ?? '-' }}<span v-if="row.maxScore"> / {{ row.maxScore }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
+        <article class="report-recommendation-card" aria-label="最终建议">
+          <span class="report-label">最终建议</span>
+          <div class="report-recommendation-text">
+            {{ selectedReport.finalRecommendation || '暂无最终建议' }}
+          </div>
+        </article>
+
+        <section class="report-score-section" aria-label="维度评分">
+          <div class="report-section-title">
+            <h3>维度评分</h3>
+            <span>{{ selectedReport.criteriaScores.length }} 个评分维度</span>
+          </div>
+
+          <div class="report-score-table">
+            <div class="report-score-row" aria-hidden="true">
+              <span>维度</span>
+              <span>得分占比</span>
+              <span class="report-score-value">评分</span>
+            </div>
+
+            <div v-if="!selectedReport.criteriaScores.length" class="report-empty-row">
+              暂无维度评分
+            </div>
+
+            <div
+              v-for="item in selectedReport.criteriaScores"
+              :key="item.code"
+              class="report-score-row"
+            >
+              <div class="report-criterion">
+                <strong>{{ item.name || item.code }}</strong>
+                <span>{{ item.code }}</span>
+              </div>
+              <div class="score-bar-track">
+                <div
+                  class="score-bar-fill"
+                  :style="{ width: `${scorePercent(item.score, item.maxScore)}%` }"
+                ></div>
+              </div>
+              <div class="report-score-value">
+                {{ item.score ?? '-' }} <span>/ {{ item.maxScore ?? 100 }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </el-dialog>
   </el-drawer>
@@ -340,89 +377,327 @@ function openReport(row: ReviewSubmission) {
   box-shadow: var(--app-shadow-focus);
 }
 
+:global([class~="paper-report-dialog"]) {
+  --report-surface: #faf9f5;
+  --report-card: #fffaf3;
+  --report-soft: #f4eee5;
+  --report-muted: #ece2d5;
+  --report-text: #171614;
+  --report-body: #45413b;
+  --report-subtle: #706b63;
+  --report-line: #e5ddd2;
+  --report-line-strong: #d6cabd;
+  --report-primary: #c86f52;
+  --report-primary-strong: #9f4f38;
+  --report-primary-soft: rgba(200, 111, 82, 0.13);
+  --report-accent-soft: rgba(185, 132, 44, 0.14);
+}
+
+:global([class~="paper-report-dialog"][class~="el-dialog"]) {
+  overflow: hidden;
+  border: 1px solid rgba(24, 25, 27, 0.08);
+  border-radius: 16px;
+  background: var(--report-surface);
+  box-shadow: 0 24px 70px rgba(23, 22, 20, 0.22);
+}
+
+:global([class~="paper-report-dialog"] [class~="el-dialog__header"]) {
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--report-line);
+}
+
+:global([class~="paper-report-dialog"] [class~="el-dialog__headerbtn"]) {
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+}
+
+:global([class~="paper-report-dialog"] [class~="el-dialog__body"]) {
+  padding: 30px 48px 42px;
+  color: var(--report-text);
+}
+
+.report-dialog-header {
+  padding: 34px 48px 26px;
+  color: var(--report-text);
+}
+
+.report-eyebrow {
+  margin: 0 0 10px;
+  color: var(--report-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.report-dialog-header h2 {
+  margin: 0;
+  color: var(--report-text);
+  font-family: Georgia, "Times New Roman", "Microsoft YaHei", serif;
+  font-size: clamp(30px, 5vw, 42px);
+  font-weight: 500;
+  line-height: 1.12;
+}
+
+.report-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.report-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--report-line);
+  border-radius: 999px;
+  background: rgba(255, 250, 243, 0.84);
+  color: var(--report-subtle);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.report-meta-pill strong {
+  margin-left: 8px;
+  color: var(--report-body);
+  font-weight: 760;
+}
+
 .report-detail {
   display: grid;
-  gap: 16px;
+  gap: 24px;
 }
 
-.report-heading {
+.report-summary-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 20px;
+  align-items: stretch;
 }
 
-.report-heading > div:first-child {
+.report-paper-card,
+.report-recommendation-card,
+.report-score-card,
+.report-score-table,
+.report-note-card {
+  border: 1px solid var(--report-line);
+  border-radius: 12px;
+  background: var(--report-card);
+}
+
+.report-paper-card {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 22px;
+  background:
+    linear-gradient(90deg, var(--report-primary-soft), rgba(255, 250, 243, 0) 64%),
+    var(--report-card);
+}
+
+.report-paper-card strong {
+  color: var(--report-text);
+  font-size: clamp(18px, 3vw, 24px);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.report-label {
+  color: var(--report-subtle);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.report-score-card {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 18px;
+  text-align: center;
+}
+
+.report-score-card p {
+  margin: 0;
+  color: var(--report-subtle);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.report-score-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, var(--report-card) 0 56%, transparent 57%),
+    conic-gradient(var(--report-primary) 0 var(--score-degrees), var(--report-muted) var(--score-degrees) 360deg);
+}
+
+.report-score-ring strong {
+  color: var(--report-text);
+  font-size: 34px;
+  font-weight: 820;
+  line-height: 1;
+}
+
+.report-score-ring span {
+  position: absolute;
+  bottom: 23px;
+  color: var(--report-subtle);
+  font-size: 12px;
+}
+
+.report-recommendation-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.report-recommendation-text {
+  max-height: 170px;
+  overflow: auto;
+  padding-right: 8px;
+  color: var(--report-body);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.report-recommendation-text::-webkit-scrollbar {
+  width: 8px;
+}
+
+.report-recommendation-text::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: var(--report-soft);
+}
+
+.report-recommendation-text::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--report-line-strong);
+}
+
+.report-score-section {
+  display: grid;
+  gap: 10px;
+}
+
+.report-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.report-section-title h3 {
+  margin: 0;
+  color: var(--report-text);
+  font-size: 18px;
+  font-weight: 780;
+}
+
+.report-section-title span {
+  color: var(--report-subtle);
+  font-size: 13px;
+}
+
+.report-score-table {
+  overflow: hidden;
+}
+
+.report-score-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(160px, 2fr) 96px;
+  gap: 18px;
+  align-items: center;
+  min-height: 72px;
+  padding: 15px 18px;
+  border-top: 1px solid var(--report-line);
+}
+
+.report-score-row:first-child {
+  min-height: 42px;
+  border-top: 0;
+  background: var(--report-muted);
+  color: var(--report-subtle);
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.report-criterion {
   display: grid;
   gap: 4px;
   min-width: 0;
 }
 
-.report-heading strong {
-  overflow-wrap: anywhere;
-  color: var(--app-text);
+.report-criterion strong {
+  color: var(--report-text);
   font-size: 15px;
+  line-height: 1.25;
 }
 
-.report-label,
-.report-score span {
-  color: var(--app-text-muted);
+.report-criterion span {
+  color: var(--report-subtle);
   font-size: 12px;
+  letter-spacing: 0.03em;
 }
 
-.report-score {
-  display: grid;
-  min-width: 96px;
-  padding: 10px 12px;
-  border: 1px solid var(--app-border);
-  border-radius: 8px;
+.score-bar-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--report-muted);
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--report-primary), #e0a082);
+}
+
+.report-score-value {
+  color: var(--report-text);
+  font-size: 15px;
+  font-weight: 760;
   text-align: right;
+  white-space: nowrap;
 }
 
-.report-score strong {
-  font-size: 24px;
-  line-height: 1.2;
+.report-score-value span {
+  color: var(--report-subtle);
+  font-weight: 500;
 }
 
-.report-summary {
-  width: 100%;
+.report-empty-row {
+  padding: 22px 18px;
+  border-top: 1px solid var(--report-line);
+  color: var(--report-subtle);
+  font-size: 14px;
 }
 
-.recommendation-text {
-  line-height: 1.6;
-  white-space: pre-wrap;
-}
-
-.score-section {
+.report-note-card {
   display: grid;
   gap: 10px;
+  padding: 18px;
+  background: var(--report-accent-soft);
 }
 
-.score-section h3 {
+.report-note-card p {
   margin: 0;
-  color: var(--app-text);
+  color: var(--report-body);
   font-size: 14px;
-  font-weight: 700;
-}
-
-.report-score-table {
-  width: 100%;
-}
-
-.criterion-cell {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.criterion-cell strong {
-  color: var(--app-text);
-  font-size: 13px;
-}
-
-.criterion-cell span {
-  color: var(--app-text-muted);
-  font-size: 12px;
+  line-height: 1.75;
 }
 
 @media (max-width: 720px) {
@@ -431,11 +706,31 @@ function openReport(row: ReviewSubmission) {
     flex-wrap: wrap;
   }
 
-  .report-heading {
+  :global([class~="paper-report-dialog"][class~="el-dialog"]) {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  :global([class~="paper-report-dialog"] [class~="el-dialog__body"]),
+  .report-dialog-header {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
+  .report-summary-grid,
+  .report-score-row {
     grid-template-columns: 1fr;
   }
 
-  .report-score {
+  .report-score-card {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .report-score-value {
     text-align: left;
   }
 }

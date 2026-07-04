@@ -212,10 +212,13 @@ async function loadGroupScope(groupId = selectedGroupId.value) {
 
 async function loadTaskDetail(taskId = selectedTaskId.value) {
   if (!selectedGroupId.value || !taskId) return;
+  const isSwitchingTask = taskId !== selectedTaskId.value;
   detailLoading.value = true;
   try {
     selectedTaskId.value = taskId;
-    detailTab.value = 'reports';
+    if (isSwitchingTask) {
+      detailTab.value = 'reports';
+    }
     const [nextReports, nextConsensus] = await Promise.all([
       listLeaderTaskReports(selectedGroupId.value, taskId),
       getLeaderTaskConsensus(selectedGroupId.value, taskId),

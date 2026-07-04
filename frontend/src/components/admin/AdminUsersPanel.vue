@@ -473,7 +473,7 @@ function handlePageSizeChange(nextSize: number) {
   display: flex;
   align-items: center;
   gap: 14px;
-  height: 100px;
+  min-height: 124px;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
   padding: 12px 18px;
@@ -530,7 +530,7 @@ function handlePageSizeChange(nextSize: number) {
 
 .reused-toolbar {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) 160px auto auto;
+  grid-template-columns: minmax(260px, 1fr) 200px auto auto;
   min-width: 0;
   gap: 10px;
   align-items: center;
@@ -550,7 +550,7 @@ function handlePageSizeChange(nextSize: number) {
 }
 
 .status-filter {
-  width: 160px;
+  width: 200px;
 }
 
 .reused-toolbar :deep([class~="el-input__wrapper"]),
