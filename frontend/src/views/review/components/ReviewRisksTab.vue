@@ -43,10 +43,6 @@ function isRiskActionDisabled(
           </div>
           <p class="risk-evidence">{{ risk.evidence || '未给出证据' }}</p>
           <p class="risk-suggestion">{{ risk.suggestion || '建议人工复核' }}</p>
-          <div class="risk-meta">
-            <span v-if="risk.confidence != null">置信度 {{ risk.confidence }}</span>
-            <span v-if="risk.detector">检测器 {{ risk.detector }}</span>
-          </div>
           <div class="risk-actions">
             <el-button
               size="small"
@@ -182,18 +178,6 @@ function isRiskActionDisabled(
   color: var(--app-text-muted);
   font-size: 13px;
   line-height: 1.6;
-}
-
-.risk-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.risk-meta span {
-  color: var(--app-text-subtle);
-  font-size: 12px;
 }
 
 .risk-actions {

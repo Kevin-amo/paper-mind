@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,8 +21,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReviewRiskServiceImpl implements ReviewRiskService {
 
-    private static final BigDecimal ZERO = BigDecimal.ZERO;
-    private static final BigDecimal ONE = BigDecimal.ONE;
     private static final Set<String> ALLOWED_RISK_LEVELS = Set.of("LOW", "MEDIUM", "HIGH", "CRITICAL");
     private static final Set<String> ALLOWED_STATUSES = Set.of("OPEN", "CONFIRMED", "IGNORED", "RESOLVED");
 
@@ -83,7 +80,6 @@ public class ReviewRiskServiceImpl implements ReviewRiskService {
             entity.setEvidenceLocation(mapValue(risk.get("evidenceLocation")));
             entity.setSuggestion(text(risk.get("suggestion")));
             entity.setDetector(defaultText(risk.get("detector"), "MODEL"));
-            entity.setConfidence(clampConfidence(risk.get("confidence")));
             entity.setStatus("OPEN");
             entity.setCreatedAt(now);
             entity.setUpdatedAt(now);
@@ -217,46 +213,4 @@ public class ReviewRiskServiceImpl implements ReviewRiskService {
         return result;
     }
 
-    /**
-     * 将置信度值限制在 [0, 1] 范围内。无法解析时返回 null。
-     *
-     * @param value 原始置信度值
-     * @return 钳位后的 BigDecimal，或 null
-     */
-    private BigDecimal clampConfidence(Object value) {
-        BigDecimal parsed = parseDecimal(value);
-        if (parsed == null) {
-            return null;
-        }
-        if (parsed.compareTo(ZERO) < 0) {
-            return ZERO;
-        }
-        if (parsed.compareTo(ONE) > 0) {
-            return ONE;
-        }
-        return parsed;
-    }
-
-    /**
-     * 尝试将任意值解析为 BigDecimal，支持 BigDecimal、Number 和字符串类型。
-     *
-     * @param value 原始值
-     * @return 解析后的 BigDecimal，无法解析时返回 null
-     */
-    private BigDecimal parseDecimal(Object value) {
-        if (value instanceof BigDecimal decimal) {
-            return decimal;
-        }
-        if (value instanceof Number number) {
-            return BigDecimal.valueOf(number.doubleValue());
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            try {
-                return new BigDecimal(text.trim());
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
-    }
 }

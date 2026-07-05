@@ -42,8 +42,6 @@ public class ReviewRiskItemEntity {
     private String suggestion;
     /** 检测来源（如：ai_detector、reviewer、plagiarism_tool） */
     private String detector;
-    /** 检测置信度 */
-    private BigDecimal confidence;
     /** 风险状态（如：open、acknowledged、resolved） */
     private String status;
     /** 评审人的处理备注 */

@@ -1,7 +1,5 @@
 package com.lqr.papermind.document.structured.model;
 
-import java.util.List;
-
 /**
  * 模型补全结果与原始输出。
  */
@@ -13,7 +11,7 @@ public record ModelCompletionResult(
     public static ModelCompletionResult empty() {
         PaperStructuredContent content = PaperStructuredContentSupport.emptyContent();
         return new ModelCompletionResult(
-                new StructuredParseResult(content, PaperStructuredContentSupport.emptyEvidence("MODEL"), PaperStructuredContentSupport.emptyFields(content), List.of()),
+                new StructuredParseResult(content, PaperStructuredContentSupport.emptyEvidence("MODEL"), PaperStructuredContentSupport.emptyFields(content)),
                 null,
                 null
         );

@@ -92,7 +92,6 @@ export interface ReviewScoreItem {
   score: number;
   maxScore: number;
   reason: string;
-  confidence?: number;
 }
 
 export interface ReviewRiskItem {
@@ -112,7 +111,6 @@ export interface ReviewRiskRecord {
   evidenceLocation: Record<string, unknown>;
   suggestion: string | null;
   detector: string | null;
-  confidence: number | null;
   status: 'OPEN' | 'CONFIRMED' | 'IGNORED' | 'RESOLVED' | string;
   reviewerNote: string | null;
   createdAt: string;

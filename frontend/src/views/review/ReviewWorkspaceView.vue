@@ -47,7 +47,6 @@ const structuredContent = computed(() => {
   return selectedReport.value?.paperSections as Partial<PaperStructuredContent> ?? {};
 });
 const missingFields = computed(() => structuredParse.value?.missingFields ?? []);
-const lowConfidenceFields = computed(() => structuredParse.value?.lowConfidenceFields ?? []);
 const scoreItems = computed(() => (Array.isArray(selectedReport.value?.scores) ? selectedReport.value?.scores as ReviewScoreItem[] : []));
 const riskRecords = computed(() => reviews.riskRecords.value);
 const comments = computed(() => selectedReport.value?.comments && typeof selectedReport.value.comments === 'object'
@@ -295,7 +294,6 @@ onMounted(async () => {
                   :structured-content="structuredContent"
                   :selected-task="selectedTask"
                   :missing-fields="missingFields"
-                  :low-confidence-fields="lowConfidenceFields"
                   :assignment-submitted="assignmentSubmitted"
                   :structured-parse-loading="reviews.structuredParseLoading.value"
                   :regenerating-structured-parse="reviews.regeneratingStructuredParse.value"

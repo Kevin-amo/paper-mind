@@ -17,8 +17,6 @@ import java.util.Map;
 @Component
 public class PaperStructuredMergePolicyImpl implements PaperStructuredMergePolicy {
 
-    private static final double RULE_KEEP_CONFIDENCE = 0.7;
-
     @Override
     public StructuredParseResult merge(StructuredParseResult ruleResult, StructuredParseResult modelResult) {
         PaperStructuredContent content = ruleResult.content();
@@ -28,12 +26,8 @@ public class PaperStructuredMergePolicyImpl implements PaperStructuredMergePolic
             StructuredFieldEvidence modelEvidence = modelResult.evidence().get(field);
             Object ruleValue = PaperStructuredContentSupport.value(ruleResult.content(), field);
             Object modelValue = PaperStructuredContentSupport.value(modelResult.content(), field);
-            // 规则结果非空且置信度 >= 0.7 时，保留规则结果
-            boolean keepRule = !PaperStructuredContentSupport.isEmpty(ruleValue)
-                    && ruleEvidence != null
-                    && ruleEvidence.confidence() >= RULE_KEEP_CONFIDENCE;
-            if (keepRule || PaperStructuredContentSupport.isEmpty(modelValue)) {
-                // 保留规则结果
+            // 规则结果非空时，保留规则结果
+            if (!PaperStructuredContentSupport.isEmpty(ruleValue) || PaperStructuredContentSupport.isEmpty(modelValue)) {
                 evidence.put(field, mergedEvidence(field, ruleEvidence, PaperStructuredContentSupport.isEmpty(ruleValue)));
                 continue;
             }
@@ -42,17 +36,13 @@ public class PaperStructuredMergePolicyImpl implements PaperStructuredMergePolic
             evidence.put(field, mergedEvidence(field, modelEvidence, false));
         }
         List<String> missingFields = PaperStructuredContentSupport.emptyFields(content);
-        List<String> lowConfidenceFields = evidence.values().stream()
-                .filter(item -> !item.missing() && item.confidence() < RULE_KEEP_CONFIDENCE)
-                .map(StructuredFieldEvidence::fieldName)
-                .toList();
-        return new StructuredParseResult(content, evidence, missingFields, lowConfidenceFields);
+        return new StructuredParseResult(content, evidence, missingFields);
     }
 
     private StructuredFieldEvidence mergedEvidence(String field, StructuredFieldEvidence source, boolean missing) {
         if (source == null) {
-            return new StructuredFieldEvidence(field, "MERGED", 0.0, true, null);
+            return new StructuredFieldEvidence(field, "MERGED", true, null);
         }
-        return new StructuredFieldEvidence(field, source.source(), source.confidence(), missing, source.evidence());
+        return new StructuredFieldEvidence(field, source.source(), missing, source.evidence());
     }
 }

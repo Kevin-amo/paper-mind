@@ -22,8 +22,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -83,9 +81,7 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
                     json(ruleResult.content()),
                     json(modelCompletion.result().content()),
                     json(mergedResult.content()),
-                    json(evidencePayload(mergedResult)),
                     json(mergedResult.missingFields()),
-                    json(mergedResult.lowConfidenceFields()),
                     modelCompletion.rawModelOutput(),
                     status,
                     cut(modelCompletion.errorMessage())
@@ -106,17 +102,6 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "文档不存在");
         }
         return entity;
-    }
-
-    private Map<String, Object> evidencePayload(StructuredParseResult result) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        result.evidence().forEach((field, evidence) -> payload.put(field, Map.of(
-                "source", evidence.source(),
-                "confidence", evidence.confidence(),
-                "missing", evidence.missing(),
-                "evidence", evidence.evidence() == null ? "" : evidence.evidence()
-        )));
-        return payload;
     }
 
     private String json(Object value) {

@@ -34,14 +34,8 @@ public class PaperStructuredParseEntity {
     @TableField(value = "merged_result", typeHandler = JsonbTypeHandler.class)
     private Object mergedResult;
 
-    @TableField(value = "field_confidence", typeHandler = JsonbTypeHandler.class)
-    private Object fieldConfidence;
-
     @TableField(value = "missing_fields", typeHandler = JsonbTypeHandler.class)
     private Object missingFields;
-
-    @TableField(value = "low_confidence_fields", typeHandler = JsonbTypeHandler.class)
-    private Object lowConfidenceFields;
 
     private String rawModelOutput;
     private String parserVersion;

@@ -40,7 +40,7 @@ public final class PaperStructuredContentSupport {
     public static Map<String, StructuredFieldEvidence> emptyEvidence(String source) {
         Map<String, StructuredFieldEvidence> evidence = new LinkedHashMap<>();
         for (String field : ALL_FIELDS) {
-            evidence.put(field, new StructuredFieldEvidence(field, source, 0.0, true, null));
+            evidence.put(field, new StructuredFieldEvidence(field, source, true, null));
         }
         return evidence;
     }

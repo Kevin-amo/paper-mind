@@ -48,6 +48,11 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
             "references", List.of("参考文献", "references", "bibliography")
     );
 
+    /**
+     * 解析文档结构内容。
+     * @param document 文档详情
+     * @return 解析结果
+     */
     @Override
     public StructuredParseResult parse(DocumentPersistenceService.DocumentDetail document) {
         String text = document.contentText() == null ? "" : document.contentText();
@@ -73,11 +78,7 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         );
         Map<String, StructuredFieldEvidence> evidence = buildEvidence(content, sections);
         List<String> missingFields = PaperStructuredContentSupport.emptyFields(content);
-        List<String> lowConfidenceFields = evidence.values().stream()
-                .filter(item -> !item.missing() && item.confidence() < 0.7)
-                .map(StructuredFieldEvidence::fieldName)
-                .toList();
-        return new StructuredParseResult(content, evidence, missingFields, lowConfidenceFields);
+        return new StructuredParseResult(content, evidence, missingFields);
     }
 
     private Map<String, String> detectSections(String text) {
@@ -189,21 +190,10 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         for (String field : PaperStructuredContentSupport.ALL_FIELDS) {
             Object value = PaperStructuredContentSupport.value(content, field);
             boolean missing = PaperStructuredContentSupport.isEmpty(value);
-            double confidence = missing ? 0.0 : confidence(field, sections.containsKey(field));
             String sourceEvidence = missing ? null : evidenceText(field, sections.containsKey(field));
-            evidence.put(field, new StructuredFieldEvidence(field, "RULE", confidence, missing, sourceEvidence));
+            evidence.put(field, new StructuredFieldEvidence(field, "RULE", missing, sourceEvidence));
         }
         return evidence;
-    }
-
-    private double confidence(String field, boolean sectionHit) {
-        if ("title".equals(field) || "keywords".equals(field)) {
-            return 0.85;
-        }
-        if ("abstract".equals(field)) {
-            return sectionHit ? 0.9 : 0.75;
-        }
-        return sectionHit ? 0.86 : 0.0;
     }
 
     private String evidenceText(String field, boolean sectionHit) {

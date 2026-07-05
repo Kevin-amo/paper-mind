@@ -59,7 +59,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Array;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -314,7 +313,6 @@ public class ReviewServiceImpl implements ReviewService {
         report.setModelVersion(chatModelName);
         report.setPromptVersion(PROMPT_VERSION);
         report.setCriterionVersion(extractCriterionVersion(criteria));
-        report.setConfidence(calculateOverallConfidence(parsed));
         report.setGeneratedAt(now);
         report.setUpdatedAt(now);
         if (creating) {
@@ -815,7 +813,7 @@ public class ReviewServiceImpl implements ReviewService {
                 + "JSON 模板：\n"
                 + "{\n"
                 + "  \"paperSections\": {\"title\": \"\", \"abstract\": \"\", \"introduction\": \"\", \"method\": \"\", \"conclusion\": \"\", \"keywords\": [], \"researchObject\": \"\", \"methodPath\": \"\"},\n"
-                + "  \"scores\": [{\"code\": \"\", \"name\": \"\", \"score\": 0, \"maxScore\": 100, \"reason\": \"\", \"confidence\": 0.8}],\n"
+                + "  \"scores\": [{\"code\": \"\", \"name\": \"\", \"score\": 0, \"maxScore\": 100, \"reason\": \"\"}],\n"
                 + "  \"comments\": {\"summary\": \"\", \"strengths\": [], \"weaknesses\": [], \"suggestions\": [], \"finalAdvice\": \"\"},\n"
                 + "  \"risks\": [{\"type\": \"\", \"level\": \"LOW\", \"evidence\": \"\", \"suggestion\": \"\"}],\n"
                 + "  \"totalScore\": 0,\n"
@@ -1113,32 +1111,6 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     /**
-     * 计算报告整体置信度。
-     * 取各评分项 confidence 的加权平均值，若无则返回 null。
-     */
-    private BigDecimal calculateOverallConfidence(Map<String, Object> parsed) {
-        Object scoresObj = parsed.get("scores");
-        if (!(scoresObj instanceof List<?> scoreList) || scoreList.isEmpty()) {
-            return null;
-        }
-        double sum = 0.0;
-        int count = 0;
-        for (Object item : scoreList) {
-            if (item instanceof Map<?, ?> scoreMap) {
-                Object conf = scoreMap.get("confidence");
-                if (conf instanceof Number n) {
-                    sum += n.doubleValue();
-                    count++;
-                }
-            }
-        }
-        if (count == 0) {
-            return null;
-        }
-        return BigDecimal.valueOf(sum / count).setScale(4, java.math.RoundingMode.HALF_UP);
-    }
-
-    /**
      * 合并解析结果和原始模型输出
      *
      * @param parsed    解析后的结果
@@ -1278,8 +1250,7 @@ public class ReviewServiceImpl implements ReviewService {
                     "level", risk.riskLevel(),
                     "evidence", risk.evidence(),
                     "suggestion", risk.suggestion(),
-                    "detector", "REFERENCE_RULE",
-                    "confidence", risk.confidence()
+                    "detector", "REFERENCE_RULE"
             ));
         }
         return merged;

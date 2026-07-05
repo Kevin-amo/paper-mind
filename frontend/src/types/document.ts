@@ -74,13 +74,6 @@ export interface PaperStructuredContent {
   mainConclusions: string[];
 }
 
-export interface StructuredFieldConfidence {
-  source: string;
-  confidence: number;
-  missing: boolean;
-  evidence: string | null;
-}
-
 export interface PaperStructuredParse {
   id: string;
   documentId: string;
@@ -89,9 +82,7 @@ export interface PaperStructuredParse {
   ruleResult: PaperStructuredContent | Record<string, unknown> | null;
   modelResult: PaperStructuredContent | Record<string, unknown> | null;
   mergedResult: PaperStructuredContent | Record<string, unknown> | null;
-  fieldConfidence: Record<string, StructuredFieldConfidence> | Record<string, unknown> | null;
   missingFields: string[];
-  lowConfidenceFields: string[];
   rawModelOutput: string | null;
   errorMessage: string | null;
   parsedAt: string | null;
@@ -102,7 +93,6 @@ export interface PaperStructuredParseStatus {
   sourceId: string;
   status: StructuredParseStatus;
   missingFields: string[];
-  lowConfidenceFields: string[];
   errorMessage: string | null;
   parsedAt: string | null;
   updatedAt: string | null;

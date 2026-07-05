@@ -47,7 +47,7 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
             PaperStructuredContent content = PaperStructuredContentSupport.fromMap(parsed);
             Map<String, StructuredFieldEvidence> evidence = evidence(content, targetFields);
             return new ModelCompletionResult(
-                    new StructuredParseResult(content, evidence, PaperStructuredContentSupport.emptyFields(content), lowConfidenceFields(evidence)),
+                    new StructuredParseResult(content, evidence, PaperStructuredContentSupport.emptyFields(content)),
                     rawOutput,
                     null
             );
@@ -60,7 +60,7 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
 
     private List<String> targetFields(StructuredParseResult ruleResult) {
         return PaperStructuredContentSupport.ALL_FIELDS.stream()
-                .filter(field -> ruleResult.missingFields().contains(field) || ruleResult.lowConfidenceFields().contains(field))
+                .filter(field -> ruleResult.missingFields().contains(field))
                 .toList();
     }
 
@@ -162,8 +162,7 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         for (String field : PaperStructuredContentSupport.ALL_FIELDS) {
             Object value = PaperStructuredContentSupport.value(content, field);
             boolean missing = PaperStructuredContentSupport.isEmpty(value);
-            double confidence = !missing && targetFields.contains(field) ? 0.72 : 0.0;
-            evidence.put(field, new StructuredFieldEvidence(field, "MODEL", confidence, missing, missing ? null : "模型补全"));
+            evidence.put(field, new StructuredFieldEvidence(field, "MODEL", missing, missing ? null : "模型补全"));
         }
         return evidence;
     }
@@ -180,11 +179,11 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         for (String field : List.of("researchObject", "researchQuestion", "methodPath", "experimentDataSummary", "mainConclusions")) {
             Object value = PaperStructuredContentSupport.value(content, field);
             if (!PaperStructuredContentSupport.isEmpty(value)) {
-                evidence.put(field, new StructuredFieldEvidence(field, "RULE_DERIVED", 0.62, false, "模型补全失败后由规则解析内容兜底生成"));
+                evidence.put(field, new StructuredFieldEvidence(field, "RULE_DERIVED", false, "模型补全失败后由规则解析内容兜底生成"));
             }
         }
         return new ModelCompletionResult(
-                new StructuredParseResult(content, evidence, PaperStructuredContentSupport.emptyFields(content), lowConfidenceFields(evidence)),
+                new StructuredParseResult(content, evidence, PaperStructuredContentSupport.emptyFields(content)),
                 rawOutput,
                 errorMessage
         );
@@ -228,13 +227,6 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
     private List<String> conclusionItems(String conclusion) {
         String sentence = firstSentence(conclusion);
         return sentence == null ? List.of() : List.of(sentence);
-    }
-
-    private List<String> lowConfidenceFields(Map<String, StructuredFieldEvidence> evidence) {
-        return evidence.values().stream()
-                .filter(item -> !item.missing() && item.confidence() < 0.7)
-                .map(StructuredFieldEvidence::fieldName)
-                .toList();
     }
 
     private String truncate(String value, int limit) {

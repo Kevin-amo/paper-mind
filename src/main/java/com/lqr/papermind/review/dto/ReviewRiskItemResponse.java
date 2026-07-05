@@ -2,7 +2,6 @@ package com.lqr.papermind.review.dto;
 
 import com.lqr.papermind.review.entity.ReviewRiskItemEntity;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -29,8 +28,6 @@ public record ReviewRiskItemResponse(
         String suggestion,
         /* 检测器标识，如AI检测、人工标注等 */
         String detector,
-        /* 置信度 */
-        BigDecimal confidence,
         /* 风险状态，如OPEN、CONFIRMED、IGNORED、RESOLVED */
         String status,
         /* 审阅者备注 */
@@ -60,7 +57,6 @@ public record ReviewRiskItemResponse(
                 entity.getEvidenceLocation(),
                 entity.getSuggestion(),
                 entity.getDetector(),
-                entity.getConfidence(),
                 entity.getStatus(),
                 entity.getReviewerNote(),
                 entity.getCreatedAt(),

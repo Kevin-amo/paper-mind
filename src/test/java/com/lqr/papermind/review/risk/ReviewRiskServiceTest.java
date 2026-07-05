@@ -8,7 +8,6 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -35,8 +34,7 @@ class ReviewRiskServiceTest {
                 "type", "REFERENCE_FORMAT",
                 "level", "HIGH",
                 "evidence", "[1] 缺少年份",
-                "suggestion", "补全年份",
-                "confidence", 0.9
+                "suggestion", "补全年份"
         )));
 
         verify(mapper).deleteByReportId(reportId);
@@ -50,7 +48,6 @@ class ReviewRiskServiceTest {
         assertThat(inserted.getEvidence()).isEqualTo("[1] 缺少年份");
         assertThat(inserted.getSuggestion()).isEqualTo("补全年份");
         assertThat(inserted.getDetector()).isEqualTo("MODEL");
-        assertThat(inserted.getConfidence()).isEqualByComparingTo(BigDecimal.valueOf(0.9));
         assertThat(inserted.getStatus()).isEqualTo("OPEN");
     }
 
@@ -107,29 +104,6 @@ class ReviewRiskServiceTest {
                 .containsExactly("LOW", "CRITICAL");
         assertThat(captor.getAllValues()).extracting(ReviewRiskItemEntity::getStatus)
                 .containsExactly("OPEN", "OPEN");
-    }
-
-    @Test
-    void replaceReportRisksShouldParseAndClampConfidenceValues() {
-        ReviewRiskItemMapper mapper = mock(ReviewRiskItemMapper.class);
-        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
-
-        service.replaceReportRisks(UUID.randomUUID(), UUID.randomUUID(), List.of(
-                Map.of("type", "A", "level", "LOW", "confidence", "0.75"),
-                Map.of("type", "B", "level", "LOW", "confidence", -0.5),
-                Map.of("type", "C", "level", "LOW", "confidence", 2.5),
-                Map.of("type", "D", "level", "LOW", "confidence", "not-a-number")
-        ));
-
-        ArgumentCaptor<ReviewRiskItemEntity> captor = ArgumentCaptor.forClass(ReviewRiskItemEntity.class);
-        verify(mapper, times(4)).insert(captor.capture());
-        assertThat(captor.getAllValues()).extracting(ReviewRiskItemEntity::getConfidence)
-                .satisfiesExactly(
-                        value -> assertThat(value).isEqualByComparingTo("0.75"),
-                        value -> assertThat(value).isEqualByComparingTo("0"),
-                        value -> assertThat(value).isEqualByComparingTo("1"),
-                        value -> assertThat(value).isNull()
-                );
     }
 
     @Test

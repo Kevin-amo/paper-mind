@@ -7,7 +7,6 @@ defineProps<{
   structuredContent: Partial<PaperStructuredContent>;
   selectedTask: ReviewTask | null;
   missingFields: string[];
-  lowConfidenceFields: string[];
   assignmentSubmitted: boolean;
   structuredParseLoading: boolean;
   regeneratingStructuredParse: boolean;
@@ -40,9 +39,6 @@ defineEmits<{
       </el-tag>
       <el-tag v-for="field in missingFields" :key="`missing-${field}`" type="warning" size="small" effect="plain">
         缺失：{{ field }}
-      </el-tag>
-      <el-tag v-for="field in lowConfidenceFields" :key="`low-${field}`" type="danger" size="small" effect="plain">
-        低置信：{{ field }}
       </el-tag>
     </div>
     <div class="section-grid">

@@ -64,7 +64,7 @@ class ReviewServiceImplTest {
                 "suggestion", "补充讨论"
         ));
         List<ReferenceFormatChecker.ReferenceRisk> referenceRisks = List.of(
-                new ReferenceFormatChecker.ReferenceRisk("REFERENCE_FORMAT", "MEDIUM", "[1] 缺少年份", "补全年份", 0.82)
+                new ReferenceFormatChecker.ReferenceRisk("REFERENCE_FORMAT", "MEDIUM", "[1] 缺少年份", "补全年份")
         );
         ReviewServiceImpl service = serviceWithRiskAccess(null, null, null);
 
@@ -81,7 +81,6 @@ class ReviewServiceImplTest {
             assertThat(referenceRisk.get("evidence")).isEqualTo("[1] 缺少年份");
             assertThat(referenceRisk.get("suggestion")).isEqualTo("补全年份");
             assertThat(referenceRisk.get("detector")).isEqualTo("REFERENCE_RULE");
-            assertThat(referenceRisk.get("confidence")).isEqualTo(0.82);
         });
     }
 
@@ -1034,7 +1033,6 @@ class ReviewServiceImplTest {
         entity.setStatus("COMPLETED");
         entity.setMergedResult(Map.of("title", "Paper A"));
         entity.setMissingFields(List.of());
-        entity.setLowConfidenceFields(List.of());
         entity.setParsedAt(OffsetDateTime.now());
         entity.setUpdatedAt(OffsetDateTime.now());
         return entity;

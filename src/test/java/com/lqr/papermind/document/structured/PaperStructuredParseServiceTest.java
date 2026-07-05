@@ -71,8 +71,8 @@ class PaperStructuredParseServiceTest {
     void generateShouldPersistFailureWhenResultUpsertFails() {
         DocumentPersistenceService.DocumentDetail document = document("论文标题", "摘要文本", "全文");
         DocumentEntity entity = documentEntity(document);
-        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of(), List.of());
-        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of(), List.of());
+        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of());
+        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of());
         PaperStructuredParseEntity failed = new PaperStructuredParseEntity();
         failed.setId(UUID.randomUUID());
         failed.setOwnerUserId(ownerUserId);
@@ -84,7 +84,7 @@ class PaperStructuredParseServiceTest {
         when(ruleParser.parse(document)).thenReturn(ruleResult);
         when(modelCompleter.complete(document, ruleResult)).thenReturn(new ModelCompletionResult(modelResult, "{}", null));
         when(mergePolicy.merge(ruleResult, modelResult)).thenReturn(ruleResult);
-        when(structuredParseMapper.upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null)))
+        when(structuredParseMapper.upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null)))
                 .thenThrow(new IllegalStateException("结果保存失败"));
         when(structuredParseMapper.selectOne(any(Wrapper.class))).thenReturn(failed);
 
@@ -98,9 +98,9 @@ class PaperStructuredParseServiceTest {
     void generateShouldPersistMergedResult() {
         DocumentPersistenceService.DocumentDetail document = document("论文标题", "摘要文本", "全文");
         DocumentEntity entity = documentEntity(document);
-        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of("conclusion"), List.of());
-        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of(), List.of());
-        StructuredParseResult mergedResult = new StructuredParseResult(PaperStructuredContentSupport.withValue(PaperStructuredContentSupport.emptyContent(), "title", "论文标题"), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of(), List.of());
+        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of("conclusion"));
+        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of());
+        StructuredParseResult mergedResult = new StructuredParseResult(PaperStructuredContentSupport.withValue(PaperStructuredContentSupport.emptyContent(), "title", "论文标题"), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of());
         PaperStructuredParseEntity saved = new PaperStructuredParseEntity();
         saved.setId(UUID.randomUUID());
         saved.setOwnerUserId(ownerUserId);
@@ -118,15 +118,15 @@ class PaperStructuredParseServiceTest {
         PaperStructuredParseEntity result = service.generate(ownerUserId, "source-1");
 
         assertThat(result.getStatus()).isEqualTo("COMPLETED");
-        verify(structuredParseMapper).upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null));
+        verify(structuredParseMapper).upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null));
     }
 
     @Test
     void generateShouldPersistRuleParsedWhenModelCompletionFails() {
         DocumentPersistenceService.DocumentDetail document = document("论文标题", "摘要文本", "全文");
         DocumentEntity entity = documentEntity(document);
-        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of("conclusion"), List.of());
-        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of(), List.of());
+        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of("conclusion"));
+        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of());
         PaperStructuredParseEntity saved = new PaperStructuredParseEntity();
         saved.setId(UUID.randomUUID());
         saved.setOwnerUserId(ownerUserId);
@@ -143,7 +143,7 @@ class PaperStructuredParseServiceTest {
         PaperStructuredParseEntity result = service.generate(ownerUserId, "source-1");
 
         assertThat(result.getStatus()).isEqualTo("RULE_PARSED");
-        verify(structuredParseMapper).upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("模型没有输出 JSON"), eq("RULE_PARSED"), eq("模型结构化解析结果缺少 JSON 对象"));
+        verify(structuredParseMapper).upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), eq("模型没有输出 JSON"), eq("RULE_PARSED"), eq("模型结构化解析结果缺少 JSON 对象"));
     }
 
     @Test

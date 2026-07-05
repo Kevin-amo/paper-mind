@@ -12,7 +12,6 @@ public record PaperStructuredParseStatusResponse(
         String sourceId,
         String status,
         List<String> missingFields,
-        List<String> lowConfidenceFields,
         String errorMessage,
         OffsetDateTime parsedAt,
         OffsetDateTime updatedAt
@@ -22,7 +21,6 @@ public record PaperStructuredParseStatusResponse(
                 entity.getSourceId(),
                 entity.getStatus(),
                 stringList(entity.getMissingFields()),
-                stringList(entity.getLowConfidenceFields()),
                 entity.getErrorMessage(),
                 entity.getParsedAt(),
                 entity.getUpdatedAt()

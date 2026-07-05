@@ -41,8 +41,7 @@ public class ReferenceFormatChecker {
                         "REFERENCE_FORMAT",
                         "MEDIUM",
                         entry,
-                        "Add the missing publication year to the reference.",
-                        0.85
+                        "Add the missing publication year to the reference."
                 ));
             }
         }
@@ -52,8 +51,7 @@ public class ReferenceFormatChecker {
                     "REFERENCE_OUTDATED",
                     "LOW",
                     "No dated reference is within the recent 5 years.",
-                    "Add recent references published within the last 5 years.",
-                    0.75
+                    "Add recent references published within the last 5 years."
             ));
         }
 
@@ -178,14 +176,12 @@ public class ReferenceFormatChecker {
      * @param riskLevel  风险等级
      * @param evidence   问题证据
      * @param suggestion 修复建议
-     * @param confidence 置信度
      */
     public record ReferenceRisk(
             String riskType,
             String riskLevel,
             String evidence,
-            String suggestion,
-            double confidence
+            String suggestion
     ) {
     }
 }

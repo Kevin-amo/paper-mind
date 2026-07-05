@@ -33,8 +33,7 @@ class PaperStructuredModelCompleterTest {
         StructuredParseResult ruleResult = new StructuredParseResult(
                 PaperStructuredContentSupport.emptyContent(),
                 PaperStructuredContentSupport.emptyEvidence("RULE"),
-                List.of("researchObject"),
-                List.of()
+                List.of("researchObject")
         );
         when(llmService.generate(any(PromptConstructionService.Prompt.class)))
                 .thenReturn("无法根据文本判断")
@@ -55,8 +54,7 @@ class PaperStructuredModelCompleterTest {
         StructuredParseResult ruleResult = new StructuredParseResult(
                 PaperStructuredContentSupport.emptyContent(),
                 PaperStructuredContentSupport.emptyEvidence("RULE"),
-                List.of("researchObject"),
-                List.of()
+                List.of("researchObject")
         );
         when(llmService.generate(any(PromptConstructionService.Prompt.class)))
                 .thenReturn("""
@@ -97,14 +95,13 @@ class PaperStructuredModelCompleterTest {
         StructuredParseResult ruleResult = new StructuredParseResult(
                 ruleContent,
                 Map.of(
-                        "title", new StructuredFieldEvidence("title", "RULE", 0.85, false, null),
-                        "introduction", new StructuredFieldEvidence("introduction", "RULE", 0.86, false, null),
-                        "methodology", new StructuredFieldEvidence("methodology", "RULE", 0.86, false, null),
-                        "experimentResults", new StructuredFieldEvidence("experimentResults", "RULE", 0.86, false, null),
-                        "conclusion", new StructuredFieldEvidence("conclusion", "RULE", 0.86, false, null)
+                        "title", new StructuredFieldEvidence("title", "RULE", false, null),
+                        "introduction", new StructuredFieldEvidence("introduction", "RULE", false, null),
+                        "methodology", new StructuredFieldEvidence("methodology", "RULE", false, null),
+                        "experimentResults", new StructuredFieldEvidence("experimentResults", "RULE", false, null),
+                        "conclusion", new StructuredFieldEvidence("conclusion", "RULE", false, null)
                 ),
-                List.of("researchObject", "researchQuestion", "methodPath", "experimentDataSummary", "mainConclusions"),
-                List.of()
+                List.of("researchObject", "researchQuestion", "methodPath", "experimentDataSummary", "mainConclusions")
         );
         when(llmService.generate(any(PromptConstructionService.Prompt.class)))
                 .thenReturn("无法根据文本判断")
@@ -127,8 +124,7 @@ class PaperStructuredModelCompleterTest {
         StructuredParseResult ruleResult = new StructuredParseResult(
                 PaperStructuredContentSupport.emptyContent(),
                 PaperStructuredContentSupport.emptyEvidence("RULE"),
-                List.of("researchObject"),
-                List.of()
+                List.of("researchObject")
         );
         when(llmService.generate(any(PromptConstructionService.Prompt.class)))
                 .thenReturn("无法根据文本判断")
