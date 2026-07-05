@@ -66,8 +66,12 @@ public class ReviewRiskServiceImpl implements ReviewRiskService {
             return;
         }
         OffsetDateTime now = OffsetDateTime.now();
+        Set<String> seen = new java.util.LinkedHashSet<>();
         for (Object item : list) {
             if (!(item instanceof Map<?, ?> risk)) {
+                continue;
+            }
+            if (!seen.add(riskDedupeKey(risk))) {
                 continue;
             }
             ReviewRiskItemEntity entity = new ReviewRiskItemEntity();
@@ -85,6 +89,24 @@ public class ReviewRiskServiceImpl implements ReviewRiskService {
             entity.setUpdatedAt(now);
             mapper.insert(entity);
         }
+    }
+
+    private String riskDedupeKey(Map<?, ?> risk) {
+        return normalizedRiskPart(firstPresent(risk, "type", "riskType"), true)
+                + "|"
+                + normalizedRiskPart(firstPresent(risk, "level", "riskLevel"), true)
+                + "|"
+                + normalizedRiskPart(risk.get("evidence"), false)
+                + "|"
+                + normalizedRiskPart(risk.get("suggestion"), false);
+    }
+
+    private String normalizedRiskPart(Object value, boolean uppercase) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = String.valueOf(value).trim().replaceAll("\\s+", " ");
+        return uppercase ? normalized.toUpperCase() : normalized;
     }
 
     /**

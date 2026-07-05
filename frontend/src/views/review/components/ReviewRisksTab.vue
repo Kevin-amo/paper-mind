@@ -9,7 +9,7 @@ defineProps<{
 }>();
 
 defineEmits<{
-  'set-risk-status': [riskId: string, status: 'CONFIRMED' | 'IGNORED' | 'RESOLVED'];
+  'set-risk-status': [riskId: string, status: 'CONFIRMED' | 'IGNORED'];
 }>();
 
 function isRiskUpdating(riskId: string, updatingIds: string[]) {
@@ -18,7 +18,7 @@ function isRiskUpdating(riskId: string, updatingIds: string[]) {
 
 function isRiskActionDisabled(
   risk: ReviewRiskRecord,
-  status: 'CONFIRMED' | 'IGNORED' | 'RESOLVED',
+  status: 'CONFIRMED' | 'IGNORED',
   updatingIds: string[],
 ) {
   return isRiskUpdating(risk.id, updatingIds) || risk.status === status;
@@ -62,16 +62,6 @@ function isRiskActionDisabled(
               @click="$emit('set-risk-status', risk.id, 'IGNORED')"
             >
               忽略
-            </el-button>
-            <el-button
-              size="small"
-              type="success"
-              plain
-              :loading="isRiskUpdating(risk.id, riskStatusUpdatingIds)"
-              :disabled="isRiskActionDisabled(risk, 'RESOLVED', riskStatusUpdatingIds)"
-              @click="$emit('set-risk-status', risk.id, 'RESOLVED')"
-            >
-              标记解决
             </el-button>
           </div>
         </article>

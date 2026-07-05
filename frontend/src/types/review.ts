@@ -18,6 +18,7 @@ export type ReviewConsensusStatus = 'DRAFT' | 'IN_DISCUSSION' | 'CONFIRMED' | 'A
 export type ReviewGroupStatus = 'ACTIVE' | 'DISABLED' | string;
 export type ReviewGroupMemberRole = 'LEADER' | 'REVIEWER' | string;
 export type ReviewReportStatus = 'AI_GENERATED' | 'ADJUSTED' | 'CONFIRMED' | 'COMPLETED' | string;
+export type RiskReviewStatus = 'NO_RISK_CONFIRMED' | string;
 
 export interface ReviewGroup {
   id: string;
@@ -234,6 +235,7 @@ export interface ReviewReport {
   totalScore: number | null;
   finalRecommendation: string | null;
   status: ReviewReportStatus;
+  riskReviewStatus: RiskReviewStatus | null;
   generatedAt: string | null;
   adjustedAt: string | null;
   createdAt: string;
@@ -294,6 +296,7 @@ export interface UpdateReviewReportPayload {
   totalScore?: number | null;
   finalRecommendation?: string | null;
   status?: ReviewReportStatus;
+  riskReviewStatus?: RiskReviewStatus | null;
 }
 
 export type { PageResponse };

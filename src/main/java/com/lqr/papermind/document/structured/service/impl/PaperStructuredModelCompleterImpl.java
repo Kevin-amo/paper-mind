@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 基于 Qwen/DashScope 的结构化字段补全器。
+ * 基于大模型的结构化字段补全器。
  */
 @Component
 @RequiredArgsConstructor
@@ -31,6 +31,12 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
     private final LlmService llmService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 补全结构化字段。
+     * @param document   文档详情
+     * @param ruleResult 规则解析结果
+     * @return 补全结果
+     */
     @Override
     public ModelCompletionResult complete(DocumentPersistenceService.DocumentDetail document, StructuredParseResult ruleResult) {
         List<String> targetFields = targetFields(ruleResult);

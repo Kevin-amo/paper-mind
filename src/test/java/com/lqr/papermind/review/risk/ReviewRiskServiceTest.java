@@ -107,6 +107,23 @@ class ReviewRiskServiceTest {
     }
 
     @Test
+    void replaceReportRisksShouldDeduplicateNormalizedRiskItems() {
+        UUID reportId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        ReviewRiskItemMapper mapper = mock(ReviewRiskItemMapper.class);
+        ReviewRiskService service = new ReviewRiskServiceImpl(mapper);
+
+        service.replaceReportRisks(reportId, taskId, List.of(
+                Map.of("type", "reference_format", "level", " medium ", "evidence", "[1]  missing   year", "suggestion", "fix year"),
+                Map.of("riskType", "REFERENCE_FORMAT", "riskLevel", "MEDIUM", "evidence", " [1] missing year ", "suggestion", " fix year ")
+        ));
+
+        ArgumentCaptor<ReviewRiskItemEntity> captor = ArgumentCaptor.forClass(ReviewRiskItemEntity.class);
+        verify(mapper).insert(captor.capture());
+        assertThat(captor.getAllValues()).hasSize(1);
+    }
+
+    @Test
     void updateStatusShouldThrowNotFoundWhenRiskMissing() {
         UUID riskId = UUID.randomUUID();
         ReviewRiskItemMapper mapper = mock(ReviewRiskItemMapper.class);

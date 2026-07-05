@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run check:routing && npm run check:home-redirect && npm run check:admin-review-detail && npm run check:admin-review-layout && npm run check:admin-review-summary-density && npm run check:review-audit-labels && npm run check:claude-workspace-theme && npm run check:chat-delete-dialog-claude && npm run check:paper-mind-visual-rework && npm run check:admin-users-layout && npm run check:review-button-hover && npm run check:review-default-tab && npm run check:review-workbench-two-zone && npm run check:leader-workbench-three-panel && npm run check:leader-consensus-confirm-save && npm run check:review-submit-saves-report && npm run check:submission-report-button && npm run check:review-report-dialog && npm run check:logout-confirm-button && vue-tsc --noEmit && vite build",
+    "build": "npm run check:routing && npm run check:home-redirect && npm run check:admin-review-detail && npm run check:admin-review-layout && npm run check:admin-review-summary-density && npm run check:review-audit-labels && npm run check:claude-workspace-theme && npm run check:chat-delete-dialog-claude && npm run check:paper-mind-visual-rework && npm run check:admin-users-layout && npm run check:review-button-hover && npm run check:review-default-tab && npm run check:review-workbench-two-zone && npm run check:leader-workbench-three-panel && npm run check:leader-risk-dedupe && npm run check:leader-consensus-confirm-save && npm run check:review-submit-saves-report && npm run check:review-risk-confirmation && npm run check:review-risk-actions && npm run check:submission-report-button && npm run check:review-report-dialog && npm run check:logout-confirm-button && npm run check:document-detail-metadata-hidden && vue-tsc --noEmit && vite build",
     "check:routing": "node scripts/check-routing-config.mjs",
     "check:home-redirect": "node scripts/check-home-redirect.mjs",
     "check:admin-review-detail": "node scripts/check-admin-review-detail.mjs",
@@ -20,11 +20,15 @@
     "check:review-default-tab": "node scripts/check-review-default-tab.mjs",
     "check:review-workbench-two-zone": "node scripts/check-review-workbench-two-zone.mjs",
     "check:leader-workbench-three-panel": "node scripts/check-leader-workbench-three-panel.mjs",
+    "check:leader-risk-dedupe": "node scripts/check-leader-risk-dedupe.mjs",
     "check:leader-consensus-confirm-save": "node scripts/check-leader-consensus-confirm-save.mjs",
     "check:review-submit-saves-report": "node scripts/check-review-submit-saves-report.mjs",
+    "check:review-risk-confirmation": "node scripts/check-review-risk-confirmation.mjs",
+    "check:review-risk-actions": "node scripts/check-review-risk-actions.mjs",
     "check:submission-report-button": "node scripts/check-submission-report-button.mjs",
     "check:review-report-dialog": "node scripts/check-review-report-dialog.mjs",
     "check:logout-confirm-button": "node scripts/check-logout-confirm-button.mjs",
+    "check:document-detail-metadata-hidden": "node scripts/check-document-detail-metadata-hidden.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

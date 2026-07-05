@@ -44,7 +44,7 @@ spring:
       chat:
         enabled: true
         options:
-          model: qwen3.6-27b
+          model: qwen3.6-35b-a3b
           temperature: 0.2
           max-tokens: 6144
           enable-thinking: false

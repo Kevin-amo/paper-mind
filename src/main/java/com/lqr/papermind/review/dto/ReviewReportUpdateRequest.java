@@ -22,6 +22,7 @@ public record ReviewReportUpdateRequest(
         /* 最终推荐意见，如ACCEPT、REJECT等 */
         String finalRecommendation,
         /* 报告状态，如DRAFT、SUBMITTED等 */
-        String status
+        String status,
+        String riskReviewStatus
 ) {
 }

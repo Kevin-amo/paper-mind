@@ -77,6 +77,8 @@ public class ReviewServiceImpl implements ReviewService {
     private static final int PAPER_TEXT_LIMIT = 10000;
     private static final ZoneId REVIEW_ZONE = ZoneId.of("Asia/Shanghai");
     private static final String PROMPT_VERSION = "1.0";
+    private static final String RISK_REVIEW_STATUS_KEY = "riskReviewStatus";
+    private static final String NO_RISK_CONFIRMED = "NO_RISK_CONFIRMED";
 
     @Value("${spring.ai.dashscope.chat.options.model:unknown}")
     private String chatModelName;
@@ -428,6 +430,9 @@ public class ReviewServiceImpl implements ReviewService {
         if (request.finalRecommendation() != null) {
             report.setFinalRecommendation(blankToNull(request.finalRecommendation()));
         }
+        if (request.riskReviewStatus() != null) {
+            setRiskReviewStatus(report, request.riskReviewStatus());
+        }
         String nextStatus = request.status() == null || request.status().isBlank() ? "ADJUSTED" : request.status().trim().toUpperCase();
         report.setStatus(nextStatus);
         report.setAdjustedAt(OffsetDateTime.now());
@@ -508,6 +513,9 @@ public class ReviewServiceImpl implements ReviewService {
         ReviewReportEntity report = reportMapper.selectByAssignmentId(assignmentId);
         if (report == null && !ReviewAssignmentStatuses.SUBMITTED.equals(assignment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先生成或保存评审报告再提交");
+        }
+        if (!ReviewAssignmentStatuses.SUBMITTED.equals(assignment.getStatus())) {
+            validateRiskReviewCompleted(report);
         }
         return assignmentService.submitAssignment(currentUserId, assignmentId);
     }
@@ -1077,6 +1085,7 @@ public class ReviewServiceImpl implements ReviewService {
         snapshot.put("scores", report.getScores());
         snapshot.put("comments", report.getComments());
         snapshot.put("risks", report.getRisks());
+        snapshot.put("riskReviewStatus", riskReviewStatus(report));
         snapshot.put("totalScore", report.getTotalScore());
         snapshot.put("finalRecommendation", report.getFinalRecommendation());
         snapshot.put("status", report.getStatus());
@@ -1095,7 +1104,8 @@ public class ReviewServiceImpl implements ReviewService {
                 "scoreChanged", !Objects.equals(before.get("scores"), after.get("scores")) || !Objects.equals(before.get("totalScore"), after.get("totalScore")),
                 "commentEdited", !Objects.equals(before.get("comments"), after.get("comments")),
                 "riskOverridden", !Objects.equals(before.get("risks"), after.get("risks")),
-                "finalRecommendationChanged", !Objects.equals(before.get("finalRecommendation"), after.get("finalRecommendation"))
+                "finalRecommendationChanged", !Objects.equals(before.get("finalRecommendation"), after.get("finalRecommendation")),
+                "riskReviewStatusChanged", !Objects.equals(before.get("riskReviewStatus"), after.get("riskReviewStatus"))
         );
     }
 
@@ -1159,6 +1169,46 @@ public class ReviewServiceImpl implements ReviewService {
      */
     private Object valueOrDefault(Object value, Object fallback) {
         return value == null ? fallback : value;
+    }
+
+    private void setRiskReviewStatus(ReviewReportEntity report, String value) {
+        String normalized = normalizeRiskReviewStatus(value);
+        Map<String, Object> rawOutput = report.getRawModelOutput() == null
+                ? new LinkedHashMap<>()
+                : new LinkedHashMap<>(report.getRawModelOutput());
+        if (normalized == null) {
+            rawOutput.remove(RISK_REVIEW_STATUS_KEY);
+        } else {
+            rawOutput.put(RISK_REVIEW_STATUS_KEY, normalized);
+        }
+        report.setRawModelOutput(rawOutput);
+    }
+
+    private String normalizeRiskReviewStatus(String value) {
+        String text = blankToNull(value);
+        if (text == null) {
+            return null;
+        }
+        String normalized = text.toUpperCase();
+        if (!NO_RISK_CONFIRMED.equals(normalized)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "风险检查状态非法");
+        }
+        return normalized;
+    }
+
+    private String riskReviewStatus(ReviewReportEntity report) {
+        Object value = report.getRawModelOutput() == null ? null : report.getRawModelOutput().get(RISK_REVIEW_STATUS_KEY);
+        return value == null ? null : value.toString();
+    }
+
+    private void validateRiskReviewCompleted(ReviewReportEntity report) {
+        if (report == null || !hasRiskItems(report.getRisks()) && !NO_RISK_CONFIRMED.equals(riskReviewStatus(report))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先完成风险检查，或确认本稿暂无风险项后再提交");
+        }
+    }
+
+    private boolean hasRiskItems(Object risks) {
+        return risks instanceof List<?> list && !list.isEmpty();
     }
 
     /**
@@ -1253,7 +1303,43 @@ public class ReviewServiceImpl implements ReviewService {
                     "detector", "REFERENCE_RULE"
             ));
         }
-        return merged;
+        return dedupeRisks(merged);
+    }
+
+    private List<Object> dedupeRisks(List<Object> risks) {
+        Map<String, Object> unique = new LinkedHashMap<>();
+        int passthroughIndex = 0;
+        for (Object item : risks) {
+            if (!(item instanceof Map<?, ?> risk)) {
+                unique.put("__raw_" + passthroughIndex++, item);
+                continue;
+            }
+            unique.putIfAbsent(riskDedupeKey(risk), item);
+        }
+        return new ArrayList<>(unique.values());
+    }
+
+    private String riskDedupeKey(Map<?, ?> risk) {
+        return normalizedRiskPart(firstPresent(risk, "type", "riskType"), true)
+                + "|"
+                + normalizedRiskPart(firstPresent(risk, "level", "riskLevel"), true)
+                + "|"
+                + normalizedRiskPart(risk.get("evidence"), false)
+                + "|"
+                + normalizedRiskPart(risk.get("suggestion"), false);
+    }
+
+    private Object firstPresent(Map<?, ?> map, String primaryKey, String fallbackKey) {
+        Object value = map.get(primaryKey);
+        return value == null ? map.get(fallbackKey) : value;
+    }
+
+    private String normalizedRiskPart(Object value, boolean uppercase) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = String.valueOf(value).trim().replaceAll("\\s+", " ");
+        return uppercase ? normalized.toUpperCase() : normalized;
     }
 
     /**

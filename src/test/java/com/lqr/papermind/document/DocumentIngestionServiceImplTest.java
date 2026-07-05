@@ -1,6 +1,7 @@
 package com.lqr.papermind.document;
 
 import com.lqr.papermind.ai.service.EmbeddingService;
+import com.lqr.papermind.common.constant.MetadataKeys;
 import com.lqr.papermind.common.model.DocumentAsset;
 import com.lqr.papermind.common.model.DocumentChunk;
 import com.lqr.papermind.common.model.DocumentIngestionResult;
@@ -86,10 +87,33 @@ class DocumentIngestionServiceImplTest {
     }
 
     @Test
-    void ingestShouldRunStructuredParseAfterTransactionCommit() {
+    void ingestShouldNotRunStructuredParseForUserDocument() {
         byte[] content = "scan-bytes".getBytes();
         Map<String, Object> metadata = Map.of("title", "Scan Paper");
         Fixture fixture = fixture();
+        when(documentParsingService.parse("scan.png", content, metadata)).thenReturn(fixture.parsedDocument());
+        when(documentSplittingService.split(fixture.source(), "页面文本")).thenReturn(List.of(fixture.chunk()));
+        when(embeddingService.embed(List.of(fixture.chunk()))).thenReturn(List.of());
+
+        UUID ownerUserId = UUID.randomUUID();
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            service.ingest(ownerUserId, "scan.png", content, metadata);
+
+            verify(paperStructuredParseService, never()).generate(ownerUserId, "source-1");
+            List<TransactionSynchronization> synchronizations = TransactionSynchronizationManager.getSynchronizations();
+            assertThat(synchronizations).isEmpty();
+
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void ingestShouldRunStructuredParseAfterTransactionCommitForReviewDocument() {
+        byte[] content = "scan-bytes".getBytes();
+        Map<String, Object> metadata = Map.of("title", "Scan Paper", MetadataKeys.SOURCE_TYPE, MetadataKeys.SOURCE_TYPE_REVIEW);
+        Fixture fixture = fixture(MetadataKeys.SOURCE_TYPE_REVIEW);
         when(documentParsingService.parse("scan.png", content, metadata)).thenReturn(fixture.parsedDocument());
         when(documentSplittingService.split(fixture.source(), "页面文本")).thenReturn(List.of(fixture.chunk()));
         when(embeddingService.embed(List.of(fixture.chunk()))).thenReturn(List.of());
@@ -137,6 +161,7 @@ class DocumentIngestionServiceImplTest {
         verify(documentIngestionJobService).markRunningStage(ownerUserId, jobId, "source-1", DocumentIngestionJobService.STATUS_EMBEDDING, 80);
         verify(documentIngestionJobService).markIndexed(ownerUserId, jobId, "source-1");
         verify(documentPersistenceService).markIndexed(ownerUserId, "source-1", 1);
+        verify(paperStructuredParseService, never()).generate(ownerUserId, "source-1");
     }
 
     @Test
@@ -173,15 +198,22 @@ class DocumentIngestionServiceImplTest {
     }
 
     private Fixture fixture() {
+        return fixture(null);
+    }
+
+    private Fixture fixture(String sourceType) {
+        Map<String, Object> sourceMetadata = new java.util.LinkedHashMap<>();
+        sourceMetadata.put("title", "Scan Paper");
+        sourceMetadata.put("contentType", "image/png");
+        sourceMetadata.put("extractionMode", "MULTIMODAL");
+        if (sourceType != null) {
+            sourceMetadata.put(MetadataKeys.SOURCE_TYPE, sourceType);
+        }
         DocumentSource source = new DocumentSource(
                 "source-1",
                 "Scan Paper",
                 "scan.png",
-                Map.of(
-                        "title", "Scan Paper",
-                        "contentType", "image/png",
-                        "extractionMode", "MULTIMODAL"
-                )
+                sourceMetadata
         );
         DocumentAsset asset = new DocumentAsset(
                 "asset-1",

@@ -143,6 +143,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             documentPersistenceService.markParsing(ownerUserId, source, text);
             log.info("文档入库状态 ownerUserId={} sourceId={} status=解析中 progress={}", ownerUserId, source.sourceId(), 30);
             documentPersistenceService.replaceAssets(ownerUserId, source.sourceId(), parsedDocument.assets());
+            // 切分文档
             List<DocumentChunk> chunks = documentSplittingService.split(source, text);
             log.info("文档入库切分完成 ownerUserId={} sourceId={} textLength={} chunkCount={}",
                     ownerUserId, source.sourceId(), textLength(text), chunks.size());
@@ -154,7 +155,9 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             vectorWriteService.upsert(ownerUserId, vectors);
             log.info("文档入库向量写入完成 ownerUserId={} sourceId={} vectorCount={}", ownerUserId, source.sourceId(), vectors.size());
             documentPersistenceService.markIndexed(ownerUserId, source.sourceId(), chunks.size());
-            generateStructuredParseQuietly(ownerUserId, source.sourceId());
+            if (isReviewSource(source)) {
+                generateStructuredParseQuietly(ownerUserId, source.sourceId());
+            }
             log.info("文档入库状态 ownerUserId={} sourceId={} status=已索引 progress={}", ownerUserId, source.sourceId(), 100);
             return new DocumentIngestionResult(source, chunks.size());
         } catch (RuntimeException ex) {
@@ -229,12 +232,18 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
     }
 
     /**
-     * 更新任务运行阶段并记录日志。
-     *
-     * @param job 入库任务
-     * @param status 当前阶段状态
-     * @param progress 进度百分比
+     * 判断文档来源是否为评审类型。
+      * @param source 文档来源
+      * @return 是否为评审类型
      */
+    private boolean isReviewSource(DocumentSource source) {
+        if (source == null || source.metadata() == null) {
+            return false;
+        }
+        Object sourceType = source.metadata().get(MetadataKeys.SOURCE_TYPE);
+        return MetadataKeys.SOURCE_TYPE_REVIEW.equalsIgnoreCase(sourceType == null ? null : String.valueOf(sourceType));
+    }
+
     private void markJobStage(DocumentIngestionJob job, String status, int progress) {
         documentIngestionJobService.markRunningStage(job.getOwnerUserId(), job.getId(), job.getSourceId(), status, progress);
         log.info("文档入库状态 ownerUserId={} jobId={} sourceId={} status={} progress={}",

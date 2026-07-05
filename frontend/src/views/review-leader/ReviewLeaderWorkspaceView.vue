@@ -28,6 +28,8 @@ import type {
   ReviewScoreItem,
 } from '../../types';
 
+type DedupedReviewRiskItem = ReviewRiskItem & { dedupeKey: string };
+
 const router = useRouter();
 const auth = useAuth();
 
@@ -63,7 +65,7 @@ const reviewerMembers = computed(() => members.value.filter((member) => member.m
 const unassignedCount = computed(() => tasks.value.filter((task) => isUnassignedTask(task)).length);
 const submittedCount = computed(() => tasks.value.filter((task) => task.status === 'SUBMITTED').length);
 const confirmedCount = computed(() => tasks.value.filter((task) => task.status === 'CONSENSUS_CONFIRMED').length);
-const reportRiskItems = computed(() => reports.value.flatMap((report) => riskItems(report)));
+const reportRiskItems = computed(() => dedupeRiskItems(reports.value.flatMap((report) => riskItems(report))));
 
 const taskStatusLabels: Record<string, string> = {
   PENDING: '待分配',
@@ -151,6 +153,31 @@ function scoreItems(report: ReviewReport) {
 
 function riskItems(report: ReviewReport) {
   return Array.isArray(report.risks) ? report.risks as ReviewRiskItem[] : [];
+}
+
+function dedupeRiskItems(risks: ReviewRiskItem[]): DedupedReviewRiskItem[] {
+  const riskByKey = new Map<string, DedupedReviewRiskItem>();
+  risks.forEach((risk) => {
+    const dedupeKey = riskDedupeKey(risk);
+    if (!riskByKey.has(dedupeKey)) {
+      riskByKey.set(dedupeKey, { ...risk, dedupeKey });
+    }
+  });
+  return Array.from(riskByKey.values());
+}
+
+function riskDedupeKey(risk: ReviewRiskItem) {
+  return [
+    normalizeRiskPart(risk.type, true),
+    normalizeRiskPart(risk.level, true),
+    normalizeRiskPart(risk.evidence, false),
+    normalizeRiskPart(risk.suggestion, false),
+  ].join('|');
+}
+
+function normalizeRiskPart(value: unknown, uppercase: boolean) {
+  const normalized = String(value ?? '').trim().replace(/\s+/g, ' ');
+  return uppercase ? normalized.toUpperCase() : normalized;
 }
 
 function riskLevelLabel(level: string | null | undefined) {
@@ -664,7 +691,7 @@ onMounted(async () => {
                   <p class="empty-copy">评审报告中的风险项会在这里汇总，方便组长形成最终建议。</p>
                 </div>
                 <div v-else class="risk-list">
-                  <article v-for="(risk, index) in reportRiskItems" :key="`${risk.type}-${index}`" class="risk-item">
+                  <article v-for="risk in reportRiskItems" :key="risk.dedupeKey" class="risk-item">
                     <div>
                       <strong>{{ risk.type || '风险提醒' }}</strong>
                       <el-tag :type="riskLevelTagType(risk.level)" size="small" effect="plain">{{ riskLevelLabel(risk.level) }}</el-tag>
