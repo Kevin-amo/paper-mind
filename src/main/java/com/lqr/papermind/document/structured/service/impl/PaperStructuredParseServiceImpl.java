@@ -43,6 +43,13 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
     private final PaperStructuredMergePolicy mergePolicy;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 根据用户ID和来源ID查询论文结构化解析实体。
+     *
+     * @param ownerUserId 用户ID
+     * @param sourceId    来源ID
+     * @return 论文结构化解析实体（如果存在）
+     */
     @Override
     public Optional<PaperStructuredParseEntity> find(UUID ownerUserId, String sourceId) {
         return Optional.ofNullable(structuredParseMapper.selectOne(new LambdaQueryWrapper<PaperStructuredParseEntity>()
@@ -50,18 +57,39 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
                 .eq(PaperStructuredParseEntity::getSourceId, sourceId)));
     }
 
+    /**
+     * 生成论文结构化解析结果。
+     *
+     * @param ownerUserId 用户ID
+     * @param sourceId    来源ID
+     * @return 论文结构化解析实体
+     */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public PaperStructuredParseEntity generate(UUID ownerUserId, String sourceId) {
         return run(ownerUserId, sourceId);
     }
 
+    /**
+     * 重新生成论文结构化解析结果。
+     *
+     * @param ownerUserId 用户ID
+     * @param sourceId    来源ID
+     * @return 论文结构化解析实体
+     */
     @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public PaperStructuredParseEntity regenerate(UUID ownerUserId, String sourceId) {
         return run(ownerUserId, sourceId);
     }
 
+    /**
+     * 执行论文结构化解析的核心逻辑。
+     *
+     * @param ownerUserId 用户ID
+     * @param sourceId    来源ID
+     * @return 论文结构化解析实体
+     */
     private PaperStructuredParseEntity run(UUID ownerUserId, String sourceId) {
         DocumentPersistenceService.DocumentDetail document = documentPersistenceService.findAnyDocument(ownerUserId, sourceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "文档不存在"));
@@ -94,6 +122,13 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
         }
     }
 
+    /**
+     * 获取文档实体，如果不存在则抛出异常。
+     *
+     * @param ownerUserId 用户ID
+     * @param sourceId    来源ID
+     * @return 文档实体
+     */
     private DocumentEntity requireDocumentEntity(UUID ownerUserId, String sourceId) {
         DocumentEntity entity = documentMapper.selectOne(new LambdaQueryWrapper<DocumentEntity>()
                 .eq(DocumentEntity::getOwnerUserId, ownerUserId)
@@ -104,6 +139,12 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
         return entity;
     }
 
+    /**
+     * 将对象转换为JSON字符串。
+     *
+     * @param value 要转换的对象
+     * @return JSON字符串
+     */
     private String json(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
@@ -112,6 +153,12 @@ public class PaperStructuredParseServiceImpl implements PaperStructuredParseServ
         }
     }
 
+    /**
+     * 截断字符串到最大长度。
+     *
+     * @param value 要截断的字符串
+     * @return 截断后的字符串
+     */
     private String cut(String value) {
         if (value == null || value.isBlank()) {
             return null;

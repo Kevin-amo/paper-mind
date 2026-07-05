@@ -8,6 +8,11 @@ public record ModelCompletionResult(
         String rawModelOutput,
         String errorMessage
 ) {
+    /**
+     * 创建空的模型补全结果。
+     *
+     * @return 空的模型补全结果
+     */
     public static ModelCompletionResult empty() {
         PaperStructuredContent content = PaperStructuredContentSupport.emptyContent();
         return new ModelCompletionResult(

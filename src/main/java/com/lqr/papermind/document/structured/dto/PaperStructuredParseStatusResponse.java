@@ -16,6 +16,12 @@ public record PaperStructuredParseStatusResponse(
         OffsetDateTime parsedAt,
         OffsetDateTime updatedAt
 ) {
+    /**
+     * 从实体创建响应对象。
+     *
+     * @param entity 论文结构化解析实体
+     * @return 状态响应对象
+     */
     public static PaperStructuredParseStatusResponse from(PaperStructuredParseEntity entity) {
         return new PaperStructuredParseStatusResponse(
                 entity.getSourceId(),
@@ -27,6 +33,12 @@ public record PaperStructuredParseStatusResponse(
         );
     }
 
+    /**
+     * 将对象转换为字符串列表。
+     *
+     * @param value 可能为列表的对象
+     * @return 字符串列表
+     */
     private static List<String> stringList(Object value) {
         if (value instanceof List<?> list) {
             return list.stream().map(String::valueOf).toList();

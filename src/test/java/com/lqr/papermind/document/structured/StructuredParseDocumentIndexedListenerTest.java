@@ -26,6 +26,9 @@ class StructuredParseDocumentIndexedListenerTest {
             documentPersistenceService
     );
 
+    /**
+     * 测试当文档不是审阅文档时，应该跳过生成。
+     */
     @Test
     void onDocumentIndexedShouldSkipUserDocument() {
         UUID ownerUserId = UUID.randomUUID();
@@ -37,6 +40,9 @@ class StructuredParseDocumentIndexedListenerTest {
         verify(paperStructuredParseService, never()).generate(ownerUserId, "source-user");
     }
 
+    /**
+     * 测试当文档是审阅文档时，应该生成结构化解析。
+     */
     @Test
     void onDocumentIndexedShouldGenerateForReviewDocument() {
         UUID ownerUserId = UUID.randomUUID();
@@ -49,6 +55,13 @@ class StructuredParseDocumentIndexedListenerTest {
         verify(paperStructuredParseService).generate(ownerUserId, "source-review");
     }
 
+    /**
+     * 创建测试用的文档详情。
+     *
+     * @param ownerUserId 用户ID
+     * @param sourceId    来源ID
+     * @return 文档详情
+     */
     private DocumentPersistenceService.DocumentDetail document(UUID ownerUserId, String sourceId) {
         OffsetDateTime now = OffsetDateTime.now();
         return new DocumentPersistenceService.DocumentDetail(

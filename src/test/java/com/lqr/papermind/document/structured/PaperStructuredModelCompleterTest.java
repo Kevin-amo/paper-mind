@@ -26,6 +26,9 @@ import static org.mockito.Mockito.when;
 
 class PaperStructuredModelCompleterTest {
 
+    /**
+     * 测试当第一次输出没有JSON对象时，应该使用修复提示重试。
+     */
     @Test
     void completeShouldRetryWithJsonRepairPromptWhenFirstOutputHasNoJsonObject() {
         LlmService llmService = mock(LlmService.class);
@@ -47,6 +50,9 @@ class PaperStructuredModelCompleterTest {
         verify(llmService, times(2)).generate(any(PromptConstructionService.Prompt.class));
     }
 
+    /**
+     * 测试当输出有尾随解释时，应该使用第一个平衡的JSON对象。
+     */
     @Test
     void completeShouldUseFirstBalancedJsonObjectWhenOutputHasTrailingExplanation() {
         LlmService llmService = mock(LlmService.class);
@@ -70,6 +76,9 @@ class PaperStructuredModelCompleterTest {
         verify(llmService, times(1)).generate(any(PromptConstructionService.Prompt.class));
     }
 
+    /**
+     * 测试当模型两次输出都没有JSON时，应该从规则结果推导字段。
+     */
     @Test
     void completeShouldDeriveFieldsFromRuleResultWhenModelOutputsNoJsonTwice() {
         LlmService llmService = mock(LlmService.class);
@@ -117,6 +126,9 @@ class PaperStructuredModelCompleterTest {
         assertThat(result.result().content().mainConclusions()).contains("本文完成博客系统主要功能设计与实现。");
     }
 
+    /**
+     * 测试当两次输出都没有JSON对象时，应该保留第一次和修复输出。
+     */
     @Test
     void completeShouldKeepFirstAndRepairOutputsWhenBothHaveNoJsonObject() {
         LlmService llmService = mock(LlmService.class);
@@ -140,6 +152,11 @@ class PaperStructuredModelCompleterTest {
                 .contains("仍然无法输出");
     }
 
+    /**
+     * 创建测试用的文档详情。
+     *
+     * @return 文档详情
+     */
     private DocumentPersistenceService.DocumentDetail document() {
         OffsetDateTime now = OffsetDateTime.now();
         return new DocumentPersistenceService.DocumentDetail(

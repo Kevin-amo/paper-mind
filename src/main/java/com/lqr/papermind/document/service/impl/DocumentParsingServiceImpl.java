@@ -148,7 +148,7 @@ public class DocumentParsingServiceImpl implements DocumentParsingService {
         }
     }
 
-    /**54若
+    /**
      * 根据文件类型选择文本抽取路径，必要时回退到多模态抽取。
      */
     private ExtractionResult extractContent(DocumentSource source, byte[] content, String contentType, Map<String, Object> metadata) {

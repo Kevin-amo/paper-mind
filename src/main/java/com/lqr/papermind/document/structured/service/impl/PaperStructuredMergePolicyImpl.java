@@ -17,6 +17,14 @@ import java.util.Map;
 @Component
 public class PaperStructuredMergePolicyImpl implements PaperStructuredMergePolicy {
 
+    /**
+     * 合并规则解析结果和模型补全结果。
+     * 规则结果非空时优先保留规则结果，否则使用模型结果。
+     *
+     * @param ruleResult  规则解析结果
+     * @param modelResult 模型补全结果
+     * @return 合并后的结构化解析结果
+     */
     @Override
     public StructuredParseResult merge(StructuredParseResult ruleResult, StructuredParseResult modelResult) {
         PaperStructuredContent content = ruleResult.content();
@@ -39,6 +47,14 @@ public class PaperStructuredMergePolicyImpl implements PaperStructuredMergePolic
         return new StructuredParseResult(content, evidence, missingFields);
     }
 
+    /**
+     * 合并字段证据信息。
+     *
+     * @param field   字段名
+     * @param source  源证据
+     * @param missing 是否缺失
+     * @return 合并后的字段证据
+     */
     private StructuredFieldEvidence mergedEvidence(String field, StructuredFieldEvidence source, boolean missing) {
         if (source == null) {
             return new StructuredFieldEvidence(field, "MERGED", true, null);

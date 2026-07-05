@@ -31,7 +31,7 @@ public class VectorWriteServiceImpl implements VectorWriteService {
     private final VectorStoreMapper vectorStoreMapper;
     private final DocumentChunkMapper chunkMapper;
     private final ObjectMapper objectMapper;
-    @Value("${spring.ai.vectorstore.pgvector.dimensions:1536}")
+    @Value("${spring.ai.vectorstore.pgvector.dimensions:4096}")
     private int embeddingDimensions;
 
     /**

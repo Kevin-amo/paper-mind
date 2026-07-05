@@ -61,15 +61,6 @@ function formatFileSize(size: number | null) {
   return `${(size / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function formatList(value: unknown) {
-  if (!value) return '-';
-  if (Array.isArray(value)) {
-    return value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('、') || '-';
-  }
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value);
-}
-
 function chunkAssetIds(chunk: DocumentChunk) {
   const assetIds = chunk.metadata?.assetIds;
   return Array.isArray(assetIds) ? assetIds.filter((value): value is string => typeof value === 'string') : [];
@@ -109,36 +100,6 @@ function handleChunkSizeChange(size: number) {
             <span>{{ props.detail.sourceId }}</span>
           </div>
           <StatusTag :status="props.detail.status" />
-        </section>
-
-        <section class="detail-section">
-          <h3>基础信息</h3>
-          <dl class="info-grid">
-            <div>
-              <dt>作者</dt>
-              <dd>{{ formatList(props.detail.authors) }}</dd>
-            </div>
-            <div>
-              <dt>DOI</dt>
-              <dd>{{ props.detail.doi || '-' }}</dd>
-            </div>
-            <div>
-              <dt>期刊</dt>
-              <dd>{{ props.detail.journal || '-' }}</dd>
-            </div>
-            <div>
-              <dt>年份</dt>
-              <dd>{{ props.detail.publishYear || '-' }}</dd>
-            </div>
-            <div>
-              <dt>关键词</dt>
-              <dd>{{ formatList(props.detail.keywords) }}</dd>
-            </div>
-            <div>
-              <dt>来源</dt>
-              <dd>{{ props.detail.origin || '-' }}</dd>
-            </div>
-          </dl>
         </section>
 
         <section class="detail-section">

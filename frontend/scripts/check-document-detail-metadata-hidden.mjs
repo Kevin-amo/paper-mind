@@ -14,6 +14,11 @@ const forbiddenTokens = [
   'props.detail.metadata',
   'props.detail.ownerUserId',
   'props.detail.deletedAt',
+  'props.detail.authors',
+  'props.detail.doi',
+  'props.detail.journal',
+  'props.detail.keywords',
+  'formatList(',
   '<summary>片段元数据</summary>',
   '<h3>元数据</h3>',
 ];

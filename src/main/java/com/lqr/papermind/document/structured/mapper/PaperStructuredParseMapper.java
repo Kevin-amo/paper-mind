@@ -14,6 +14,23 @@ import java.util.UUID;
 @Mapper
 public interface PaperStructuredParseMapper extends BaseMapper<PaperStructuredParseEntity> {
 
+    /**
+     * 插入或更新论文结构化解析结果。
+     *
+     * @param id               主键ID
+     * @param ownerUserId      用户ID
+     * @param documentId       文档ID
+     * @param sourceId         来源ID
+     * @param rawText          原始文本
+     * @param ruleResultJson   规则解析结果JSON
+     * @param modelResultJson  模型解析结果JSON
+     * @param mergedResultJson 合并结果JSON
+     * @param missingFieldsJson 缺失字段JSON
+     * @param rawModelOutput   模型原始输出
+     * @param status           状态
+     * @param errorMessage     错误信息
+     * @return 受影响的行数
+     */
     @Update("""
             insert into public.document_structured_parse (
                 id, owner_user_id, document_id, source_id, raw_text,
@@ -52,6 +69,17 @@ public interface PaperStructuredParseMapper extends BaseMapper<PaperStructuredPa
                      @Param("status") String status,
                      @Param("errorMessage") String errorMessage);
 
+    /**
+     * 插入或更新失败的论文结构化解析结果。
+     *
+     * @param id           主键ID
+     * @param ownerUserId  用户ID
+     * @param documentId   文档ID
+     * @param sourceId     来源ID
+     * @param rawText      原始文本
+     * @param errorMessage 错误信息
+     * @return 受影响的行数
+     */
     @Update("""
             insert into public.document_structured_parse (
                 id, owner_user_id, document_id, source_id, raw_text,

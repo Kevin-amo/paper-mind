@@ -81,6 +81,12 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return new StructuredParseResult(content, evidence, missingFields);
     }
 
+    /**
+     * 检测文本中的章节结构。
+     *
+     * @param text 论文全文
+     * @return 章节字段与内容的映射
+     */
     private Map<String, String> detectSections(String text) {
         Map<String, SectionBuilder> builders = new LinkedHashMap<>();
         String currentField = null;
@@ -118,6 +124,12 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return sections;
     }
 
+    /**
+     * 判断一行文本是否为章节标题，并返回对应的字段名。
+     *
+     * @param line 文本行
+     * @return 字段名（如果不是标题则返回null）
+     */
     private String headingField(String line) {
         String candidate = stripHeading(line);
         if (candidate.length() > MAX_HEADING_LENGTH) {
@@ -135,6 +147,12 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return null;
     }
 
+    /**
+     * 判断一行文本是否看起来像任何章节标题。
+     *
+     * @param line 文本行
+     * @return 是否看起来像标题
+     */
     private boolean looksLikeAnyHeading(String line) {
         String candidate = stripHeading(line);
         if (candidate.length() > MAX_HEADING_LENGTH) {
@@ -149,6 +167,13 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return NUMBERED_HEADING_PREFIX.matcher(line.trim()).matches() && candidate.length() <= 40;
     }
 
+    /**
+     * 判断标准化后的标题是否与别名匹配。
+     *
+     * @param normalized      标准化后的标题
+     * @param normalizedAlias 标准化后的别名
+     * @return 是否匹配
+     */
     private boolean sameHeading(String normalized, String normalizedAlias) {
         return normalized.equals(normalizedAlias)
                 || normalized.startsWith(normalizedAlias + "：")
@@ -157,12 +182,24 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
                 || normalized.startsWith(normalizedAlias + "—");
     }
 
+    /**
+     * 去除标题行的前缀和后缀。
+     *
+     * @param line 标题行
+     * @return 去除前缀后缀的标题文本
+     */
     private String stripHeading(String line) {
         String candidate = NUMBERED_PREFIX.matcher(line.trim()).replaceFirst("").trim();
         candidate = candidate.replaceAll("^[#\\s]+", "").replaceAll("[：:]+$", "").trim();
         return candidate.replaceAll("(?<=\\p{IsHan})\\d{1,3}$", "").trim();
     }
 
+    /**
+     * 提取标题行中冒号后的内容。
+     *
+     * @param line 标题行
+     * @return 冒号后的内容（如果没有则返回空字符串）
+     */
     private String inlineHeadingContent(String line) {
         int colon = Math.max(line.indexOf('：'), line.indexOf(':'));
         if (colon < 0 || colon + 1 >= line.length()) {
@@ -171,6 +208,13 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return line.substring(colon + 1).trim();
     }
 
+    /**
+     * 提取关键词列表。
+     *
+     * @param document 文档详情
+     * @param text     论文全文
+     * @return 关键词列表
+     */
     private List<String> keywords(DocumentPersistenceService.DocumentDetail document, String text) {
         List<String> metadataKeywords = PaperStructuredContentSupport.texts(document.keywords());
         if (!metadataKeywords.isEmpty()) {
@@ -185,6 +229,13 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return List.of();
     }
 
+    /**
+     * 构建字段证据映射。
+     *
+     * @param content  结构化内容
+     * @param sections 检测到的章节
+     * @return 字段证据映射
+     */
     private Map<String, StructuredFieldEvidence> buildEvidence(PaperStructuredContent content, Map<String, String> sections) {
         Map<String, StructuredFieldEvidence> evidence = new LinkedHashMap<>();
         for (String field : PaperStructuredContentSupport.ALL_FIELDS) {
@@ -196,6 +247,13 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return evidence;
     }
 
+    /**
+     * 生成字段证据文本。
+     *
+     * @param field      字段名
+     * @param sectionHit 是否命中章节标题
+     * @return 证据文本
+     */
     private String evidenceText(String field, boolean sectionHit) {
         if (sectionHit) {
             return "命中章节标题";
@@ -206,10 +264,24 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return null;
     }
 
+    /**
+     * 安全获取标题。
+     *
+     * @param value 标题值
+     * @return 标题（如果为空则返回null）
+     */
     private String safeTitle(String value) {
         return blankToNull(value);
     }
 
+    /**
+     * 选择最佳摘要。
+     *
+     * @param metadataAbstract 元数据中的摘要
+     * @param sectionAbstract  章节中的摘要
+     * @param fullText         论文全文
+     * @return 最佳摘要
+     */
     private String bestAbstract(String metadataAbstract, String sectionAbstract, String fullText) {
         String sectionValue = blankToNull(sectionAbstract);
         if (sectionValue != null) {
@@ -222,6 +294,13 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return null;
     }
 
+    /**
+     * 判断摘要是否有用。
+     *
+     * @param value    摘要值
+     * @param fullText 论文全文
+     * @return 是否有用
+     */
     private boolean isUsefulAbstract(String value, String fullText) {
         if (value == null) {
             return false;
@@ -237,10 +316,22 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return normalizedFullText.isBlank() || normalizedFullText.contains(value.trim());
     }
 
+    /**
+     * 标准化文本行。
+     *
+     * @param value 文本行
+     * @return 标准化后的文本行
+     */
     private String normalizeLine(String value) {
         return value == null ? "" : value.replace('　', ' ').trim();
     }
 
+    /**
+     * 将空白字符串转换为null。
+     *
+     * @param value 字符串值
+     * @return 非空白字符串或null
+     */
     private String blankToNull(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -248,6 +339,13 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return value.trim();
     }
 
+    /**
+     * 截断字符串到最大长度。
+     *
+     * @param value     字符串值
+     * @param maxLength 最大长度
+     * @return 截断后的字符串
+     */
     private String truncate(String value, int maxLength) {
         if (value == null || value.length() <= maxLength) {
             return value;
@@ -255,18 +353,36 @@ public class PaperSectionRuleParserImpl implements PaperSectionRuleParser {
         return value.substring(0, maxLength);
     }
 
+    /**
+     * 章节内容构建器。
+     */
     private static class SectionBuilder {
         private final List<String> lines = new ArrayList<>();
 
+        /**
+         * 构造函数。
+         *
+         * @param heading 章节标题
+         */
         SectionBuilder(String heading) {
         }
 
+        /**
+         * 添加一行内容。
+         *
+         * @param line 内容行
+         */
         void append(String line) {
             if (line != null && !line.isBlank()) {
                 lines.add(line);
             }
         }
 
+        /**
+         * 获取构建的文本内容。
+         *
+         * @return 文本内容
+         */
         String text() {
             return String.join("\n", lines).trim();
         }
