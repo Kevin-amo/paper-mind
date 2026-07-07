@@ -3,9 +3,7 @@ import { ref } from 'vue';
 import ChatMessageList from './ChatMessageList.vue';
 import ChatComposer from './ChatComposer.vue';
 import ChatDropZone from './ChatDropZone.vue';
-import ChatUploadQueue from './ChatUploadQueue.vue';
 import type { ConversationMessage } from '../../types';
-import type { UploadQueueItem } from './ChatUploadQueue.vue';
 
 const props = defineProps<{
   loading: boolean;
@@ -14,7 +12,6 @@ const props = defineProps<{
   messagesLoading?: boolean;
   documentTotal: number;
   currentUserAvatarUrl?: string | null;
-  uploadQueue: UploadQueueItem[];
 }>();
 
 const emit = defineEmits<{
@@ -22,8 +19,6 @@ const emit = defineEmits<{
   openDocuments: [];
   dropFiles: [files: File[]];
   selectFiles: [];
-  removeQueueItem: [id: string];
-  clearQueue: [];
 }>();
 
 const composerRef = ref<{ fillQuestion: (question: string) => void } | null>(null);
@@ -41,11 +36,6 @@ function handleExample(question: string) {
         :loading="props.messagesLoading"
         :current-user-avatar-url="props.currentUserAvatarUrl"
         @ask-example="handleExample"
-      />
-      <ChatUploadQueue
-        :items="props.uploadQueue"
-        @remove="emit('removeQueueItem', $event)"
-        @clear="emit('clearQueue')"
       />
       <ChatComposer
         ref="composerRef"

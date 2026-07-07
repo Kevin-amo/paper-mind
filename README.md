@@ -36,7 +36,7 @@ Paper Mind 是一个面向论文辅助评审场景的智能平台，支持用户
 
 - Agent 编排式 SSE 流式问答
 - pgvector 向量存储和相似度检索
-- DashScope / Qwen 大模型问答和 Rerank，Ollama 本地 Embedding
+- DashScope / Qwen 大模型问答、Embedding 和 Rerank
 - 外部文献检索（OpenAlex），带 Redis 缓存和防缓存击穿
 - 引用归一化与文献上下文策略
 
@@ -140,7 +140,6 @@ paper-mind/
 - npm
 - Docker / Docker Compose
 - 可用的 DashScope API Key
-- 本地 Ollama 服务，默认地址 `http://localhost:11434`，并已拉取 `qwen3-embedding:8b`
 
 ## 快速启动
 
@@ -184,9 +183,7 @@ spring:
       api-key: ${DASHSCOPE_API_KEY:your-api-key}
     model:
       chat: ${SPRING_AI_MODEL_CHAT:dashscope}
-      embedding: ${SPRING_AI_MODEL_EMBEDDING:ollama}
-    ollama:
-      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      embedding: ${SPRING_AI_MODEL_EMBEDDING:dashscope}
 ```
 
 也可以直接使用环境变量：
@@ -194,9 +191,8 @@ spring:
 ```powershell
 $env:DASHSCOPE_API_KEY="your-api-key"
 $env:SPRING_AI_MODEL_CHAT="dashscope"
-$env:OLLAMA_BASE_URL="http://localhost:11434"
-$env:OLLAMA_EMBEDDING_MODEL="qwen3-embedding:8b"
-$env:PGVECTOR_DIMENSIONS="4096"
+$env:SPRING_AI_MODEL_EMBEDDING="dashscope"
+$env:PGVECTOR_DIMENSIONS="1536"
 $env:PGVECTOR_INDEX_TYPE="none"
 ```
 
@@ -205,9 +201,8 @@ Linux/macOS：
 ```bash
 export DASHSCOPE_API_KEY="your-api-key"
 export SPRING_AI_MODEL_CHAT="dashscope"
-export OLLAMA_BASE_URL="http://localhost:11434"
-export OLLAMA_EMBEDDING_MODEL="qwen3-embedding:8b"
-export PGVECTOR_DIMENSIONS="4096"
+export SPRING_AI_MODEL_EMBEDDING="dashscope"
+export PGVECTOR_DIMENSIONS="1536"
 export PGVECTOR_INDEX_TYPE="none"
 ```
 
@@ -384,21 +379,20 @@ src/main/resources/application-local.yaml
 | `spring.ai.dashscope.chat.options.temperature` | 温度 | `0.2` |
 | `spring.ai.dashscope.chat.options.max-tokens` | 最大输出 token | `6144` |
 | `spring.ai.dashscope.chat.options.enable-thinking` | 启用思考模式 | `false` |
-| `spring.ai.model.embedding` | Embedding Provider | `ollama` |
-| `spring.ai.ollama.base-url` | Ollama 服务地址 | `http://localhost:11434` |
-| `spring.ai.ollama.embedding.options.model` | Embedding 模型 | `qwen3-embedding:8b` |
-| `spring.ai.ollama.embedding.options.truncate` | 输入过长时截断 | `true` |
+| `spring.ai.model.embedding` | Embedding Provider | `dashscope` |
+| `spring.ai.dashscope.embedding.options.model` | Embedding 模型 | `text-embedding-v4` |
+| `spring.ai.dashscope.embedding.options.dimensions` | Embedding 输出维度 | `1536` |
 
 ### PgVector 配置
 
 | 配置项 | 说明 | 默认值 |
 | --- | --- | --- |
-| `spring.ai.vectorstore.pgvector.dimensions` | 向量维度，需与 `qwen3-embedding:8b` 输出维度一致 | `4096` |
-| `spring.ai.vectorstore.pgvector.index-type` | 向量 ANN 索引类型；4096 维默认不创建 | `none` |
+| `spring.ai.vectorstore.pgvector.dimensions` | 向量维度，需与 `text-embedding-v4` 输出维度一致 | `1536` |
+| `spring.ai.vectorstore.pgvector.index-type` | 向量 ANN 索引类型 | `none` |
 | `spring.ai.vectorstore.pgvector.distance-type` | 距离类型 | `cosine_distance` |
 | `spring.ai.vectorstore.pgvector.table-name` | 表名 | `vector_store` |
 
-> `qwen3-embedding:8b` 通过 Ollama `/api/embed` 返回 4096 维向量。pgvector 的 `vector` 类型 HNSW/IVFFlat 索引最多支持 2000 维，因此默认 `PGVECTOR_INDEX_TYPE=none`，SQL 初始化脚本也不会为 `embedding` 创建 HNSW 索引。若已有数据库中 `vector_store.embedding` 仍为 `vector(1536)`，仅修改配置无法兼容新模型；需要先清空/重建 `vector_store` 或迁移列为 `vector(4096)`，再通过文档重建索引接口重新生成向量。若旧库已创建过 HNSW 索引，先执行 `DROP INDEX IF EXISTS public.vector_store_embedding_idx;` 删除旧向量索引。
+> 从 Ollama 4096 维向量切回 DashScope `text-embedding-v4` 时，需要先执行 `src/main/resources/sql/migrate-vector-store-to-dashscope-1536.sql` 清空旧向量并将 `vector_store.embedding` 改为 `vector(1536)`，再通过文档重建索引接口重新生成向量。
 
 ### RAG 配置 (`app.rag`)
 

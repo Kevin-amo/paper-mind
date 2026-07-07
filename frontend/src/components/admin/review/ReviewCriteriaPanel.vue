@@ -56,12 +56,6 @@ async function saveWeights() {
   }
 }
 
-function resetWeights() {
-  for (const c of criteria.value) {
-    editingWeights[c.id] = c.weight;
-  }
-}
-
 onMounted(loadCriteria);
 </script>
 
@@ -132,7 +126,6 @@ onMounted(loadCriteria);
       </transition>
     </div>
     <div class="criteria-actions">
-      <el-button @click="resetWeights">重置</el-button>
       <el-button type="primary" :loading="saving" :disabled="!weightSumValid" @click="saveWeights">
         保存权重配置
       </el-button>

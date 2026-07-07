@@ -176,8 +176,7 @@ comment on column public.sys_user.avatar_updated_at is '用户头像最近更新
 -- ===== 01_vector_store.sql =====
 -- Spring AI pgvector 向量表。
 -- 表名需要和 application.yaml 中的 spring.ai.vectorstore.pgvector.table-name 保持一致。
--- 维度固定为 Ollama qwen3-embedding:8b 使用的 4096，避免运行时向量维度不匹配。
--- pgvector 的 vector HNSW/IVFFlat 索引最多支持 2000 维；4096 维场景不创建向量 ANN 索引。
+-- 维度固定为 DashScope text-embedding-v4 使用的 1536，避免运行时向量维度不匹配。
 
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -187,7 +186,7 @@ CREATE TABLE IF NOT EXISTS public.vector_store
     id       uuid NOT NULL DEFAULT uuid_generate_v4(),
     content  text,
     metadata json,
-    embedding public.vector(4096),
+    embedding public.vector(1536),
     CONSTRAINT vector_store_pkey PRIMARY KEY (id)
 );
 

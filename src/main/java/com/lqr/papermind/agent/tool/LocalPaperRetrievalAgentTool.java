@@ -68,7 +68,9 @@ public class LocalPaperRetrievalAgentTool implements AgentTool {
             return new AgentToolResult("本地检索跳过：query 为空。", "", List.of(), Map.of("localPaperChunks", List.of()));
         }
         List<RetrievedChunk> chunks = ragRetrievalService.retrieve(ownerUserId, query, topK);
+        // 构建引用列表
         List<AnswerCitation> citations = buildCitations(chunks);
+        // 构建元数据列表
         List<Map<String, Object>> chunkMetadata = chunks.stream()
                 .map(chunk -> {
                     Map<String, Object> item = new LinkedHashMap<>();
@@ -81,6 +83,7 @@ public class LocalPaperRetrievalAgentTool implements AgentTool {
                     return item;
                 })
                 .toList();
+        // 构建证据
         String evidence = chunks.stream()
                 .map(chunk -> "[本地论文] "
                         + firstNonBlank(stringMetadata(chunk.chunk().metadata(), MetadataKeys.TITLE), chunk.chunk().sourceId())
