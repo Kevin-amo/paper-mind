@@ -22,13 +22,7 @@ class PaperMindApplicationTests {
         MapperScan mapperScan = PaperMindApplication.class.getAnnotation(MapperScan.class);
 
         assertThat(mapperScan).isNotNull();
-        assertThat(mapperScan.basePackages()).containsExactlyInAnyOrder(
-                "com.lqr.papermind.auth.mapper",
-                "com.lqr.papermind.conversation.mapper",
-                "com.lqr.papermind.document.mapper",
-                "com.lqr.papermind.document.structured.mapper",
-                "com.lqr.papermind.review.mapper",
-                "com.lqr.papermind.vector.mapper"
-        );
+        assertThat(mapperScan.value().length > 0 ? mapperScan.value() : mapperScan.basePackages())
+                .containsExactly("com.lqr.papermind.**.mapper");
     }
 }

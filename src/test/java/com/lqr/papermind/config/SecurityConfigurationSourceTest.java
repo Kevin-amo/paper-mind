@@ -20,4 +20,17 @@ class SecurityConfigurationSourceTest {
 
         assertThat(content).doesNotContain(".contentTypeOptions(cto -> cto.disable())");
     }
+
+    @Test
+    void securityConfigurationShouldProtectPaperFormatEndpointsForAllAuthenticatedRoles() throws Exception {
+        Path source = Path.of(
+                System.getProperty("user.dir"),
+                "src/main/java/com/lqr/papermind/config/SecurityConfiguration.java"
+        );
+
+        String content = Files.readString(source);
+
+        assertThat(content).contains("\"/paper-format/**\"");
+        assertThat(content).contains("hasAnyRole(\"USER\", \"REVIEWER\", \"ADMIN\")");
+    }
 }

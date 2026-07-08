@@ -229,6 +229,7 @@ onMounted(async () => {
       @rename-conversation="conversationsState.renameConversation"
       @open-documents="documentLibraryVisible = true"
       @open-review-submissions="reviewSubmissionsVisible = true"
+      @open-format-check="router.push('/format')"
       @go-admin="router.push('/admin')"
       @open-account-management="accountManagementVisible = true"
       @logout="handleLogout"

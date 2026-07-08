@@ -30,6 +30,12 @@ const router = createRouter({
       meta: { roles: ['USER'] },
     },
     {
+      path: '/format',
+      name: 'paper-format-check',
+      component: () => import('../views/format/PaperFormatCheckView.vue'),
+      meta: { roles: ['USER'] },
+    },
+    {
       path: '/review',
       name: 'review-workspace',
       component: () => import('../views/review/ReviewWorkspaceView.vue'),

@@ -9,6 +9,8 @@ import com.lqr.papermind.document.service.DocumentPersistenceService;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.document.structured.entity.PaperStructuredParseEntity;
 import com.lqr.papermind.document.structured.service.PaperStructuredParseService;
+import com.lqr.papermind.paperformat.model.FormatViolation;
+import com.lqr.papermind.paperformat.service.PaperFormatService;
 import com.lqr.papermind.review.assessment.ReviewOutputParser;
 import com.lqr.papermind.review.audit.ReviewAuditService;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
@@ -35,6 +37,7 @@ import com.lqr.papermind.review.service.ReviewConsensusService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Method;
@@ -551,6 +554,87 @@ class ReviewServiceImplTest {
             Map<?, ?> risk = (Map<?, ?>) item;
             assertThat(risk.get("detector")).isEqualTo("REFERENCE_RULE");
             assertThat(risk.get("type")).isEqualTo("REFERENCE_FORMAT");
+        });
+    }
+
+    @Test
+    void generateAiReviewShouldMergePaperFormatErrorsIntoRisks() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID documentId = UUID.randomUUID();
+        ReviewTaskMapper taskMapper = mock(ReviewTaskMapper.class);
+        ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
+        ReviewCriterionMapper criterionMapper = mock(ReviewCriterionMapper.class);
+        ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
+        DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
+        PaperStructuredParseService paperStructuredParseService = mock(PaperStructuredParseService.class);
+        LlmService llmService = mock(LlmService.class);
+        ReviewOutputParser reviewOutputParser = mock(ReviewOutputParser.class);
+        ReviewRiskService reviewRiskService = mock(ReviewRiskService.class);
+        PaperFormatService paperFormatService = mock(PaperFormatService.class);
+        ReviewServiceImpl service = new ReviewServiceImpl(
+                taskMapper,
+                reportMapper,
+                assignmentMapper,
+                criterionMapper,
+                null,
+                null,
+                documentPersistenceService,
+                paperStructuredParseService,
+                llmService,
+                null,
+                reviewOutputParser,
+                new ReferenceFormatChecker(),
+                mock(ReviewAuditService.class),
+                reviewRiskService,
+                null,
+                new ObjectMapper()
+        );
+        ReflectionTestUtils.setField(service, "paperFormatService", paperFormatService);
+        ReviewTaskEntity task = task(taskId, null);
+        task.setDocumentId(documentId);
+        task.setSubmitterUserId(currentUserId);
+        task.setSourceId("source-1");
+        when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task);
+        when(documentPersistenceService.findReviewDocument(currentUserId, "source-1")).thenReturn(Optional.of(document(currentUserId, "source-1")));
+        ReviewAssignmentEntity assignment = assignment(UUID.randomUUID(), taskId, currentUserId);
+        when(assignmentMapper.selectActiveByTaskAndReviewer(taskId, currentUserId)).thenReturn(assignment);
+        when(criterionMapper.selectList(any())).thenReturn(List.of(criterion()));
+        when(paperStructuredParseService.find(currentUserId, "source-1")).thenReturn(Optional.empty());
+        when(llmService.generate(any())).thenReturn("{}");
+        when(reviewOutputParser.parse("{}")).thenReturn(Map.of(
+                "paperSections", Map.of("title", "title"),
+                "risks", List.of()
+        ));
+        when(paperFormatService.latestReviewPrecheckErrors(taskId)).thenReturn(List.of(FormatViolation.of(
+                "BODY_FONT",
+                "ERROR",
+                "正文第 3 段",
+                "宋体 12pt",
+                "微软雅黑 10.5pt",
+                "正文字体不符合学校模板",
+                "将正文设置为宋体小四"
+        )));
+        when(reportMapper.selectByAssignmentId(assignment.getId()))
+                .thenReturn(null)
+                .thenAnswer(invocation -> {
+                    ReviewReportEntity response = report(UUID.randomUUID(), taskId);
+                    response.setAssignmentId(assignment.getId());
+                    response.setRisks(List.of());
+                    return response;
+                });
+
+        service.generateAiReview(currentUserId, false, taskId);
+
+        ArgumentCaptor<Object> risksCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(reviewRiskService).replaceReportRisks(any(), org.mockito.ArgumentMatchers.eq(taskId), risksCaptor.capture());
+        assertThat((List<?>) risksCaptor.getValue()).anySatisfy(item -> {
+            Map<?, ?> risk = (Map<?, ?>) item;
+            assertThat(risk.get("detector")).isEqualTo("PAPER_FORMAT_RULE");
+            assertThat(risk.get("type")).isEqualTo("PAPER_FORMAT");
+            assertThat(risk.get("level")).isEqualTo("HIGH");
+            assertThat(risk.get("evidence")).isEqualTo("正文第 3 段：正文字体不符合学校模板（期望：宋体 12pt；实际：微软雅黑 10.5pt）");
+            assertThat(risk.get("suggestion")).isEqualTo("将正文设置为宋体小四");
         });
     }
 

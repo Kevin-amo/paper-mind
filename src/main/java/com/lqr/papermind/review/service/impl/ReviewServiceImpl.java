@@ -16,6 +16,8 @@ import com.lqr.papermind.document.mapper.DocumentMapper;
 import com.lqr.papermind.document.service.DocumentPersistenceService;
 import com.lqr.papermind.document.structured.dto.PaperStructuredParseResponse;
 import com.lqr.papermind.document.structured.service.PaperStructuredParseService;
+import com.lqr.papermind.paperformat.model.FormatViolation;
+import com.lqr.papermind.paperformat.service.PaperFormatService;
 import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
 import com.lqr.papermind.review.dto.ReviewAuditLogResponse;
 import com.lqr.papermind.review.dto.ReviewConsensusResponse;
@@ -52,6 +54,7 @@ import com.lqr.papermind.review.service.ReviewAssignmentService;
 import com.lqr.papermind.review.service.ReviewConsensusService;
 import com.lqr.papermind.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -95,6 +98,8 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewConsensusService consensusService;
     private final ReviewOutputParser reviewOutputParser;
     private final ReferenceFormatChecker referenceFormatChecker;
+    @Autowired(required = false)
+    private PaperFormatService paperFormatService;
     private final ReviewAuditService reviewAuditService;
     private final ReviewRiskService reviewRiskService;
     private final SysUserMapper userMapper;
@@ -288,6 +293,9 @@ public class ReviewServiceImpl implements ReviewService {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, ex.getMessage(), ex);
         }
         List<ReferenceFormatChecker.ReferenceRisk> referenceRisks = referenceFormatChecker.check(referenceCheckerInput(document, parsed));
+        List<FormatViolation> paperFormatRisks = paperFormatService == null
+                ? List.of()
+                : paperFormatService.latestReviewPrecheckErrors(task.getId());
         ReviewReportEntity report = assignment == null
                 ? reportMapper.selectLatestByTaskId(task.getId())
                 : reportMapper.selectByAssignmentId(assignment.getId());
@@ -307,7 +315,7 @@ public class ReviewServiceImpl implements ReviewService {
         report.setPaperSections(mapValue(parsed.get("paperSections")));
         report.setScores(valueOrDefault(parsed.get("scores"), List.of()));
         report.setComments(mapValue(parsed.get("comments")));
-        report.setRisks(mergeRisks(valueOrDefault(parsed.get("risks"), List.of()), referenceRisks));
+        report.setRisks(mergeRisks(valueOrDefault(parsed.get("risks"), List.of()), referenceRisks, paperFormatRisks));
         report.setRawModelOutput(rawOutput(parsed, modelText));
         report.setTotalScore(intValue(parsed.get("totalScore"), calculateTotalScore(parsed.get("scores"), criteria)));
         report.setFinalRecommendation(stringValue(parsed.get("finalRecommendation"), "建议人工复核后进入下一评审环节"));
@@ -1290,6 +1298,12 @@ public class ReviewServiceImpl implements ReviewService {
      * @return 合并后的风险项列表
      */
     private Object mergeRisks(Object modelRisks, List<ReferenceFormatChecker.ReferenceRisk> referenceRisks) {
+        return mergeRisks(modelRisks, referenceRisks, List.of());
+    }
+
+    private Object mergeRisks(Object modelRisks,
+                              List<ReferenceFormatChecker.ReferenceRisk> referenceRisks,
+                              List<FormatViolation> paperFormatRisks) {
         List<Object> merged = new ArrayList<>();
         if (modelRisks instanceof List<?> list) {
             merged.addAll(list);
@@ -1303,7 +1317,45 @@ public class ReviewServiceImpl implements ReviewService {
                     "detector", "REFERENCE_RULE"
             ));
         }
+        for (FormatViolation violation : paperFormatRisks) {
+            merged.add(Map.of(
+                    "type", "PAPER_FORMAT",
+                    "level", paperFormatRiskLevel(violation.getSeverity()),
+                    "evidence", paperFormatEvidence(violation),
+                    "suggestion", Objects.toString(violation.getSuggestion(), ""),
+                    "detector", "PAPER_FORMAT_RULE"
+            ));
+        }
         return dedupeRisks(merged);
+    }
+
+    private String paperFormatRiskLevel(String severity) {
+        if ("ERROR".equalsIgnoreCase(severity)) {
+            return "HIGH";
+        }
+        if ("WARNING".equalsIgnoreCase(severity)) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    private String paperFormatEvidence(FormatViolation violation) {
+        StringBuilder evidence = new StringBuilder();
+        if (violation.getLocation() != null && !violation.getLocation().isBlank()) {
+            evidence.append(violation.getLocation()).append("：");
+        }
+        evidence.append(Objects.toString(violation.getMessage(), violation.getCode()));
+        List<String> details = new ArrayList<>();
+        if (violation.getExpected() != null && !violation.getExpected().isBlank()) {
+            details.add("期望：" + violation.getExpected());
+        }
+        if (violation.getActual() != null && !violation.getActual().isBlank()) {
+            details.add("实际：" + violation.getActual());
+        }
+        if (!details.isEmpty()) {
+            evidence.append("（").append(String.join("；", details)).append("）");
+        }
+        return evidence.toString();
     }
 
     private List<Object> dedupeRisks(List<Object> risks) {

@@ -8,14 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * 论文 RAG 服务启动类。
  */
-@MapperScan(basePackages = {
-        "com.lqr.papermind.auth.mapper",
-        "com.lqr.papermind.conversation.mapper",
-        "com.lqr.papermind.document.mapper",
-        "com.lqr.papermind.document.structured.mapper",
-        "com.lqr.papermind.review.mapper",
-        "com.lqr.papermind.vector.mapper"
-})
+@MapperScan("com.lqr.papermind.**.mapper")
 @EnableScheduling
 @SpringBootApplication
 public class PaperMindApplication {

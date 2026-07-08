@@ -15,9 +15,9 @@ import { getErrorMessage } from '../../api/http';
 import { useAuth } from '../../composables/useAuth';
 import { useReviews } from '../../composables/useReviews';
 import { useReviewLeaderAccess } from '../../composables/useReviewLeaderAccess';
-import type { PaperStructuredContent, ReviewAssignmentStatus, ReviewScoreItem } from '../../types';
+import type { FormatViolation, PaperStructuredContent, ReviewAssignmentStatus, ReviewScoreItem } from '../../types';
 
-type ReviewTabKey = 'parse' | 'risks' | 'scores' | 'comments' | 'audit';
+type ReviewTabKey = 'parse' | 'format' | 'risks' | 'scores' | 'comments' | 'audit';
 
 const router = useRouter();
 const auth = useAuth();
@@ -28,6 +28,7 @@ const logoutDialogVisible = ref(false);
 
 const reviewSteps: Array<{ key: ReviewTabKey; label: string; caption: string }> = [
   { key: 'parse', label: '论文概览', caption: '结构解析' },
+  { key: 'format', label: '格式检查', caption: '前置校对' },
   { key: 'risks', label: 'AI 辅助', caption: '风险提示' },
   { key: 'scores', label: '评分表', caption: '多维调整' },
   { key: 'comments', label: '评语', caption: '意见整理' },
@@ -49,6 +50,8 @@ const structuredContent = computed(() => {
 const missingFields = computed(() => structuredParse.value?.missingFields ?? []);
 const scoreItems = computed(() => (Array.isArray(selectedReport.value?.scores) ? selectedReport.value?.scores as ReviewScoreItem[] : []));
 const riskRecords = computed(() => reviews.riskRecords.value);
+const formatSummary = computed(() => reviews.formatViolationSummary.value);
+const formatViolations = computed(() => reviews.formatViolations.value as FormatViolation[]);
 const comments = computed(() => selectedReport.value?.comments && typeof selectedReport.value.comments === 'object'
   ? selectedReport.value.comments as Record<string, unknown>
   : {});
@@ -114,6 +117,9 @@ function isReviewStepDone(key: ReviewTabKey) {
   if (key === 'risks') {
     return Boolean(selectedReport.value);
   }
+  if (key === 'format') {
+    return Boolean(reviews.formatCheck.value);
+  }
   if (key === 'scores') {
     return scoreItems.value.length > 0;
   }
@@ -128,6 +134,16 @@ async function handleLogout() {
   await router.replace('/login');
 }
 
+function formatSeverityType(severity: string) {
+  if (severity === 'ERROR') {
+    return 'danger';
+  }
+  if (severity === 'WARNING') {
+    return 'warning';
+  }
+  return 'info';
+}
+
 onMounted(async () => {
   try {
     if (!auth.state.user) {
@@ -135,6 +151,7 @@ onMounted(async () => {
     }
     await Promise.all([
       reviews.loadCriteria(),
+      reviews.loadFormatTemplates(),
       reviews.loadTasks(0),
       refreshLeaderWorkspaceAccess(),
     ]);
@@ -274,6 +291,11 @@ onMounted(async () => {
                   <p>{{ reviewSummary }}</p>
                 </article>
                 <article class="review-summary-item">
+                  <span>格式错误</span>
+                  <strong>{{ formatSummary.errorCount }}</strong>
+                  <p>{{ reviews.formatCheck.value ? `格式检查状态：${reviews.formatCheck.value.status}` : '建议评分前先执行格式检查。' }}</p>
+                </article>
+                <article class="review-summary-item">
                   <span>风险提示</span>
                   <strong>{{ riskRecords.length }}</strong>
                   <p>高风险项建议在提交前逐条确认或忽略。</p>
@@ -299,6 +321,59 @@ onMounted(async () => {
                   :regenerating-structured-parse="reviews.regeneratingStructuredParse.value"
                   @rerun-structured-parse="reviews.rerunStructuredParse"
                 />
+
+                <section v-else-if="activeReviewTab === 'format'" class="review-format-check-panel" v-loading="reviews.formatCheckLoading.value">
+                  <div class="format-check-toolbar">
+                    <div>
+                      <h3>格式检查</h3>
+                      <p>{{ reviews.formatCheck.value ? `最近检查状态：${reviews.formatCheck.value.status}` : '尚未执行格式检查，建议先完成预检再进入六维评分。' }}</p>
+                    </div>
+                    <div class="format-check-actions">
+                      <el-select v-model="reviews.selectedFormatTemplateId.value" filterable placeholder="选择学校模板">
+                        <el-option
+                          v-for="template in reviews.formatTemplates.value"
+                          :key="template.id"
+                          :label="`${template.name} · ${template.status}`"
+                          :value="template.id"
+                        />
+                      </el-select>
+                      <el-button type="primary" :loading="reviews.formatChecking.value" :disabled="!reviews.selectedFormatTemplateId.value" @click="reviews.runReviewFormatCheck">
+                        执行格式检查
+                      </el-button>
+                    </div>
+                  </div>
+
+                  <div class="format-check-stats">
+                    <article>
+                      <span>ERROR</span>
+                      <strong>{{ formatSummary.errorCount }}</strong>
+                    </article>
+                    <article>
+                      <span>WARNING</span>
+                      <strong>{{ formatSummary.warningCount }}</strong>
+                    </article>
+                    <article>
+                      <span>REVIEW</span>
+                      <strong>{{ formatSummary.reviewCount }}</strong>
+                    </article>
+                  </div>
+
+                  <div class="format-violation-list">
+                    <article v-for="violation in formatViolations" :key="`${violation.code}-${violation.location}-${violation.message}`" class="format-violation-item">
+                      <div>
+                        <el-tag :type="formatSeverityType(violation.severity)">{{ violation.severity }}</el-tag>
+                        <strong>{{ violation.code }}</strong>
+                        <span>{{ violation.location || '整篇文档' }}</span>
+                      </div>
+                      <p>{{ violation.message }}</p>
+                      <small>期望：{{ violation.expected || '-' }} / 实际：{{ violation.actual || '-' }}</small>
+                      <small v-if="violation.suggestion">建议：{{ violation.suggestion }}</small>
+                    </article>
+                    <div v-if="reviews.formatCheck.value && !formatViolations.length" class="format-empty-state">
+                      未发现格式问题
+                    </div>
+                  </div>
+                </section>
 
                 <ReviewRisksTab
                   v-else-if="activeReviewTab === 'risks'"
@@ -683,14 +758,14 @@ onMounted(async () => {
 
 .review-progress-strip {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   margin-top: 18px;
 }
 
 .review-summary-strip {
   display: grid;
-  grid-template-columns: 160px minmax(0, 1.3fr) minmax(180px, 1fr) 150px;
+  grid-template-columns: 140px minmax(0, 1.2fr) 140px minmax(160px, 1fr) 140px;
   gap: 1px;
   overflow: hidden;
   margin-top: 18px;
@@ -805,6 +880,112 @@ onMounted(async () => {
 .review-tab-surface {
   min-width: 0;
   padding: 4px 0 0;
+}
+
+.review-format-check-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.format-check-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-strong);
+  padding: 16px;
+}
+
+.format-check-toolbar h3 {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 18px;
+}
+
+.format-check-toolbar p {
+  margin: 6px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.format-check-actions {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px;
+  min-width: min(460px, 100%);
+}
+
+.format-check-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-border);
+}
+
+.format-check-stats article {
+  background: var(--app-surface-soft);
+  padding: 14px;
+}
+
+.format-check-stats span {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.format-check-stats strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--app-text);
+  font-size: 28px;
+}
+
+.format-violation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.format-violation-item {
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface);
+  padding: 14px;
+}
+
+.format-violation-item div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.format-violation-item p {
+  margin: 10px 0 6px;
+  color: var(--app-text);
+}
+
+.format-violation-item small {
+  display: block;
+  color: var(--app-text-muted);
+  line-height: 1.7;
+}
+
+.format-empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-md);
+  color: var(--app-text-muted);
+  background: var(--app-surface-soft);
+  font-size: 14px;
 }
 
 .review-empty-state {
@@ -943,6 +1124,7 @@ onMounted(async () => {
   }
 
   .review-paper-header-top,
+  .format-check-toolbar,
   .review-bottom-bar {
     align-items: flex-start;
     flex-direction: column;
@@ -956,6 +1138,11 @@ onMounted(async () => {
     right: 18px;
     left: 18px;
     width: auto;
+  }
+
+  .format-check-actions {
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 }
 

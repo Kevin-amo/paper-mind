@@ -13,10 +13,17 @@ import {
   updateReviewRisk,
   uploadReviewPaper,
   getReviewUploadJob,
+  createReviewFormatCheck,
+  getReviewFormatCheck,
 } from '../api/reviews';
+import { listFormatTemplates } from '../api/paperFormat';
 import { getErrorMessage } from '../api/http';
 import { calculateWeightedScore } from './reviewScore';
 import type {
+  FormatCheckSummary,
+  FormatViolation,
+  PaperFormatCheckJob,
+  PaperFormatTemplate,
   PaperStructuredParse,
   ReviewCriterion,
   ReviewReport,
@@ -39,6 +46,11 @@ export function useReviews() {
   const submittingAssignment = ref(false);
   const structuredParseLoading = ref(false);
   const regeneratingStructuredParse = ref(false);
+  const formatTemplates = ref<PaperFormatTemplate[]>([]);
+  const selectedFormatTemplateId = ref('');
+  const formatCheck = ref<PaperFormatCheckJob | null>(null);
+  const formatCheckLoading = ref(false);
+  const formatChecking = ref(false);
   const riskRecords = ref<ReviewRiskRecord[]>([]);
   const riskLoading = ref(false);
   const riskStatusUpdatingIds = ref<string[]>([]);
@@ -63,7 +75,33 @@ export function useReviews() {
   const selectedReport = computed(() => selectedTask.value?.report ?? null);
   let selectTaskRequestId = 0;
   let structuredParseRequestId = 0;
+  let formatCheckRequestId = 0;
   let riskRequestId = 0;
+  const formatViolations = computed<FormatViolation[]>(() => (
+    Array.isArray(formatCheck.value?.violations) ? formatCheck.value?.violations as FormatViolation[] : []
+  ));
+  const formatViolationSummary = computed<FormatCheckSummary>(() => {
+    const errors = formatViolations.value.filter((item) => item.severity === 'ERROR').length;
+    const warnings = formatViolations.value.filter((item) => item.severity === 'WARNING').length;
+    const reviews = formatViolations.value.filter((item) => item.severity === 'REVIEW').length;
+    const raw = formatCheck.value?.summary;
+    if (raw && typeof raw === 'object') {
+      const value = raw as Partial<FormatCheckSummary>;
+      return {
+        total: Number(value.total ?? formatViolations.value.length),
+        errorCount: Number(value.errorCount ?? errors),
+        warningCount: Number(value.warningCount ?? warnings),
+        reviewCount: Number(value.reviewCount ?? reviews),
+        passed: value.passed,
+      };
+    }
+    return {
+      total: formatViolations.value.length,
+      errorCount: errors,
+      warningCount: warnings,
+      reviewCount: reviews,
+    };
+  });
 
   async function loadTasks(page = pagination.page) {
     loading.value = true;
@@ -100,6 +138,17 @@ export function useReviews() {
   async function loadCriteria() {
     try {
       criteria.value = await listReviewCriteria(false);
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error));
+    }
+  }
+
+  async function loadFormatTemplates() {
+    try {
+      formatTemplates.value = await listFormatTemplates();
+      if (!selectedFormatTemplateId.value && formatTemplates.value.length) {
+        selectedFormatTemplateId.value = formatTemplates.value[0].id;
+      }
     } catch (error) {
       ElMessage.error(getErrorMessage(error));
     }
@@ -143,11 +192,14 @@ export function useReviews() {
     const requestId = ++selectTaskRequestId;
     detailLoading.value = true;
     structuredParse.value = null;
+    formatCheck.value = null;
     riskRecords.value = [];
     riskStatusUpdatingIds.value = [];
     structuredParseRequestId++;
+    formatCheckRequestId++;
     riskRequestId++;
     structuredParseLoading.value = false;
+    formatCheckLoading.value = false;
     riskLoading.value = false;
     try {
       const task = await getReviewTask(taskId);
@@ -157,6 +209,7 @@ export function useReviews() {
       selectedTask.value = task;
       syncReportForm(task.report);
       await loadStructuredParse(task.id, false);
+      await loadReviewFormatCheck(task.id, false);
       if (requestId !== selectTaskRequestId || selectedTask.value?.id !== taskId) {
         return;
       }
@@ -164,6 +217,7 @@ export function useReviews() {
     } catch (error) {
       if (requestId === selectTaskRequestId) {
         structuredParse.value = null;
+        formatCheck.value = null;
         riskRecords.value = [];
         riskStatusUpdatingIds.value = [];
         ElMessage.error(getErrorMessage(error));
@@ -213,6 +267,51 @@ export function useReviews() {
       ElMessage.error(getErrorMessage(error));
     } finally {
       regeneratingStructuredParse.value = false;
+    }
+  }
+
+  async function loadReviewFormatCheck(taskId: string, showError = false) {
+    const requestId = ++formatCheckRequestId;
+    formatCheckLoading.value = true;
+    try {
+      const result = await getReviewFormatCheck(taskId);
+      if (requestId === formatCheckRequestId && selectedTask.value?.id === taskId) {
+        formatCheck.value = result;
+      }
+    } catch (error) {
+      if (requestId === formatCheckRequestId && selectedTask.value?.id === taskId) {
+        formatCheck.value = null;
+      }
+      if (showError && requestId === formatCheckRequestId) {
+        ElMessage.error(getErrorMessage(error));
+      }
+    } finally {
+      if (requestId === formatCheckRequestId) {
+        formatCheckLoading.value = false;
+      }
+    }
+  }
+
+  async function runReviewFormatCheck() {
+    const taskId = selectedTask.value?.id;
+    if (!taskId) {
+      return;
+    }
+    if (!selectedFormatTemplateId.value) {
+      ElMessage.warning('请先选择格式模板');
+      return;
+    }
+    formatChecking.value = true;
+    try {
+      const result = await createReviewFormatCheck(taskId, selectedFormatTemplateId.value);
+      if (selectedTask.value?.id === taskId) {
+        formatCheck.value = result;
+        ElMessage.success(result.status === 'PASSED' ? '格式检查通过' : '格式检查已完成');
+      }
+    } catch (error) {
+      ElMessage.error(getErrorMessage(error));
+    } finally {
+      formatChecking.value = false;
     }
   }
 
@@ -384,13 +483,16 @@ export function useReviews() {
   function clearReviewSelection() {
     selectTaskRequestId++;
     structuredParseRequestId++;
+    formatCheckRequestId++;
     riskRequestId++;
     selectedTask.value = null;
     structuredParse.value = null;
+    formatCheck.value = null;
     riskRecords.value = [];
     riskStatusUpdatingIds.value = [];
     detailLoading.value = false;
     structuredParseLoading.value = false;
+    formatCheckLoading.value = false;
     riskLoading.value = false;
     syncReportForm(null);
   }
@@ -448,6 +550,13 @@ export function useReviews() {
     submittingAssignment,
     structuredParseLoading,
     regeneratingStructuredParse,
+    formatTemplates,
+    selectedFormatTemplateId,
+    formatCheck,
+    formatCheckLoading,
+    formatChecking,
+    formatViolations,
+    formatViolationSummary,
     riskRecords,
     riskLoading,
     riskStatusUpdatingIds,
@@ -465,8 +574,11 @@ export function useReviews() {
     completedCount,
     loadTasks,
     loadCriteria,
+    loadFormatTemplates,
     uploadPaper,
     selectTask,
+    runReviewFormatCheck,
+    loadReviewFormatCheck,
     runAiReview,
     saveReport,
     submitCurrentAssignment,

@@ -141,10 +141,7 @@ function handleChunkSizeChange(size: number) {
           />
         </section>
 
-        <section class="detail-section reading-section">
-          <h3>摘要</h3>
-          <p>{{ props.detail.abstractText || '暂无摘要' }}</p>
-        </section>
+
 
         <section v-if="props.detail.contentText" class="detail-section reading-section">
           <h3>正文预览</h3>
