@@ -47,7 +47,7 @@ public class LiteratureSearchCache {
             }
             return Optional.of(objectMapper.readValue(payload, LiteratureSearchResponse.class));
         } catch (RuntimeException | JsonProcessingException ex) {
-            log.warn("literature.search.cache.redis.read.failed keyHash={}", keyHash, ex);
+            log.warn("文献搜索缓存Redis读取失败 keyHash={}", keyHash, ex);
             return Optional.empty();
         }
     }
@@ -64,7 +64,7 @@ public class LiteratureSearchCache {
             String payload = objectMapper.writeValueAsString(response);
             redisTemplate.opsForValue().set(redisKey(keyHash), payload, ttl);
         } catch (RuntimeException | JsonProcessingException ex) {
-            log.warn("literature.search.cache.redis.write.failed keyHash={}", keyHash, ex);
+            log.warn("文献搜索缓存Redis写入失败 keyHash={}", keyHash, ex);
         }
     }
 
@@ -85,7 +85,7 @@ public class LiteratureSearchCache {
             }
             return Optional.empty();
         } catch (RuntimeException ex) {
-            log.warn("literature.search.cache.redis.lock.acquire.failed keyHash={}", keyHash, ex);
+            log.warn("文献搜索缓存Redis锁获取失败 keyHash={}", keyHash, ex);
             return Optional.empty();
         }
     }
@@ -103,7 +103,7 @@ public class LiteratureSearchCache {
                 redisTemplate.delete(lockHandle.lockKey());
             }
         } catch (RuntimeException ex) {
-            log.warn("literature.search.cache.redis.lock.release.failed lockKey={}", lockHandle.lockKey(), ex);
+            log.warn("文献搜索缓存Redis锁释放失败 lockKey={}", lockHandle.lockKey(), ex);
         }
     }
 

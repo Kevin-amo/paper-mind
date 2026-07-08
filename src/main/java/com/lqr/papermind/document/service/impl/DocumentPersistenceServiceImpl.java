@@ -23,17 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -45,7 +41,6 @@ import java.util.stream.Collectors;
 public class DocumentPersistenceServiceImpl implements DocumentPersistenceService {
 
     private static final int SECTION_TITLE_MAX_LENGTH = 512;
-    private static final Pattern SEARCH_TOKEN = Pattern.compile("[\\p{IsHan}A-Za-z0-9]+");
 
     private final DocumentMapper documentMapper;
     private final DocumentChunkMapper chunkMapper;
@@ -185,41 +180,6 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
     }
 
     /**
-     * 基于本地关键词评分检索候选文档分块。
-     *
-     * @param ownerUserId 文档所属用户 ID
-     * @param question 检索问题
-     * @param limit 最大返回条数
-     * @return 匹配的文档分块列表
-     */
-    @Override
-    public List<DocumentChunk> searchChunks(UUID ownerUserId, String question, int limit) {
-        if (question == null || question.isBlank() || limit <= 0) {
-            return List.of();
-        }
-        int safeLimit = clamp(limit, 1, 200);
-        List<DocumentChunk> candidates = chunkMapper.selectSearchCandidates(ownerUserId).stream()
-                .map(entity -> new DocumentChunk(
-                        entity.getChunkId(),
-                        entity.getSourceId(),
-                        intOrZero(entity.getChunkIndex()),
-                        entity.getContent(),
-                        safeMetadata(entity.getMetadata())
-                ))
-                .toList();
-        List<String> terms = extractSearchTerms(question);
-        return candidates.stream()
-                .map(chunk -> new ScoredDocumentChunk(chunk, lexicalScore(question, chunk, terms)))
-                .filter(hit -> hit.score() > 0)
-                .sorted(Comparator.comparingDouble(ScoredDocumentChunk::score).reversed()
-                        .thenComparing(hit -> hit.chunk().sourceId())
-                        .thenComparingInt(hit -> hit.chunk().chunkIndex()))
-                .limit(safeLimit)
-                .map(ScoredDocumentChunk::chunk)
-                .toList();
-    }
-
-    /**
      * 更新文档可编辑元数据字段。
      *
      * @param ownerUserId 文档所属用户 ID
@@ -302,7 +262,7 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
                 contentText,
                 toJson(metadata)
         );
-        log.info("document.persistence.status ownerUserId={} sourceId={} status=PARSING progress={} fileName={} fileType={} fileSize={} contentLength={}",
+        log.info("文档持久化状态 ownerUserId={} sourceId={} status=解析中 progress={} fileName={} fileType={} fileSize={} contentLength={}",
                 ownerUserId,
                 source.sourceId(),
                 30,
@@ -327,13 +287,13 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
                 .eq(DocumentAssetEntity::getSourceId, sourceId));
         int assetCount = assets == null ? 0 : assets.size();
         if (assets == null || assets.isEmpty()) {
-            log.info("document.persistence.assets.replace ownerUserId={} sourceId={} assetCount={}", ownerUserId, sourceId, assetCount);
+            log.info("文档持久化资产替换 ownerUserId={} sourceId={} assetCount={}", ownerUserId, sourceId, assetCount);
             return;
         }
         for (DocumentAsset asset : assets) {
             assetMapper.insert(toAssetEntity(ownerUserId, asset));
         }
-        log.info("document.persistence.assets.replace ownerUserId={} sourceId={} assetCount={}", ownerUserId, sourceId, assetCount);
+        log.info("文档持久化资产替换 ownerUserId={} sourceId={} assetCount={}", ownerUserId, sourceId, assetCount);
     }
 
     /**
@@ -410,13 +370,13 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
                 .eq(DocumentChunkEntity::getSourceId, sourceId));
         int chunkCount = chunks == null ? 0 : chunks.size();
         if (chunks == null || chunks.isEmpty()) {
-            log.info("document.persistence.chunks.replace ownerUserId={} sourceId={} chunkCount={}", ownerUserId, sourceId, chunkCount);
+            log.info("文档持久化分块替换 ownerUserId={} sourceId={} chunkCount={}", ownerUserId, sourceId, chunkCount);
             return;
         }
         for (DocumentChunk chunk : chunks) {
             chunkMapper.insert(toChunkEntity(ownerUserId, chunk));
         }
-        log.info("document.persistence.chunks.replace ownerUserId={} sourceId={} chunkCount={}", ownerUserId, sourceId, chunkCount);
+        log.info("文档持久化分块替换 ownerUserId={} sourceId={} chunkCount={}", ownerUserId, sourceId, chunkCount);
     }
 
     /**
@@ -429,7 +389,7 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
     @Override
     public void markIndexed(UUID ownerUserId, String sourceId, int chunkCount) {
         documentMapper.markIndexed(ownerUserId, sourceId, chunkCount);
-        log.info("document.persistence.status ownerUserId={} sourceId={} status=INDEXED progress={} chunkCount={}",
+        log.info("文档持久化状态 ownerUserId={} sourceId={} status=已索引 progress={} chunkCount={}",
                 ownerUserId, sourceId, 100, chunkCount);
     }
 
@@ -443,7 +403,7 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
     @Override
     public void markFailed(UUID ownerUserId, String sourceId, String errorMessage) {
         documentMapper.markFailed(ownerUserId, sourceId, cut(errorMessage, 4000));
-        log.info("document.persistence.status ownerUserId={} sourceId={} status=FAILED progress={} errorMessageLength={}",
+        log.info("文档持久化状态 ownerUserId={} sourceId={} status=失败 progress={} errorMessageLength={}",
                 ownerUserId, sourceId, 100, errorMessage == null ? 0 : errorMessage.length());
     }
 
@@ -814,80 +774,6 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
     }
 
     /**
-     * 从用户问题中提取用于本地关键词检索的词项。
-     */
-    private List<String> extractSearchTerms(String question) {
-        if (question == null || question.isBlank()) {
-            return List.of();
-        }
-        LinkedHashSet<String> terms = new LinkedHashSet<>();
-        Matcher matcher = SEARCH_TOKEN.matcher(question);
-        while (matcher.find()) {
-            addSearchTerms(terms, normalizeSearchText(matcher.group()));
-        }
-        return List.copyOf(terms);
-    }
-
-    /**
-     * 将检索词及其 n-gram 片段加入词项集合。
-     */
-    private void addSearchTerms(LinkedHashSet<String> terms, String token) {
-        if (token == null || token.length() < 2) {
-            return;
-        }
-        if (token.length() <= 4) {
-            terms.add(token);
-            return;
-        }
-        int maxGram = Math.min(4, token.length());
-        for (int size = maxGram; size >= 2; size--) {
-            for (int start = 0; start + size <= token.length(); start++) {
-                terms.add(token.substring(start, start + size));
-            }
-        }
-    }
-
-    /**
-     * 根据问题词项与分块内容命中情况计算本地检索分数。
-     */
-    private double lexicalScore(String question, DocumentChunk chunk, List<String> terms) {
-        String haystack = normalizeSearchText(chunk.content()) + "|" + metadataText(chunk.metadata());
-        double score = 0;
-        String normalizedQuestion = normalizeSearchText(question);
-        if (!normalizedQuestion.isBlank() && haystack.contains(normalizedQuestion)) {
-            score += 3.0;
-        }
-        for (String term : terms) {
-            if (haystack.contains(term)) {
-                score += 1.0 + (term.length() * 0.1);
-            }
-        }
-        return score;
-    }
-
-    /**
-     * 将元数据值拼接为可参与关键词检索的文本。
-     */
-    private String metadataText(Map<String, Object> metadata) {
-        if (metadata == null || metadata.isEmpty()) {
-            return "";
-        }
-        return metadata.values().stream()
-                .map(this::stringValue)
-                .filter(Objects::nonNull)
-                .map(this::normalizeSearchText)
-                .filter(value -> !value.isBlank())
-                .collect(Collectors.joining("|"));
-    }
-
-    /**
-     * 规范化用于关键词检索的文本。
-     */
-    private String normalizeSearchText(String value) {
-        return value == null ? "" : value.replaceAll("\\s+", "").toLowerCase();
-    }
-
-    /**
      * 将整数限制在指定闭区间内。
      */
     private int clamp(int value, int min, int max) {
@@ -917,6 +803,4 @@ public class DocumentPersistenceServiceImpl implements DocumentPersistenceServic
         }
     }
 
-    private record ScoredDocumentChunk(DocumentChunk chunk, double score) {
-    }
 }

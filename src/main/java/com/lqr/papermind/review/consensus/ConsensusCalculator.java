@@ -67,7 +67,12 @@ public class ConsensusCalculator {
         Map<String, Object> commentSummary = new LinkedHashMap<>();
         commentSummary.put("recommendations", recommendations(safeReports));
 
-        return new Result(scoreSummary, commentSummary, disagreementItems, overallAverage);
+        // 当存在总分分歧时，不直接采用平均值作为最终分数，而是置空 finalScore 以标记需要人工协调解决。
+        // overallAverage 仍保存在 scoreSummary 中供参考。
+        boolean hasOverallDisagreement = disagreementItems.stream()
+                .anyMatch(item -> "OVERALL_SCORE".equals(item.get("type")));
+        Integer finalScore = hasOverallDisagreement ? null : overallAverage;
+        return new Result(scoreSummary, commentSummary, disagreementItems, finalScore);
     }
 
     /**

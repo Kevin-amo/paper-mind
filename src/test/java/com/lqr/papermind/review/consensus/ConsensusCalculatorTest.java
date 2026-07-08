@@ -64,12 +64,36 @@ class ConsensusCalculatorTest {
 
         ConsensusCalculator.Result result = calculator.calculate(List.of(first, second));
 
-        assertThat(result.finalScore()).isEqualTo(83);
+        // 总分分歧达到阈值时，finalScore 应为 null，提示需要人工协调；
+        // overallAverage 仍保存在 scoreSummary 中供参考。
+        assertThat(result.finalScore()).isNull();
+        assertThat(result.scoreSummary()).containsEntry("overallAverage", 83);
         assertThat(result.disagreementItems())
                 .anySatisfy(item -> assertThat(item)
                         .containsEntry("type", "OVERALL_SCORE")
                         .containsEntry("minScore", 75)
                         .containsEntry("maxScore", 90)
+                        .containsEntry("threshold", 15));
+    }
+
+    @Test
+    void calculateShouldNullFinalScoreWhenOverallDisagreementExtreme() {
+        // 用户报告的场景：0 分和 88 分，分差 88 >> 阈值 15
+        ReviewReportEntity first = report(UUID.randomUUID(), UUID.randomUUID(), 0, "建议拒收", List.of());
+        ReviewReportEntity second = report(UUID.randomUUID(), UUID.randomUUID(), 88, "建议通过", List.of());
+
+        ConsensusCalculator.Result result = calculator.calculate(List.of(first, second));
+
+        // finalScore 不应为平均值 44，而应为 null
+        assertThat(result.finalScore()).isNull();
+        assertThat(result.scoreSummary()).containsEntry("overallAverage", 44);
+        assertThat(result.scoreSummary()).containsEntry("overallMin", 0);
+        assertThat(result.scoreSummary()).containsEntry("overallMax", 88);
+        assertThat(result.disagreementItems())
+                .anySatisfy(item -> assertThat(item)
+                        .containsEntry("type", "OVERALL_SCORE")
+                        .containsEntry("minScore", 0)
+                        .containsEntry("maxScore", 88)
                         .containsEntry("threshold", 15));
     }
 

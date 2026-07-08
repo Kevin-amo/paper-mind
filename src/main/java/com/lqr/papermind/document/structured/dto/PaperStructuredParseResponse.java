@@ -17,9 +17,7 @@ public record PaperStructuredParseResponse(
         Object ruleResult,
         Object modelResult,
         Object mergedResult,
-        Object fieldConfidence,
         List<String> missingFields,
-        List<String> lowConfidenceFields,
         String rawModelOutput,
         String parserVersion,
         String modelVersion,
@@ -29,6 +27,12 @@ public record PaperStructuredParseResponse(
         OffsetDateTime parsedAt,
         OffsetDateTime updatedAt
 ) {
+    /**
+     * 从实体创建完整响应对象。
+     *
+     * @param entity 论文结构化解析实体
+     * @return 完整响应对象
+     */
     public static PaperStructuredParseResponse from(PaperStructuredParseEntity entity) {
         if (entity == null) {
             return null;
@@ -41,9 +45,7 @@ public record PaperStructuredParseResponse(
                 entity.getRuleResult(),
                 entity.getModelResult(),
                 entity.getMergedResult(),
-                entity.getFieldConfidence(),
                 stringList(entity.getMissingFields()),
-                stringList(entity.getLowConfidenceFields()),
                 entity.getRawModelOutput(),
                 entity.getParserVersion(),
                 entity.getModelVersion(),
@@ -55,6 +57,12 @@ public record PaperStructuredParseResponse(
         );
     }
 
+    /**
+     * 将对象转换为字符串列表。
+     *
+     * @param value 可能为列表的对象
+     * @return 字符串列表
+     */
     private static List<String> stringList(Object value) {
         if (value instanceof List<?> list) {
             return list.stream().map(String::valueOf).toList();

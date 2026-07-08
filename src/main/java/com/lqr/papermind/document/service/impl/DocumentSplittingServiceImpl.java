@@ -92,25 +92,25 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
     public List<DocumentChunk> split(DocumentSource source, String fullText) {
         Objects.requireNonNull(source, "source 不能为空");
         long startNanos = System.nanoTime();
-        log.info("document.split.start sourceId={} textLength={} chunkSize={} chunkOverlap={}",
+        log.info("文档切分开始 sourceId={} textLength={} chunkSize={} chunkOverlap={}",
                 source.sourceId(), textLength(fullText), ragProperties.chunkSize(), ragProperties.chunkOverlap());
         if (fullText == null || fullText.isBlank()) {
-            log.info("document.split.chunks.done sourceId={} textLength={} paragraphCount={} sectionCount={} chunkCount={} skippedEmptyCount={} skippedTitleOnlyCount={} skippedTooShortCount={} costMs={}",
+            log.info("文档切分分块完成 sourceId={} textLength={} paragraphCount={} sectionCount={} chunkCount={} skippedEmptyCount={} skippedTitleOnlyCount={} skippedTooShortCount={} costMs={}",
                     source.sourceId(), textLength(fullText), 0, 0, 0, 1, 0, 0, elapsedMs(startNanos));
             return List.of();
         }
 
         List<ParagraphBlock> paragraphs = extractParagraphs(fullText);
-        log.info("document.split.paragraphs.done sourceId={} textLength={} paragraphCount={} costMs={}",
+        log.info("文档切分段落完成 sourceId={} textLength={} paragraphCount={} costMs={}",
                 source.sourceId(), fullText.length(), paragraphs.size(), elapsedMs(startNanos));
         if (paragraphs.isEmpty()) {
-            log.info("document.split.chunks.done sourceId={} textLength={} paragraphCount={} sectionCount={} chunkCount={} skippedEmptyCount={} skippedTitleOnlyCount={} skippedTooShortCount={} costMs={}",
+            log.info("文档切分分块完成 sourceId={} textLength={} paragraphCount={} sectionCount={} chunkCount={} skippedEmptyCount={} skippedTitleOnlyCount={} skippedTooShortCount={} costMs={}",
                     source.sourceId(), fullText.length(), 0, 0, 0, 1, 0, 0, elapsedMs(startNanos));
             return List.of();
         }
 
         List<SectionBlock> sections = buildSections(paragraphs);
-        log.info("document.split.sections.done sourceId={} paragraphCount={} sectionCount={} costMs={}",
+        log.info("文档切分章节完成 sourceId={} paragraphCount={} sectionCount={} costMs={}",
                 source.sourceId(), paragraphs.size(), sections.size(), elapsedMs(startNanos));
         logSections(source.sourceId(), sections);
         List<DocumentChunk> textChunks = new ArrayList<>();
@@ -134,15 +134,15 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
                 }
                 DocumentChunk chunk = toDocumentChunk(source, chunkIndex++, cleanedSlice);
                 textChunks.add(chunk);
-                log.debug("document.split.chunk sourceId={} chunkId={} chunkIndex={} sectionTitle={} sectionType={} chunkLength={} excerpt={}",
+                log.debug("文档切分分块 sourceId={} chunkId={} chunkIndex={} sectionTitle={} sectionType={} chunkLength={} excerpt={}",
                         source.sourceId(), chunk.chunkId(), chunk.chunkIndex(), cleanedSlice.sectionTitle(), cleanedSlice.sectionType(), cleanedSlice.content().length(), LogSanitizer.safeExcerpt(cleanedSlice.content(), 160));
             }
         }
         List<DocumentChunk> figureContextChunks = buildFigureContextChunks(source, fullText, paragraphs, sections);
         List<DocumentChunk> chunks = mergeAndReindexChunks(textChunks, figureContextChunks);
-        log.info("document.split.figure-context.done sourceId={} figureContextChunkCount={}",
+        log.info("文档切分图表上下文完成 sourceId={} figureContextChunkCount={}",
                 source.sourceId(), figureContextChunks.size());
-        log.info("document.split.chunks.done sourceId={} textLength={} paragraphCount={} sectionCount={} textChunkCount={} figureContextChunkCount={} chunkCount={} skippedEmptyCount={} skippedTitleOnlyCount={} skippedTooShortCount={} costMs={}",
+        log.info("文档切分分块完成 sourceId={} textLength={} paragraphCount={} sectionCount={} textChunkCount={} figureContextChunkCount={} chunkCount={} skippedEmptyCount={} skippedTitleOnlyCount={} skippedTooShortCount={} costMs={}",
                 source.sourceId(), fullText.length(), paragraphs.size(), sections.size(), textChunks.size(), figureContextChunks.size(), chunks.size(), skipStats.emptyCount, skipStats.titleOnlyCount, skipStats.tooShortCount, elapsedMs(startNanos));
         return chunks;
     }
@@ -821,7 +821,7 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
         LinkedHashSet<String> seenAssetIds = new LinkedHashSet<>();
         for (FigureAsset asset : assets) {
             if (!seenAssetIds.add(asset.assetId())) {
-                log.debug("document.split.figure-context.skip sourceId={} assetId={} reason=duplicate_asset",
+                log.debug("文档切分图表上下文跳过 sourceId={} assetId={} reason=重复资源",
                         source.sourceId(), asset.assetId());
                 continue;
             }
@@ -832,13 +832,13 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
             FigureContext context = selectFigureContext(asset, captionRange.get(), paragraphs, sections);
             RenderedFigureContext rendered = renderFigureContext(context);
             if (rendered.content().length() < FIGURE_CONTEXT_MIN_LENGTH) {
-                log.debug("document.split.figure-context.skip sourceId={} assetId={} reason=content_too_short length={}",
+                log.debug("文档切分图表上下文跳过 sourceId={} assetId={} reason=内容过短 length={}",
                         source.sourceId(), asset.assetId(), rendered.content().length());
                 continue;
             }
             DocumentChunk chunk = toFigureContextChunk(source, chunks.size(), context, rendered);
             chunks.add(chunk);
-            log.debug("document.split.figure-context.chunk sourceId={} assetId={} assetType={} captionStart={} captionEnd={} chunkLength={} excerpt={}",
+            log.debug("文档切分图表上下文分块 sourceId={} assetId={} assetType={} captionStart={} captionEnd={} chunkLength={} excerpt={}",
                     source.sourceId(), asset.assetId(), asset.assetType(), captionRange.get().start(), captionRange.get().end(),
                     rendered.content().length(), LogSanitizer.safeExcerpt(rendered.content(), 160));
         }
@@ -870,7 +870,7 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
         String assetType = firstNonBlankString(asset.get(MetadataKeys.ASSET_TYPE), asset.get(RAW_ASSET_TYPE));
         String normalizedType = normalizeAssetType(assetType);
         if (!FIGURE_ASSET_TYPES.contains(normalizedType)) {
-            log.debug("document.split.figure-context.skip sourceId={} assetId={} reason=unsupported_asset_type assetType={}",
+            log.debug("文档切分图表上下文跳过 sourceId={} assetId={} reason=不支持的资源类型 assetType={}",
                     source.sourceId(), firstNonBlankString(asset.get(MetadataKeys.ASSET_ID)), assetType);
             return Optional.empty();
         }
@@ -882,7 +882,7 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
                 asset.get(RAW_EXTRACTED_TEXT)
         );
         if (caption == null) {
-            log.debug("document.split.figure-context.skip sourceId={} assetId={} reason=missing_caption",
+            log.debug("文档切分图表上下文跳过 sourceId={} assetId={} reason=缺少说明",
                     source.sourceId(), firstNonBlankString(asset.get(MetadataKeys.ASSET_ID)));
             return Optional.empty();
         }
@@ -928,7 +928,7 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
 
         List<TextRange> matches = findCaptionMatches(fullText, asset.caption());
         if (matches.isEmpty()) {
-            log.debug("document.split.figure-context.skip sourceId={} assetId={} reason=caption_not_found caption={}",
+            log.debug("文档切分图表上下文跳过 sourceId={} assetId={} reason=未找到说明 caption={}",
                     sourceId, asset.assetId(), LogSanitizer.safeExcerpt(asset.caption(), 120));
             return Optional.empty();
         }
@@ -942,7 +942,7 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
                     .min(Comparator.comparingInt(match -> distanceToRange(hint, match)));
         }
 
-        log.debug("document.split.figure-context.skip sourceId={} assetId={} reason=caption_matched_multiple count={} caption={}",
+        log.debug("文档切分图表上下文跳过 sourceId={} assetId={} reason=说明匹配多个 count={} caption={}",
                 sourceId, asset.assetId(), matches.size(), LogSanitizer.safeExcerpt(asset.caption(), 120));
         return Optional.empty();
     }
@@ -1735,7 +1735,7 @@ public class DocumentSplittingServiceImpl implements DocumentSplittingService {
         }
         for (int index = 0; index < sections.size(); index++) {
             SectionBlock section = sections.get(index);
-            log.debug("document.split.section sourceId={} sectionIndex={} title={} type={} level={} paragraphCount={}",
+            log.debug("文档切分章节 sourceId={} sectionIndex={} title={} type={} level={} paragraphCount={}",
                     sourceId,
                     index,
                     LogSanitizer.safeExcerpt(section.title(), 120),

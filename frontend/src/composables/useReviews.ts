@@ -1,5 +1,5 @@
 import { computed, reactive, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   generateReviewReport,
   getReviewTaskStructuredParse,
@@ -27,6 +27,8 @@ import type {
   ReviewAssignmentStatus,
   UpdateReviewReportPayload,
 } from '../types';
+
+const NO_RISK_CONFIRMED = 'NO_RISK_CONFIRMED';
 
 export function useReviews() {
   const loading = ref(false);
@@ -248,28 +250,7 @@ export function useReviews() {
     }
     saving.value = true;
     try {
-      const totalScore = calculateWeightedScore(report.scores, criteria.value);
-      reportForm.totalScore = totalScore;
-      const payload: UpdateReviewReportPayload = {
-        paperSections: report.paperSections,
-        scores: report.scores,
-        comments: report.comments,
-        risks: report.risks,
-        totalScore,
-        finalRecommendation: reportForm.finalRecommendation.trim() || null,
-        status: 'ADJUSTED',
-      };
-      const nextReport = await updateReviewReport(report.id, payload);
-      const currentAssignment = task.currentAssignment
-        ? { ...task.currentAssignment, status: 'REVIEWING' as const }
-        : null;
-      selectedTask.value = {
-        ...task,
-        status: currentAssignment ? 'IN_REVIEW' : 'REVIEWING',
-        currentAssignment,
-        report: nextReport,
-      };
-      syncReportForm(nextReport);
+      await persistCurrentReport(report, task);
       await loadTasks();
       ElMessage.success('评审调整已保存');
     } catch (error) {
@@ -293,6 +274,17 @@ export function useReviews() {
 
     submittingAssignment.value = true;
     try {
+      const report = selectedReport.value;
+      const task = selectedTask.value;
+      if (!report || !task) {
+        ElMessage.warning('请先生成辅助评审报告');
+        return;
+      }
+      const riskReviewConfirmed = await ensureRiskReviewConfirmed(report);
+      if (!riskReviewConfirmed) {
+        return;
+      }
+      await persistCurrentReport(report, task);
       await submitReviewAssignment(assignmentId);
       await loadTasks();
       if (selectedTask.value?.id === taskId) {
@@ -304,6 +296,33 @@ export function useReviews() {
     } finally {
       submittingAssignment.value = false;
     }
+  }
+
+  async function persistCurrentReport(report: ReviewReport, task: ReviewTask) {
+    const totalScore = calculateWeightedScore(report.scores, criteria.value);
+    reportForm.totalScore = totalScore;
+    const payload: UpdateReviewReportPayload = {
+      paperSections: report.paperSections,
+      scores: report.scores,
+      comments: report.comments,
+      risks: report.risks,
+      totalScore,
+      finalRecommendation: reportForm.finalRecommendation.trim() || null,
+      status: 'ADJUSTED',
+      riskReviewStatus: report.riskReviewStatus ?? null,
+    };
+    const nextReport = await updateReviewReport(report.id, payload);
+    const currentAssignment = task.currentAssignment
+      ? { ...task.currentAssignment, status: 'REVIEWING' as const }
+      : null;
+    selectedTask.value = {
+      ...task,
+      status: currentAssignment ? 'IN_REVIEW' : 'REVIEWING',
+      currentAssignment,
+      report: nextReport,
+    };
+    syncReportForm(nextReport);
+    return nextReport;
   }
 
   async function loadRisks(reportId: string | null) {
@@ -374,6 +393,31 @@ export function useReviews() {
     structuredParseLoading.value = false;
     riskLoading.value = false;
     syncReportForm(null);
+  }
+
+  async function ensureRiskReviewConfirmed(report: ReviewReport) {
+    if (!Array.isArray(report.risks)) {
+      ElMessage.warning('请先完成风险检查，或确认本稿暂无风险项后再提交');
+      return false;
+    }
+    if (report.risks.length > 0 || report.riskReviewStatus === NO_RISK_CONFIRMED) {
+      return true;
+    }
+    try {
+      await ElMessageBox.confirm(
+        '当前报告暂无风险项。请确认已完成风险检查，并确认本稿暂无需要提示的风险项。',
+        '确认暂无风险项',
+        {
+          confirmButtonText: '确认暂无风险项',
+          cancelButtonText: '返回检查',
+          type: 'warning',
+        },
+      );
+      report.riskReviewStatus = NO_RISK_CONFIRMED;
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   function updateScore(code: string, score: number) {

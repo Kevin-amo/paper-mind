@@ -1,9 +1,8 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import MainLayout from '../../layouts/MainLayout.vue';
-import PageHeader from '../../components/common/PageHeader.vue';
 import LogoutConfirmDialog from '../../components/common/LogoutConfirmDialog.vue';
 import { getErrorMessage } from '../../api/http';
 import {
@@ -25,8 +24,11 @@ import type {
   ReviewGroup,
   ReviewGroupMember,
   ReviewReport,
+  ReviewRiskItem,
   ReviewScoreItem,
 } from '../../types';
+
+type DedupedReviewRiskItem = ReviewRiskItem & { dedupeKey: string };
 
 const router = useRouter();
 const auth = useAuth();
@@ -51,18 +53,19 @@ const logoutDialogVisible = ref(false);
 const assignmentTask = ref<AdminReviewTaskSummary | null>(null);
 const selectedReviewerIds = ref<string[]>([]);
 const assignmentDueAt = ref<string | null>(null);
+const detailTab = ref<'reports' | 'consensus' | 'risks'>('reports');
 const consensusForm = reactive({
   finalScore: null as number | null,
   finalRecommendation: '',
 });
 
-const currentUserName = computed(() => auth.state.user?.displayName || auth.state.user?.username || '评审组长');
 const selectedGroup = computed(() => groups.value.find((group) => group.id === selectedGroupId.value) ?? null);
 const selectedTask = computed(() => tasks.value.find((task) => task.id === selectedTaskId.value) ?? null);
 const reviewerMembers = computed(() => members.value.filter((member) => member.memberRole === 'REVIEWER' && member.status === 'ACTIVE'));
 const unassignedCount = computed(() => tasks.value.filter((task) => isUnassignedTask(task)).length);
 const submittedCount = computed(() => tasks.value.filter((task) => task.status === 'SUBMITTED').length);
 const confirmedCount = computed(() => tasks.value.filter((task) => task.status === 'CONSENSUS_CONFIRMED').length);
+const reportRiskItems = computed(() => dedupeRiskItems(reports.value.flatMap((report) => riskItems(report))));
 
 const taskStatusLabels: Record<string, string> = {
   PENDING: '待分配',
@@ -148,6 +151,52 @@ function scoreItems(report: ReviewReport) {
   return Array.isArray(report.scores) ? report.scores as ReviewScoreItem[] : [];
 }
 
+function riskItems(report: ReviewReport) {
+  return Array.isArray(report.risks) ? report.risks as ReviewRiskItem[] : [];
+}
+
+function dedupeRiskItems(risks: ReviewRiskItem[]): DedupedReviewRiskItem[] {
+  const riskByKey = new Map<string, DedupedReviewRiskItem>();
+  risks.forEach((risk) => {
+    const dedupeKey = riskDedupeKey(risk);
+    if (!riskByKey.has(dedupeKey)) {
+      riskByKey.set(dedupeKey, { ...risk, dedupeKey });
+    }
+  });
+  return Array.from(riskByKey.values());
+}
+
+function riskDedupeKey(risk: ReviewRiskItem) {
+  return [
+    normalizeRiskPart(risk.type, true),
+    normalizeRiskPart(risk.level, true),
+    normalizeRiskPart(risk.evidence, false),
+    normalizeRiskPart(risk.suggestion, false),
+  ].join('|');
+}
+
+function normalizeRiskPart(value: unknown, uppercase: boolean) {
+  const normalized = String(value ?? '').trim().replace(/\s+/g, ' ');
+  return uppercase ? normalized.toUpperCase() : normalized;
+}
+
+function riskLevelLabel(level: string | null | undefined) {
+  const labels: Record<string, string> = {
+    LOW: '低风险',
+    MEDIUM: '中风险',
+    HIGH: '高风险',
+    CRITICAL: '严重',
+  };
+  return level ? labels[level] ?? level : '风险';
+}
+
+function riskLevelTagType(level: string | null | undefined) {
+  if (level === 'HIGH' || level === 'CRITICAL') return 'danger';
+  if (level === 'MEDIUM') return 'warning';
+  if (level === 'LOW') return 'success';
+  return 'info';
+}
+
 async function loadGroups() {
   loading.value = true;
   try {
@@ -190,9 +239,13 @@ async function loadGroupScope(groupId = selectedGroupId.value) {
 
 async function loadTaskDetail(taskId = selectedTaskId.value) {
   if (!selectedGroupId.value || !taskId) return;
+  const isSwitchingTask = taskId !== selectedTaskId.value;
   detailLoading.value = true;
   try {
     selectedTaskId.value = taskId;
+    if (isSwitchingTask) {
+      detailTab.value = 'reports';
+    }
     const [nextReports, nextConsensus] = await Promise.all([
       listLeaderTaskReports(selectedGroupId.value, taskId),
       getLeaderTaskConsensus(selectedGroupId.value, taskId),
@@ -255,9 +308,34 @@ async function recalculateConsensus() {
   if (!selectedGroupId.value || !selectedTask.value) return;
   consensusRecalculating.value = true;
   try {
-    consensus.value = await recalculateLeaderTaskConsensus(selectedGroupId.value, selectedTask.value.id);
-    ElMessage.success('共识汇总已重新计算');
+    const result = await recalculateLeaderTaskConsensus(selectedGroupId.value, selectedTask.value.id);
+    consensus.value = result;
     await loadGroupScope();
+    // 检查是否存在评分分歧，若有则弹出提示
+    const disagreements = Array.isArray(result.disagreementItems) ? result.disagreementItems : [];
+    if (disagreements.length > 0) {
+      const scoreSummary = result.scoreSummary ?? {};
+      const avg = scoreSummary.overallAverage ?? '-';
+      const min = scoreSummary.overallMin ?? '-';
+      const max = scoreSummary.overallMax ?? '-';
+      const detailHtml = disagreements.map((item) => {
+        const typeLabel = item.type === 'OVERALL_SCORE'
+          ? '总分分歧'
+          : `指标分歧（${item.criterionCode ?? '-'}）`;
+        const diff = Number(item.maxScore) - Number(item.minScore);
+        return `<li><strong>${typeLabel}</strong>：最低 ${item.minScore} 分 / 最高 ${item.maxScore} 分，分差 ${diff}（阈值 ${item.threshold}）</li>`;
+      }).join('');
+      await ElMessageBox.alert(
+        `<p>检测到 <strong>${disagreements.length}</strong> 项评分分歧。</p>` +
+        `<ul style="margin: 12px 0; padding-left: 20px;">${detailHtml}</ul>` +
+        `<p style="color: #909399; font-size: 13px;">平均分参考值：${avg}（最低 ${min} / 最高 ${max}）</p>` +
+        `<p style="color: #E6A23C;">请组长协调各评审人意见后，手动填写最终分数并保存。</p>`,
+        '评分存在分歧',
+        { confirmButtonText: '我知道了', dangerouslyUseHTMLString: true },
+      );
+    } else {
+      ElMessage.success('共识汇总已重新计算');
+    }
   } catch (error) {
     ElMessage.error(getErrorMessage(error));
   } finally {
@@ -294,6 +372,10 @@ async function confirmConsensus() {
   }
   consensusConfirming.value = true;
   try {
+    consensus.value = await updateLeaderTaskConsensus(selectedGroupId.value, selectedTask.value.id, {
+      finalScore: consensusForm.finalScore,
+      finalRecommendation: consensusForm.finalRecommendation,
+    });
     consensus.value = await confirmLeaderTaskConsensus(selectedGroupId.value, selectedTask.value.id);
     ElMessage.success('最终评分已确认');
     await loadGroupScope();
@@ -319,76 +401,126 @@ onMounted(async () => {
 
 <template>
   <MainLayout class="leader-page paper-mind-leader-shell">
-    <PageHeader
-      eyebrow="Review Leader"
-      title="评审组长工作台"
-      description="按评审小组处理任务分配、组内评分详情、最终评分与共识确认。"
-    >
-      <template #actions>
-        <el-tag type="primary" size="large">{{ currentUserName }}</el-tag>
-        <el-button @click="router.push('/review')">评审工作台</el-button>
-        <el-button v-if="auth.isAdmin.value" @click="router.push('/admin/reviews')">管理后台</el-button>
-        <el-button @click="logoutDialogVisible = true">退出登录</el-button>
-      </template>
-    </PageHeader>
+    <header class="leader-top-nav">
+      <div class="leader-brand">
+        <span class="leader-brand-mark" aria-hidden="true"><span></span></span>
+        <span>Paper Mind</span>
+      </div>
+      <nav class="leader-nav-links" aria-label="评审组长导航">
+        <button class="leader-nav-link active" type="button">组长面板</button>
+        <button class="leader-nav-link" type="button" @click="router.push('/review')">评审中心</button>
+        <button v-if="auth.isAdmin.value" class="leader-nav-link" type="button" @click="router.push('/admin/reviews')">
+          管理后台
+        </button>
+        <button v-if="auth.hasRole('USER')" class="leader-nav-link" type="button" @click="router.push('/user')">用户端</button>
+      </nav>
+
+      <div class="leader-nav-actions">
+        <el-button text @click="logoutDialogVisible = true">退出</el-button>
+      </div>
+    </header>
 
     <LogoutConfirmDialog v-model="logoutDialogVisible" @confirm="handleLogout" />
 
-    <section class="stats-bar">
-      <div class="stat-item">
-        <span class="stat-label">负责小组</span>
-        <strong>{{ groups.length }}</strong>
+    <section class="leader-hero">
+      <div class="leader-hero-copy">
+        <p class="leader-eyebrow">Review Leader</p>
+        <h1>评审组长面板</h1>
+        <p class="leader-lead">按评审小组处理任务分配、组内评分详情、最终评分与共识确认。</p>
+        <div class="leader-hero-meta">
+          <span class="leader-badge">负责小组 {{ groups.length }}</span>
+          <span class="leader-badge">本组任务 {{ tasks.length }}</span>
+          <span class="leader-badge">待最终评分 {{ submittedCount }}</span>
+        </div>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">本组任务</span>
-        <strong>{{ tasks.length }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">待分配</span>
-        <strong>{{ unassignedCount }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">待最终评分</span>
-        <strong>{{ submittedCount }}</strong>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-label">最终已确认</span>
-        <strong>{{ confirmedCount }}</strong>
-      </div>
+
+      <aside class="leader-brief-card" aria-label="当前评审概览">
+        <div>
+          <div class="brief-title">
+            <div>
+              <p class="leader-eyebrow">Current Group</p>
+              <h2>{{ selectedGroup?.name || '暂无小组' }}</h2>
+            </div>
+            <span class="current-group-label">当前小组</span>
+          </div>
+          <p v-if="selectedGroup">
+            当前小组由 {{ selectedGroup.leaderDisplayName || selectedGroup.leaderUsername || selectedGroup.leaderUserId }} 负责。
+          </p>
+          <p v-else>选择评审小组后，这里会显示成员、任务与共识状态。</p>
+        </div>
+        <div class="brief-grid">
+          <div class="brief-metric">
+            <strong>{{ selectedGroup?.memberCount ?? 0 }}</strong>
+            <span>成员</span>
+          </div>
+          <div class="brief-metric">
+            <strong>{{ unassignedCount }}</strong>
+            <span>待分配</span>
+          </div>
+          <div class="brief-metric">
+            <strong>{{ confirmedCount }}</strong>
+            <span>已确认</span>
+          </div>
+        </div>
+      </aside>
     </section>
 
-    <section class="leader-shell">
+    <section class="leader-stats-grid" aria-label="任务统计">
+      <article class="stat-card">
+        <span>负责小组</span>
+        <strong>{{ groups.length }}</strong>
+      </article>
+      <article class="stat-card">
+        <span>本组任务</span>
+        <strong>{{ tasks.length }}</strong>
+      </article>
+      <article class="stat-card">
+        <span>待分配</span>
+        <strong>{{ unassignedCount }}</strong>
+      </article>
+      <article class="stat-card">
+        <span>待最终评分</span>
+        <strong>{{ submittedCount }}</strong>
+      </article>
+      <article class="stat-card">
+        <span>最终已确认</span>
+        <strong>{{ confirmedCount }}</strong>
+      </article>
+    </section>
+
+    <section class="leader-workbench">
       <aside class="group-panel" v-loading="loading || scopeLoading">
         <div class="panel-header">
           <h2>我的小组</h2>
-          <el-button size="small" @click="loadGroups">刷新</el-button>
         </div>
 
-        <el-select v-model="selectedGroupId" class="full-width" placeholder="选择评审小组">
-          <el-option
-            v-for="group in groups"
-            :key="group.id"
-            :label="group.name"
-            :value="group.id"
-          />
-        </el-select>
+        <div class="group-panel-body">
+          <el-select v-model="selectedGroupId" class="full-width" placeholder="选择评审小组">
+            <el-option
+              v-for="group in groups"
+              :key="group.id"
+              :label="group.name"
+              :value="group.id"
+            />
+          </el-select>
 
-        <div v-if="selectedGroup" class="group-card">
-          <strong>{{ selectedGroup.name }}</strong>
-          <span>组长：{{ selectedGroup.leaderDisplayName || selectedGroup.leaderUsername || selectedGroup.leaderUserId }}</span>
-          <span>成员：{{ selectedGroup.memberCount }} · 任务：{{ selectedGroup.taskCount }}</span>
-        </div>
+          <div v-if="selectedGroup" class="group-card">
+            <strong>{{ selectedGroup.name }}</strong>
+            <span>组长：{{ selectedGroup.leaderDisplayName || selectedGroup.leaderUsername || selectedGroup.leaderUserId }}</span>
+            <span>成员：{{ selectedGroup.memberCount }} · 任务：{{ selectedGroup.taskCount }}</span>
+          </div>
 
-        <div class="member-list">
-          <h3>组内普通评审员</h3>
-          <el-empty v-if="!reviewerMembers.length" description="暂无普通评审员成员" />
-          <div v-for="member in reviewerMembers" :key="member.id" class="member-item">
-            <strong>{{ reviewerDisplayName(member) }}</strong>
-            <span>{{ member.username || member.userId }}</span>
+          <div class="member-list">
+            <h3>组内普通评审员</h3>
+            <div v-if="!reviewerMembers.length" class="leader-empty-state compact">
+              <div class="leader-empty-icon" aria-hidden="true"></div>
+              <p class="empty-title">暂无普通评审员成员</p>
+              <p class="empty-copy">添加成员后，可直接在本页分配论文与查看个人评分报告。</p>
+            </div>
+            <div v-for="member in reviewerMembers" :key="member.id" class="member-item">
+              <strong>{{ reviewerDisplayName(member) }}</strong>
+              <span>{{ member.username || member.userId }}</span>
+            </div>
           </div>
         </div>
       </aside>
@@ -396,134 +528,189 @@ onMounted(async () => {
       <main class="task-panel" v-loading="scopeLoading">
         <div class="panel-header">
           <h2>本组评审任务</h2>
-          <el-button type="primary" size="small" @click="loadGroupScope()">刷新任务</el-button>
+        </div>
+        <div class="task-toolbar">
+          <p>按论文、状态、提交进度和截止时间快速扫描任务。</p>
+          <span class="leader-badge">当前 {{ tasks.length }} 项</span>
         </div>
 
-        <el-table :data="tasks" class="task-table" highlight-current-row @row-click="(row: AdminReviewTaskSummary) => loadTaskDetail(row.id)">
-          <el-table-column label="论文" min-width="220" show-overflow-tooltip>
-            <template #default="{ row }">
-              <div class="task-title-cell">
-                <strong>{{ row.title }}</strong>
-                <span>{{ row.sourceId }}</span>
+        <div class="task-table-wrap">
+          <el-table :data="tasks" class="task-table" highlight-current-row @row-click="(row: AdminReviewTaskSummary) => loadTaskDetail(row.id)">
+            <el-table-column label="论文" min-width="220" show-overflow-tooltip>
+              <template #default="{ row }">
+                <div class="task-title-cell">
+                  <strong>{{ row.title }}</strong>
+                  <span>{{ row.sourceId }}</span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="120">
+              <template #default="{ row }">
+                <el-tag size="small" effect="plain">{{ statusLabel(row.status) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="分配/提交" width="100">
+              <template #default="{ row }">
+                {{ row.submittedCount }}/{{ row.assignmentCount }}
+              </template>
+            </el-table-column>
+            <el-table-column label="组长" min-width="130" show-overflow-tooltip>
+              <template #default="{ row }">{{ taskLeadName(row) }}</template>
+            </el-table-column>
+            <el-table-column label="截止时间" width="160">
+              <template #default="{ row }">{{ formatDate(row.dueAt) }}</template>
+            </el-table-column>
+            <el-table-column label="操作" width="280" fixed="right">
+              <template #default="{ row }">
+                <div class="leader-action-group">
+                  <el-button size="small" class="leader-action-button detail-button" @click.stop="loadTaskDetail(row.id)">详情</el-button>
+                  <el-button size="small" class="leader-action-button assign-button" :disabled="!isUnassignedTask(row)" @click.stop="openAssignDialog(row)">分配</el-button>
+                  <el-button
+                    v-if="hasJoinedReview(row)"
+                    size="small"
+                    class="leader-action-button join-button"
+                    @click.stop="router.push('/review')"
+                  >
+                    去评审
+                  </el-button>
+                  <el-button
+                    v-else
+                    size="small"
+                    class="leader-action-button join-button"
+                    :loading="isJoiningTask(row.id)"
+                    :disabled="!canJoinReview(row)"
+                    @click.stop="joinReview(row)"
+                  >
+                    加入评审
+                  </el-button>
+                </div>
+              </template>
+            </el-table-column>
+            <template #empty>
+              <div class="leader-empty-state table-empty">
+                <div class="leader-empty-icon" aria-hidden="true"></div>
+                <p class="empty-title">暂无本组任务</p>
+                <p class="empty-copy">任务分配后将在这里显示论文、评审员、截止时间和最终评分入口。</p>
               </div>
             </template>
-          </el-table-column>
-          <el-table-column label="状态" width="120">
-            <template #default="{ row }">
-              <el-tag size="small" effect="plain">{{ statusLabel(row.status) }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="分配/提交" width="100">
-            <template #default="{ row }">
-              {{ row.submittedCount }}/{{ row.assignmentCount }}
-            </template>
-          </el-table-column>
-          <el-table-column label="组长" min-width="130" show-overflow-tooltip>
-            <template #default="{ row }">{{ taskLeadName(row) }}</template>
-          </el-table-column>
-          <el-table-column label="截止时间" width="160">
-            <template #default="{ row }">{{ formatDate(row.dueAt) }}</template>
-          </el-table-column>
-          <el-table-column label="操作" width="280" fixed="right">
-            <template #default="{ row }">
-              <div class="leader-action-group">
-                <el-button size="small" class="leader-action-button detail-button" @click.stop="loadTaskDetail(row.id)">详情</el-button>
-                <el-button size="small" class="leader-action-button assign-button" :disabled="!isUnassignedTask(row)" @click.stop="openAssignDialog(row)">分配</el-button>
-                <el-button
-                  v-if="hasJoinedReview(row)"
-                  size="small"
-                  class="leader-action-button join-button"
-                  @click.stop="router.push('/review')"
-                >
-                  去评审
-                </el-button>
-                <el-button
-                  v-else
-                  size="small"
-                  class="leader-action-button join-button"
-                  :loading="isJoiningTask(row.id)"
-                  :disabled="!canJoinReview(row)"
-                  @click.stop="joinReview(row)"
-                >
-                  加入评审
-                </el-button>
-              </div>
-            </template>
-          </el-table-column>
-        </el-table>
-        <el-empty v-if="!scopeLoading && !tasks.length" description="暂无本组任务" />
+          </el-table>
+        </div>
       </main>
-    </section>
 
-    <section class="detail-grid" v-if="selectedTask">
-      <article class="detail-card" v-loading="detailLoading">
+      <aside class="leader-detail-panel" v-loading="detailLoading">
         <div class="panel-header">
-          <h2>组内评分详情</h2>
-          <el-tag size="small">{{ reports.length }} 份报告</el-tag>
-        </div>
-
-        <el-empty v-if="!reports.length" description="暂无已生成的个人评分报告" />
-        <el-collapse v-else accordion>
-          <el-collapse-item v-for="report in reports" :key="report.id" :name="report.id">
-            <template #title>
-              <div class="report-title">
-                <strong>{{ reportReviewerName(report) }}</strong>
-                <span>{{ report.totalScore ?? '-' }} 分 · {{ report.finalRecommendation || '暂无最终建议' }}</span>
-              </div>
-            </template>
-            <div class="report-meta">
-              <el-tag size="small" effect="plain">{{ statusLabel(report.status) }}</el-tag>
-              <span>更新时间：{{ formatDate(report.updatedAt) }}</span>
-            </div>
-            <el-table v-if="scoreItems(report).length" :data="scoreItems(report)" size="small" class="score-table">
-              <el-table-column prop="name" label="指标" min-width="140" show-overflow-tooltip />
-              <el-table-column prop="score" label="得分" width="80" />
-              <el-table-column prop="maxScore" label="满分" width="80" />
-              <el-table-column prop="reason" label="理由" min-width="200" show-overflow-tooltip />
-            </el-table>
-            <pre class="json-block">{{ JSON.stringify(report.comments || {}, null, 2) }}</pre>
-          </el-collapse-item>
-        </el-collapse>
-      </article>
-
-      <article class="detail-card consensus-card" v-loading="detailLoading">
-        <div class="panel-header">
-          <h2>最终评分 / 共识</h2>
+          <h2>所选任务</h2>
           <el-tag :type="consensus?.status === 'CONFIRMED' ? 'success' : 'warning'" size="small" effect="plain">
-            {{ statusLabel(consensus?.status) }}
+            {{ statusLabel(consensus?.status || selectedTask?.status) }}
           </el-tag>
         </div>
 
-        <div class="selected-task-card">
-          <strong>{{ selectedTask.title }}</strong>
-          <span>{{ selectedTask.sourceId }} · {{ statusLabel(selectedTask.status) }}</span>
-          <span>提交进度：{{ selectedTask.submittedCount }}/{{ selectedTask.assignmentCount }}</span>
-        </div>
+        <div class="leader-detail-scroll">
+          <template v-if="selectedTask">
+            <div class="selected-task-card">
+              <strong>{{ selectedTask.title }}</strong>
+              <span>{{ selectedTask.sourceId }} · {{ statusLabel(selectedTask.status) }}</span>
+              <span>提交进度：{{ selectedTask.submittedCount }}/{{ selectedTask.assignmentCount }}</span>
+            </div>
 
-        <div class="consensus-actions">
-          <el-button class="leader-action-button recalculate-button" size="small" :loading="consensusRecalculating" :disabled="consensus?.status === 'CONFIRMED'" @click="recalculateConsensus">
-            重新计算共识
-          </el-button>
-        </div>
+            <el-tabs v-model="detailTab" class="leader-detail-tabs">
+              <el-tab-pane label="评分报告" name="reports">
+                <div v-if="!reports.length" class="leader-empty-state compact">
+                  <div class="leader-empty-icon" aria-hidden="true"></div>
+                  <p class="empty-title">暂无已生成的个人评分报告</p>
+                  <p class="empty-copy">组内评审员提交报告后，可在这里展开查看评分指标、理由与建议。</p>
+                </div>
+                <div v-else class="report-list">
+                  <article v-for="report in reports" :key="report.id" class="report-card">
+                    <div class="report-card-header">
+                      <div class="report-title">
+                        <strong>{{ reportReviewerName(report) }}</strong>
+                        <span>{{ report.finalRecommendation || '暂无最终建议' }}</span>
+                      </div>
+                      <strong class="report-score">{{ report.totalScore ?? '-' }}<span>/100</span></strong>
+                    </div>
+                    <div class="report-meta">
+                      <span>更新时间：{{ formatDate(report.updatedAt) }}</span>
+                    </div>
+                    <div v-if="scoreItems(report).length" class="score-list">
+                      <div v-for="item in scoreItems(report)" :key="`${report.id}-${item.code}`" class="score-row">
+                        <span>{{ item.name }}</span>
+                        <div class="score-bar">
+                          <span :style="{ width: `${Math.min(100, Math.max(0, (Number(item.score) / Number(item.maxScore || 100)) * 100))}%` }"></span>
+                        </div>
+                        <strong>{{ item.score }}/{{ item.maxScore }}</strong>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </el-tab-pane>
 
-        <el-form label-position="top" class="consensus-form">
-          <el-form-item label="最终分数">
-            <el-input-number v-model="consensusForm.finalScore" :min="0" :max="100" :precision="0" class="full-width" />
-          </el-form-item>
-          <el-form-item label="最终建议">
-            <el-input v-model="consensusForm.finalRecommendation" type="textarea" :rows="4" placeholder="填写最终评审建议" />
-          </el-form-item>
-        </el-form>
+              <el-tab-pane label="最终共识" name="consensus">
+                <div class="consensus-summary">
+                  <div class="final-score-card">
+                    <strong>{{ consensusForm.finalScore ?? '-' }}</strong>
+                    <span>最终分数</span>
+                  </div>
+                  <div class="consensus-copy">
+                    <el-tag :type="consensus?.status === 'CONFIRMED' ? 'success' : 'warning'" size="small" effect="plain">
+                      {{ statusLabel(consensus?.status) }}
+                    </el-tag>
+                    <p>{{ consensusForm.finalRecommendation || '暂无最终评审建议。' }}</p>
+                  </div>
+                </div>
 
-        <div class="consensus-footer">
-          <el-button class="leader-action-button subtle-button" :loading="consensusSaving" :disabled="!consensus || consensus.status === 'CONFIRMED'" @click="saveConsensus">
-            保存最终评分
-          </el-button>
-          <el-button class="leader-action-button confirm-button" :loading="consensusConfirming" :disabled="!consensus || consensus.status === 'CONFIRMED'" @click="confirmConsensus">
-            确认最终评分
-          </el-button>
+                <div class="consensus-actions">
+                  <el-button class="leader-action-button recalculate-button" size="small" :loading="consensusRecalculating" :disabled="consensus?.status === 'CONFIRMED'" @click="recalculateConsensus">
+                    重新计算共识
+                  </el-button>
+                </div>
+
+                <el-form label-position="top" class="consensus-form">
+                  <el-form-item label="最终分数">
+                    <el-input-number v-model="consensusForm.finalScore" :min="0" :max="100" :precision="0" class="full-width" />
+                  </el-form-item>
+                  <el-form-item label="最终建议">
+                    <el-input v-model="consensusForm.finalRecommendation" type="textarea" :rows="4" placeholder="填写最终评审建议" />
+                  </el-form-item>
+                </el-form>
+
+                <div class="consensus-footer">
+                  <el-button class="leader-action-button subtle-button" :loading="consensusSaving" :disabled="!consensus || consensus.status === 'CONFIRMED'" @click="saveConsensus">
+                    保存最终评分
+                  </el-button>
+                  <el-button class="leader-action-button confirm-button" :loading="consensusConfirming" :disabled="!consensus || consensus.status === 'CONFIRMED'" @click="confirmConsensus">
+                    确认最终评分
+                  </el-button>
+                </div>
+              </el-tab-pane>
+
+              <el-tab-pane label="风险提醒" name="risks">
+                <div v-if="!reportRiskItems.length" class="leader-empty-state compact">
+                  <div class="leader-empty-icon" aria-hidden="true"></div>
+                  <p class="empty-title">暂无风险提醒</p>
+                  <p class="empty-copy">评审报告中的风险项会在这里汇总，方便组长形成最终建议。</p>
+                </div>
+                <div v-else class="risk-list">
+                  <article v-for="risk in reportRiskItems" :key="risk.dedupeKey" class="risk-item">
+                    <div>
+                      <strong>{{ risk.type || '风险提醒' }}</strong>
+                      <el-tag :type="riskLevelTagType(risk.level)" size="small" effect="plain">{{ riskLevelLabel(risk.level) }}</el-tag>
+                    </div>
+                    <p>{{ risk.evidence || '暂无证据说明。' }}</p>
+                    <p class="risk-suggestion">{{ risk.suggestion || '暂无处理建议。' }}</p>
+                  </article>
+                </div>
+              </el-tab-pane>
+            </el-tabs>
+          </template>
+
+          <div v-else class="leader-empty-state compact">
+            <div class="leader-empty-icon" aria-hidden="true"></div>
+            <p class="empty-title">暂无选中的任务</p>
+            <p class="empty-copy">选择左侧小组并点击任务后，可在这里处理评分报告、最终共识和风险提醒。</p>
+          </div>
         </div>
-      </article>
+      </aside>
     </section>
 
     <el-dialog v-model="assignDialogVisible" title="分配本组评审任务" width="520px" class="claude-workspace-dialog">
@@ -562,34 +749,282 @@ onMounted(async () => {
 
 <style scoped>
 .leader-page {
-  gap: 24px;
-  padding: 28px;
+  gap: 22px;
+  padding: 0 36px 48px;
   background: var(--claude-canvas);
 }
 
-.leader-page :deep([class~="page-header"]) {
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  background: transparent;
+.leader-page :deep([class~="el-button"]) {
+  border-radius: var(--app-radius-md);
+  cursor: pointer;
 }
 
-.leader-page :deep([class~="page-eyebrow"]) {
+.leader-page h1,
+.leader-page h2,
+.leader-page h3 {
+  letter-spacing: 0;
+}
+
+.leader-top-nav,
+.leader-hero,
+.leader-stats-grid,
+.leader-workbench {
+  width: min(100%, 1360px);
+  margin-inline: auto;
+}
+
+.leader-top-nav {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 24px;
+  min-height: 64px;
+  border-bottom: 1px solid var(--claude-hairline-soft);
+}
+
+.leader-brand,
+.leader-nav-links {
+  display: flex;
+  align-items: center;
+}
+
+.leader-brand {
+  gap: 10px;
+  color: var(--app-text);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.leader-brand-mark {
+  position: relative;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.leader-brand-mark::before,
+.leader-brand-mark::after,
+.leader-brand-mark span::before,
+.leader-brand-mark span::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--app-text);
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.leader-brand-mark::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.leader-brand-mark span::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.leader-brand-mark span::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.leader-nav-links {
+  gap: 4px;
+}
+
+.leader-nav-link {
+  min-height: 36px;
+  border: 0;
+  border-radius: var(--app-radius-md);
+  background: transparent;
+  color: var(--app-text-muted);
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    background-color var(--app-transition-fast),
+    color var(--app-transition-fast);
+}
+
+.leader-nav-link:hover,
+.leader-nav-link.active {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+}
+
+.leader-nav-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.leader-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 32px;
+  align-items: stretch;
+  padding: 48px 0 10px;
+}
+
+.leader-hero-copy {
+  min-width: 0;
+}
+
+.leader-eyebrow {
+  margin: 0 0 10px;
   color: var(--app-primary);
+  font-size: 12px;
   font-weight: 500;
   letter-spacing: 1.5px;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
-.leader-page :deep([class~="page-header"] h1) {
+.leader-hero h1 {
+  max-width: 720px;
   color: var(--app-text);
-  font-size: clamp(34px, 4vw, 48px);
+  font-size: 54px;
   font-weight: 500;
-  line-height: 1.08;
+  line-height: 1.06;
 }
 
-.leader-page :deep([class~="el-button"]) {
-  border-radius: var(--app-radius-sm);
+.leader-lead {
+  max-width: 620px;
+  margin: 16px 0 0;
+  color: var(--app-text-muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.leader-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.leader-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.leader-brief-card {
+  display: flex;
+  min-height: 216px;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--app-border);
+  border-left: 4px solid var(--app-primary);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  padding: 24px;
+}
+
+.leader-brief-card p,
+.leader-brief-card span {
+  color: var(--app-text-muted);
+}
+
+.leader-brief-card .leader-eyebrow {
+  color: var(--app-primary);
+}
+
+.brief-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.brief-title h2 {
+  color: var(--app-text);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.current-group-label {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--app-surface);
+  color: var(--app-text-muted);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.brief-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.brief-metric {
+  border-radius: 10px;
+  background: var(--app-surface);
+  padding: 12px;
+}
+
+.brief-metric strong {
+  display: block;
+  color: var(--app-text);
+  font-family: var(--claude-serif);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.brief-metric span {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.leader-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  min-height: 88px;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  padding: 18px;
+}
+
+.stat-card span {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.stat-card strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--app-text);
+  font-family: var(--claude-serif);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .leader-action-group {
@@ -671,64 +1106,24 @@ onMounted(async () => {
   margin-left: 0;
 }
 
-.stats-bar {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-lg);
-  padding: 14px 24px;
-  background: var(--app-surface-soft);
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 16px;
-}
-
-.stat-item:first-child {
-  padding-left: 0;
-}
-
-.stat-item:last-child {
-  padding-right: 0;
-}
-
-.stat-label {
-  color: var(--app-text-muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.stat-item strong {
-  color: var(--app-text);
-  font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-  font-size: 20px;
-  font-weight: 500;
-}
-
-.stat-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--app-border);
-  flex-shrink: 0;
-}
-
-.leader-shell {
+.leader-workbench {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 300px minmax(520px, 1fr) 420px;
+  gap: 18px;
+  align-items: start;
 }
 
 .group-panel,
 .task-panel,
-.detail-card {
+.leader-detail-panel {
+  display: flex;
+  height: calc(100vh - 250px);
+  min-height: 560px;
+  flex-direction: column;
+  overflow: hidden;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  background: var(--claude-canvas);
-  padding: 22px;
+  background: var(--app-surface);
 }
 
 .panel-header {
@@ -736,20 +1131,36 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  min-height: 64px;
+  margin: 0;
+  padding: 16px 18px 14px;
   border-bottom: 1px solid var(--app-border);
 }
 
 .panel-header h2 {
   margin: 0;
   color: var(--app-text);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 500;
+  line-height: 1.15;
 }
 
 .full-width {
   width: 100%;
+}
+
+.group-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px 18px;
+}
+
+.leader-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 18px 18px;
 }
 
 .group-card,
@@ -759,8 +1170,8 @@ onMounted(async () => {
   flex-direction: column;
   gap: 4px;
   margin-top: 12px;
-  padding: 12px;
-  border-radius: var(--app-radius-md);
+  padding: 16px;
+  border-radius: var(--app-radius-lg);
   background: var(--app-surface-soft);
 }
 
@@ -784,14 +1195,15 @@ onMounted(async () => {
 }
 
 .member-list {
-  margin-top: 20px;
+  margin-top: 26px;
 }
 
 .member-list h3 {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: var(--app-text);
-  font-size: 16px;
-  font-weight: 500;
+  font-family: var(--claude-sans);
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .member-item {
@@ -824,54 +1236,283 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.task-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.task-toolbar p {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+}
+
 .task-table {
   width: 100%;
 }
 
-.detail-grid {
+.task-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.task-table :deep(.el-table__empty-block) {
+  min-height: 256px;
+}
+
+.task-table :deep(.el-table__empty-text) {
+  width: 100%;
+}
+
+.leader-empty-state {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
-  gap: 20px;
+  justify-items: center;
+  align-content: center;
+  min-height: 190px;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, rgba(245, 240, 232, 0.55), rgba(250, 249, 245, 0));
+  padding: 24px;
+  text-align: center;
+}
+
+.leader-empty-state.compact {
+  min-height: 190px;
+}
+
+.leader-empty-state.table-empty {
+  min-height: 256px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.leader-empty-icon {
+  position: relative;
+  width: 38px;
+  height: 48px;
+  margin-bottom: 14px;
+  border: 1.5px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+}
+
+.leader-empty-icon::before {
+  position: absolute;
+  top: -1.5px;
+  right: -1.5px;
+  width: 15px;
+  height: 15px;
+  border-bottom: 1.5px solid var(--app-border);
+  border-left: 1.5px solid var(--app-border);
+  border-radius: 0 7px 0 4px;
+  background: var(--app-surface-strong);
+  content: "";
+}
+
+.leader-empty-icon::after {
+  position: absolute;
+  top: 22px;
+  right: 10px;
+  left: 10px;
+  height: 1.5px;
+  background: var(--app-border);
+  box-shadow: 0 8px 0 var(--app-border);
+  content: "";
+}
+
+.empty-title {
+  margin: 0;
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.empty-copy {
+  max-width: 320px;
+  margin: 6px auto 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.leader-empty-state .el-button {
+  margin-top: 18px;
 }
 
 .report-title {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .report-title strong {
   color: var(--app-text);
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.35;
 }
 
 .report-meta {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-top: 10px;
 }
 
-.score-table {
-  margin-bottom: 10px;
+.leader-detail-tabs {
+  margin-top: 14px;
 }
 
-.json-block {
-  max-height: 200px;
-  overflow: auto;
-  margin: 0;
-  padding: 12px;
+.leader-detail-tabs :deep(.el-tabs__header) {
+  margin: 0 0 14px;
+}
+
+.leader-detail-tabs :deep(.el-tabs__nav-wrap::after) {
+  display: none;
+}
+
+.leader-detail-tabs :deep(.el-tabs__nav) {
+  width: 100%;
+  gap: 6px;
+  border-radius: var(--app-radius-md);
+  background: var(--app-surface-soft);
+  padding: 5px;
+}
+
+.leader-detail-tabs :deep(.el-tabs__item) {
+  flex: 1;
+  justify-content: center;
+  min-height: 34px;
+  height: 34px;
+  border-radius: var(--app-radius-sm);
+  padding: 0 8px;
+  font-size: 13px;
+}
+
+.leader-detail-tabs :deep(.el-tabs__active-bar) {
+  display: none;
+}
+
+.report-list,
+.risk-list {
+  display: grid;
+  gap: 10px;
+}
+
+.report-card,
+.risk-item,
+.consensus-copy {
+  border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  background: var(--app-dark);
-  color: var(--app-on-dark-soft);
-  font-size: 12px;
-  line-height: 1.6;
+  background: var(--app-surface);
+  padding: 14px;
 }
 
-.consensus-card {
-  display: flex;
-  flex-direction: column;
+.report-card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.report-score {
+  color: var(--app-text);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.report-score span {
+  color: var(--app-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.score-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.score-row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 8px;
+  color: var(--app-text-muted);
+  font-size: 12px;
+}
+
+.score-row strong {
+  color: var(--app-text);
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.score-bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--app-surface-muted);
+}
+
+.score-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--app-primary);
+}
+
+.consensus-summary {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.final-score-card {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: var(--app-surface-soft);
+  text-align: center;
+}
+
+.final-score-card strong {
+  display: block;
+  color: var(--app-text);
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.final-score-card span {
+  display: block;
+  margin-top: 6px;
+  color: var(--app-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.consensus-copy p {
+  margin: 10px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .consensus-actions,
@@ -894,22 +1535,95 @@ onMounted(async () => {
   line-height: 1;
 }
 
+.risk-item > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.risk-item strong {
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.risk-item p {
+  margin: 10px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.risk-suggestion {
+  color: var(--app-text) !important;
+}
+
 @media (max-width: 1180px) {
-  .stats-bar {
+  .leader-page {
+    padding-inline: 24px;
+  }
+
+  .leader-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .leader-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .leader-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .group-panel,
+  .task-panel,
+  .leader-detail-panel {
+    height: 560px;
+  }
+}
+
+@media (max-width: 820px) {
+  .leader-page {
+    padding-inline: 18px;
+  }
+
+  .leader-top-nav {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px 0;
+  }
+
+  .leader-nav-links {
+    width: 100%;
     flex-wrap: wrap;
-    gap: 8px;
+    justify-content: flex-start;
   }
 
-  .stat-divider {
-    display: none;
+  .leader-hero {
+    padding-top: 32px;
   }
 
-  .stat-item {
-    padding: 4px 12px 4px 0;
+  .leader-hero h1 {
+    font-size: 40px;
   }
 
-  .leader-shell,
-  .detail-grid {
+  .leader-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .task-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .panel-header,
+  .consensus-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .consensus-summary {
     grid-template-columns: 1fr;
   }
 }

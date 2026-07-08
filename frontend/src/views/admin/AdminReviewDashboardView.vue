@@ -25,7 +25,7 @@ const submittedTotal = computed(() => adminReviews.tasks.value.reduce((sum, task
 const assignmentTotal = computed(() => adminReviews.tasks.value.reduce((sum, task) => sum + task.assignmentCount, 0));
 const activeSectionTitle = computed(() => {
   const titles: Record<ReviewAdminTab, string> = {
-    config: '批次与小组',
+    config: '评审小组',
     tasks: '全局进度',
     criteria: '评审指标',
   };
@@ -79,6 +79,8 @@ onMounted(async () => {
 
 <template>
   <AdminShell :active="activeTab" :title="activeSectionTitle">
+    <ReviewBatchGroupPanel v-if="activeTab === 'config'" />
+
     <section v-if="activeTab === 'tasks'" class="summary-grid">
       <div
         class="summary-card animate slide-up"
@@ -131,22 +133,11 @@ onMounted(async () => {
     </section>
 
     <section
+      v-if="activeTab !== 'config'"
       class="paper-mind-workspace-card review-dashboard-panel animate fade-in"
       v-animate="{ type: 'fade-in', delay: '0.1s', duration: '0.6s' }"
     >
-      <div v-if="activeTab === 'config'">
-        <div class="section-header">
-          <h3>批次与小组</h3>
-          <p>配置评审批次、评审小组、组长和组内成员；普通评审任务分配后续交由组长处理。</p>
-        </div>
-        <ReviewBatchGroupPanel />
-      </div>
-
       <div v-if="activeTab === 'tasks'">
-        <div class="section-header">
-          <h3>全局进度</h3>
-          <p>查看所有评审任务进度；普通分配与共识确认由评审组长处理。</p>
-        </div>
         <div class="toolbar">
           <el-input
             v-model="adminReviews.keyword.value"
@@ -187,10 +178,6 @@ onMounted(async () => {
       </div>
 
       <div v-if="activeTab === 'criteria'">
-        <div class="section-header">
-          <h3>评审指标</h3>
-          <p>查看当前评审标准、评分维度和权重说明。</p>
-        </div>
         <ReviewCriteriaPanel />
       </div>
     </section>
@@ -213,6 +200,8 @@ onMounted(async () => {
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-self: start;
+  align-items: start;
   gap: 16px;
 }
 
@@ -220,15 +209,16 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 14px;
+  height: 128px;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-lg);
-  padding: 20px;
+  padding: 12px 18px;
   background: var(--app-surface-soft);
 }
 
 .summary-icon {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,7 +258,7 @@ onMounted(async () => {
   margin-top: 4px;
   color: var(--app-text);
   font-family: "Cormorant Garamond", "EB Garamond", Georgia, serif;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -276,7 +266,7 @@ onMounted(async () => {
 
 .summary-denom {
   color: var(--app-text-subtle);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 500;
 }
 

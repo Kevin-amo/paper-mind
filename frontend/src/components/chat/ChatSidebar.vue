@@ -330,15 +330,15 @@ function conversationTitle(conversation: Conversation) {
     <el-dialog
       v-model="deleteDialogVisible"
       title="删除会话"
-      width="400px"
-      class="conversation-dialog danger-dialog claude-workspace-dialog"
+      width="min(500px, calc(100vw - 32px))"
+      class="conversation-dialog danger-dialog claude-delete-dialog claude-workspace-dialog"
       append-to-body
       align-center
       @closed="closeOperationDialog"
     >
       <div class="conversation-dialog-body">
         <strong>确认删除这个问答会话吗？</strong>
-        <span class="dialog-caption">“{{ operatingConversation ? conversationTitle(operatingConversation) : '' }}” 删除后不可恢复。</span>
+        <span class="dialog-caption">“{{ operatingConversation ? conversationTitle(operatingConversation) : '' }}” 删除后不可恢复。相关对话内容、检索上下文与当前回答记录都会从历史会话中移除。</span>
       </div>
       <template #footer>
         <el-button @click="deleteDialogVisible = false">取消</el-button>
@@ -617,39 +617,116 @@ function conversationTitle(conversation: Conversation) {
 
 .conversation-dialog-body {
   display: grid;
-  gap: 12px;
+  gap: 18px;
 }
 
 .conversation-dialog-body strong {
   color: var(--app-text);
-  font-size: 15px;
+  font-size: 18px;
+  font-weight: 760;
+  line-height: 1.45;
 }
 
 .dialog-caption {
   color: var(--app-text-muted);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.75;
 }
 
-:global([class~="conversation-dialog"] [class~="el-dialog"]) {
-  border-radius: 22px;
+:global([class~="claude-delete-dialog"] [class~="el-dialog"]) {
+  overflow: hidden;
+  border: 1px solid rgba(230, 223, 216, 0.94);
+  border-radius: var(--app-radius-xl);
+  background: var(--app-surface);
+  box-shadow: 0 26px 70px rgba(23, 22, 20, 0.24);
 }
 
-:global([class~="conversation-dialog"] [class~="el-button"]) {
-  border-radius: 12px;
+:global([class~="claude-delete-dialog"] [class~="el-dialog__header"]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 0;
+  margin-right: 0;
+  padding: 20px 22px 18px 30px;
+  border-bottom: 1px solid var(--app-border);
 }
 
-:global([class~="danger-dialog"] [class~="delete-confirm-button"]) {
-  transition: transform var(--app-transition-fast), box-shadow var(--app-transition-fast);
+:global([class~="claude-delete-dialog"] [class~="el-dialog__title"]) {
+  color: var(--app-text);
+  font-family: Georgia, "Times New Roman", "Microsoft YaHei", serif;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: 0;
 }
 
-:global([class~="danger-dialog"] [class~="delete-confirm-button"]:hover),
-:global([class~="danger-dialog"] [class~="delete-confirm-button"]:focus) {
-  background: var(--el-color-danger);
-  border-color: var(--el-color-danger);
-  color: var(--app-text-on-primary);
-  transform: none;
-  box-shadow: none;
+:global([class~="claude-delete-dialog"] [class~="el-dialog__headerbtn"]) {
+  position: static;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: var(--app-radius-sm);
+  background: transparent;
+  color: var(--app-text-subtle);
+  transition: color var(--app-transition-fast), background-color var(--app-transition-fast), border-color var(--app-transition-fast);
+}
+
+:global([class~="claude-delete-dialog"] [class~="el-dialog__headerbtn"]:hover) {
+  border-color: var(--app-border);
+  background: var(--app-surface-strong);
+  color: var(--app-text);
+}
+
+:global([class~="claude-delete-dialog"] [class~="el-dialog__body"]) {
+  padding: 20px 30px 20px;
+}
+
+:global([class~="claude-delete-dialog"] [class~="el-dialog__footer"]) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 15px 30px 10px;
+  border-top: 1px solid var(--app-border);
+}
+
+:global([class~="claude-delete-dialog"] [class~="el-button"]) {
+  min-width: 76px;
+  min-height: 42px;
+  margin-left: 0;
+  border-radius: var(--app-radius-sm);
+  font-weight: 680;
+  transition: background-color var(--app-transition-fast), border-color var(--app-transition-fast), color var(--app-transition-fast), box-shadow var(--app-transition-fast);
+}
+
+:global([class~="el-dialog"][class~="claude-delete-dialog"] [class~="el-button"][class~="delete-confirm-button"]) {
+  --el-button-bg-color: var(--app-danger);
+  --el-button-border-color: var(--app-danger);
+  --el-button-text-color: var(--app-text-on-primary);
+  --el-button-hover-bg-color: var(--app-danger-hover);
+  --el-button-hover-border-color: var(--app-danger-hover);
+  --el-button-hover-text-color: var(--app-text-on-primary);
+  --el-button-active-bg-color: var(--app-danger-hover);
+  --el-button-active-border-color: var(--app-danger-hover);
+  --el-button-active-text-color: var(--app-text-on-primary);
+}
+
+@media (max-width: 520px) {
+  :global([class~="claude-delete-dialog"] [class~="el-dialog__header"]),
+  :global([class~="claude-delete-dialog"] [class~="el-dialog__body"]),
+  :global([class~="claude-delete-dialog"] [class~="el-dialog__footer"]) {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  :global([class~="claude-delete-dialog"] [class~="el-dialog__footer"]) {
+    flex-direction: column-reverse;
+  }
+
+  :global([class~="claude-delete-dialog"] [class~="el-button"]) {
+    width: 100%;
+  }
 }
 
 .logout-confirm-dialog :deep(.el-dialog__header) {
@@ -725,10 +802,13 @@ function conversationTitle(conversation: Conversation) {
 .logout-confirm-footer .logout-confirm-button {
   --el-button-bg-color: var(--app-danger);
   --el-button-border-color: var(--app-danger);
+  --el-button-text-color: var(--app-text-on-primary);
   --el-button-hover-bg-color: var(--app-danger-hover);
   --el-button-hover-border-color: var(--app-danger-hover);
+  --el-button-hover-text-color: var(--app-text-on-primary);
   --el-button-active-bg-color: #a03028;
   --el-button-active-border-color: #a03028;
+  --el-button-active-text-color: var(--app-text-on-primary);
   transition: background var(--app-transition-fast), border-color var(--app-transition-fast);
 }
 

@@ -40,4 +40,4 @@ const fallbackScores = [
 
 assert.equal(calculateWeightedScore(fallbackScores, criteria), 75);
 
-console.log('review score calculation checks passed');
+console.log('审阅评分计算检查通过。');

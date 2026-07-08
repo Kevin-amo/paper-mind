@@ -165,7 +165,7 @@ public class ReviewOutputParser {
 
     /**
      * 标准化评分明细列表中的每个评分项。
-     * 对 maxScore、score、confidence 进行类型转换和钳位。
+     * 对 maxScore、score 进行类型转换和钳位。
      *
      * @param scores 评分明细列表（原始类型）
      */
@@ -179,10 +179,8 @@ public class ReviewOutputParser {
                 Map<String, Object> scoreMap = (Map<String, Object>) rawMap;
                 int maxScore = clamp(intValue(scoreMap.get("maxScore"), 100), 1, 100);
                 int score = clamp(intValue(scoreMap.get("score"), 0), 0, maxScore);
-                double confidence = clamp(doubleValue(scoreMap.get("confidence"), 0.0), 0.0, 1.0);
                 scoreMap.put("maxScore", maxScore);
                 scoreMap.put("score", score);
-                scoreMap.put("confidence", confidence);
             }
         }
     }
@@ -209,27 +207,6 @@ public class ReviewOutputParser {
     }
 
     /**
-     * 将任意值安全转换为 double 类型。支持 Number 和可解析的字符串。
-     *
-     * @param value    原始值
-     * @param fallback 转换失败时的默认值
-     * @return 转换后的双精度浮点值
-     */
-    private double doubleValue(Object value, double fallback) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        if (value instanceof String text && !text.isBlank()) {
-            try {
-                return Double.parseDouble(text.trim());
-            } catch (NumberFormatException ignored) {
-                return fallback;
-            }
-        }
-        return fallback;
-    }
-
-    /**
      * 将整数值限制在 [min, max] 范围内。
      *
      * @param value 原始值
@@ -241,15 +218,4 @@ public class ReviewOutputParser {
         return Math.max(min, Math.min(max, value));
     }
 
-    /**
-     * 将浮点值限制在 [min, max] 范围内。
-     *
-     * @param value 原始值
-     * @param min   最小值
-     * @param max   最大值
-     * @return 钳位后的浮点值
-     */
-    private double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
 }

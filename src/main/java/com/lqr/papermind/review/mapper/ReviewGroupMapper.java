@@ -26,20 +26,6 @@ public interface ReviewGroupMapper extends BaseMapper<ReviewGroupEntity> {
     List<ReviewGroupEntity> selectActiveByLeader(@Param("leaderUserId") UUID leaderUserId);
 
     /**
-     * 根据评审批次ID查询所有评审组
-     *
-     * @param batchId 评审批次ID
-     * @return 评审组列表
-     */
-    @Select("""
-            select *
-            from public.review_group
-            where batch_id = #{batchId}
-            order by updated_at desc, created_at desc
-            """)
-    List<ReviewGroupEntity> selectByBatchId(@Param("batchId") UUID batchId);
-
-    /**
      * 统计指定评审组下的评审任务数量
      *
      * @param groupId 评审组ID

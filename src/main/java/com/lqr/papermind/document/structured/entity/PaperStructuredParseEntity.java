@@ -14,7 +14,7 @@ import java.util.UUID;
  * 论文结构化解析持久化实体。
  */
 @Data
-@TableName(value = "public.paper_structured_parse", autoResultMap = true)
+@TableName(value = "public.document_structured_parse", autoResultMap = true)
 public class PaperStructuredParseEntity {
 
     @TableId(value = "id", type = IdType.INPUT)
@@ -34,14 +34,8 @@ public class PaperStructuredParseEntity {
     @TableField(value = "merged_result", typeHandler = JsonbTypeHandler.class)
     private Object mergedResult;
 
-    @TableField(value = "field_confidence", typeHandler = JsonbTypeHandler.class)
-    private Object fieldConfidence;
-
     @TableField(value = "missing_fields", typeHandler = JsonbTypeHandler.class)
     private Object missingFields;
-
-    @TableField(value = "low_confidence_fields", typeHandler = JsonbTypeHandler.class)
-    private Object lowConfidenceFields;
 
     private String rawModelOutput;
     private String parserVersion;

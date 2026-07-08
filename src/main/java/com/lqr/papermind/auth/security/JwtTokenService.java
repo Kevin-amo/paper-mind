@@ -49,21 +49,6 @@ public class JwtTokenService {
     }
 
     /**
-     * 校验令牌是否有效。
-     *
-     * @param token JWT 令牌字符串
-     * @return 有效返回 true，否则返回 false
-     */
-    public boolean isValid(String token) {
-        try {
-            jwtDecoder.decode(token);
-            return true;
-        } catch (JwtException ex) {
-            return false;
-        }
-    }
-
-    /**
      * 解码并校验 JWT 令牌，返回包含所有声明的 Jwt 对象。
      *
      * @param token JWT 令牌字符串
@@ -81,11 +66,5 @@ public class JwtTokenService {
      */
     public long accessTokenExpiresInSeconds() {
         return securityProperties.jwt().accessTokenTtl().toSeconds();
-    }
-
-    /**
-     * 令牌中携带的用户摘要信息。
-     */
-    public record TokenUser(UUID userId, String username, List<String> roles) {
     }
 }

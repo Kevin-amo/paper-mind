@@ -31,25 +31,25 @@ public class EmbeddingServiceImpl implements EmbeddingService {
     @Override
     public List<EmbeddingVector> embed(List<DocumentChunk> chunks) {
         if (chunks == null || chunks.isEmpty()) {
-            log.info("embedding.start chunkCount={} sourceIdDistribution={} totalChars={}", 0, Map.of(), 0);
-            log.info("embedding.done chunkCount={} vectorCount={} sourceIdDistribution={} totalChars={} costMs={}", 0, 0, Map.of(), 0, 0);
+            log.info("向量化开始 chunkCount={} sourceIdDistribution={} totalChars={}", 0, Map.of(), 0);
+            log.info("向量化完成 chunkCount={} vectorCount={} sourceIdDistribution={} totalChars={} costMs={}", 0, 0, Map.of(), 0, 0);
             return List.of();
         }
         long startNanos = System.nanoTime();
         Map<String, Long> sourceDistribution = sourceDistribution(chunks);
         int totalChars = chunks.stream().mapToInt(chunk -> chunk.content() == null ? 0 : chunk.content().length()).sum();
-        log.info("embedding.start chunkCount={} sourceIdDistribution={} totalChars={}", chunks.size(), sourceDistribution, totalChars);
+        log.info("向量化开始 chunkCount={} sourceIdDistribution={} totalChars={}", chunks.size(), sourceDistribution, totalChars);
         try {
             List<EmbeddingVector> vectors = new ArrayList<>(chunks.size());
             for (DocumentChunk chunk : chunks) {
                 float[] vector = embeddingModel.embed(chunk.content());
                 vectors.add(new EmbeddingVector(chunk, vector, chunk.metadata() == null ? Map.of() : chunk.metadata()));
             }
-            log.info("embedding.done chunkCount={} vectorCount={} sourceIdDistribution={} totalChars={} costMs={}",
+            log.info("向量化完成 chunkCount={} vectorCount={} sourceIdDistribution={} totalChars={} costMs={}",
                     chunks.size(), vectors.size(), sourceDistribution, totalChars, elapsedMs(startNanos));
             return vectors;
         } catch (RuntimeException ex) {
-            log.error("embedding.failed chunkCount={} sourceIdDistribution={} totalChars={} costMs={}",
+            log.error("向量化失败 chunkCount={} sourceIdDistribution={} totalChars={} costMs={}",
                     chunks.size(), sourceDistribution, totalChars, elapsedMs(startNanos), ex);
             throw ex;
         }

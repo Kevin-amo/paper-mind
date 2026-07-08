@@ -57,31 +57,31 @@ public class AgentRuntime {
         List<AnswerCitation> citations = new ArrayList<>();
         Map<String, Object> extraMetadata = new LinkedHashMap<>();
 
-        log.info("agent.loop.start ownerUserId={} conversationId={} questionLength={} questionExcerpt={} topK={} historyCount={} hasLiteratureContext={} maxSteps={}",
+        log.info("智能体循环启动 ownerUserId={} conversationId={} questionLength={} questionExcerpt={} topK={} historyCount={} hasLiteratureContext={} maxSteps={}",
                 ownerUserId, conversationId, textLength(question), LogSanitizer.safeExcerpt(question, 160), topK, size(history), lastLiteratureContext != null, MAX_STEPS);
         for (int index = 1; index <= MAX_STEPS; index++) {
             sink.accept(AgentRuntimeEvent.step(index));
             AgentDecision decision = planner.decide(question, history, lastLiteratureContext, steps, observations, topK);
             String thoughtSummary = deterministicThoughtSummary(decision.action());
-            log.info("agent.plan.step conversationId={} step={} action={} finish={} actionInputSummary={}",
+            log.info("智能体规划步骤 conversationId={} step={} action={} finish={} actionInputSummary={}",
                     conversationId, index, decision.action(), decision.finish(), LogSanitizer.safeActionInput(decision.actionInput()));
 
             if (decision.finish()) {
-                log.info("agent.loop.done ownerUserId={} conversationId={} stopReason=FINISH stepCount={} citationRawCount={} observationCount={}",
+                log.info("智能体循环完成 ownerUserId={} conversationId={} stopReason=FINISH stepCount={} citationRawCount={} observationCount={}",
                         ownerUserId, conversationId, steps.size(), citations.size(), observations.size());
                 return result(decision.answer(), citations, topK, metadata(steps, extraMetadata), steps, observations);
             }
 
             AgentTool tool = toolRegistry.find(decision.action().value()).orElse(null);
             if (tool == null || decision.action() == AgentActionType.FINISH) {
-                log.warn("agent.loop.stop ownerUserId={} conversationId={} step={} stopReason=NO_TOOL action={}",
+                log.warn("智能体循环停止 ownerUserId={} conversationId={} step={} stopReason=NO_TOOL action={}",
                         ownerUserId, conversationId, index, decision.action());
                 return result(decision.answer(), citations, topK, metadata(steps, extraMetadata), steps, observations);
             }
             if (hasRepeatedAction(steps, tool.name(), decision.actionInput()) && !observations.isEmpty()) {
                 Map<String, Object> metadata = metadata(steps, extraMetadata);
                 metadata.put("stopReason", "REPEATED_ACTION");
-                log.warn("agent.loop.stop ownerUserId={} conversationId={} step={} stopReason=REPEATED_ACTION toolName={} actionInputSummary={}",
+                log.warn("智能体循环停止 ownerUserId={} conversationId={} step={} stopReason=REPEATED_ACTION toolName={} actionInputSummary={}",
                         ownerUserId, conversationId, index, tool.name(), LogSanitizer.safeActionInput(decision.actionInput()));
                 return result(null, citations, topK, metadata, steps, observations);
             }
@@ -89,10 +89,10 @@ public class AgentRuntime {
             sink.accept(AgentRuntimeEvent.thought(index, thoughtSummary));
             sink.accept(AgentRuntimeEvent.toolCall(index, tool.name(), decision.actionInput()));
             long toolStartNanos = System.nanoTime();
-            log.info("agent.tool.start ownerUserId={} conversationId={} step={} toolName={} actionInputSummary={}",
+            log.info("智能体工具调用开始 ownerUserId={} conversationId={} step={} toolName={} actionInputSummary={}",
                     ownerUserId, conversationId, index, tool.name(), LogSanitizer.safeActionInput(decision.actionInput()));
             AgentToolResult result = executeTool(ownerUserId, tool, decision.actionInput());
-            log.info("agent.tool.done ownerUserId={} conversationId={} step={} toolName={} observationLength={} citationCount={} metadataKeys={} costMs={}",
+            log.info("智能体工具调用完成 ownerUserId={} conversationId={} step={} toolName={} observationLength={} citationCount={} metadataKeys={} costMs={}",
                     ownerUserId, conversationId, index, tool.name(), textLength(result.observationSummary()), result.citations().size(), metadataKeys(result.metadata()), elapsedMs(toolStartNanos));
             citations.addAll(result.citations());
             observations.add(result.evidenceText());
@@ -110,14 +110,14 @@ public class AgentRuntime {
                     extraMetadata.put("literatureUnavailable", true);
                     Object reason = result.metadata().get("toolErrorMessage");
                     extraMetadata.putIfAbsent("literatureUnavailableReason", reason == null ? "外部文献工具暂不可用" : reason);
-                    log.warn("agent.loop.continue ownerUserId={} conversationId={} step={} reason=HYBRID_LITERATURE_UNAVAILABLE toolName={}",
+                    log.warn("智能体循环继续 ownerUserId={} conversationId={} step={} reason=HYBRID_LITERATURE_UNAVAILABLE toolName={}",
                             ownerUserId, conversationId, index, tool.name());
                     continue;
                 }
                 mergeMetadata(extraMetadata, result.metadata());
                 Map<String, Object> metadata = metadata(steps, extraMetadata);
                 metadata.put("stopReason", "TOOL_UNAVAILABLE");
-                log.warn("agent.loop.stop ownerUserId={} conversationId={} step={} stopReason=TOOL_UNAVAILABLE toolName={}",
+                log.warn("智能体循环停止 ownerUserId={} conversationId={} step={} stopReason=TOOL_UNAVAILABLE toolName={}",
                         ownerUserId, conversationId, index, tool.name());
                 return result(null, citations, topK, metadata, steps, observations);
             }
@@ -126,7 +126,7 @@ public class AgentRuntime {
 
         Map<String, Object> metadata = metadata(steps, extraMetadata);
         metadata.put("stopReason", "MAX_STEPS_REACHED");
-        log.warn("agent.loop.stop ownerUserId={} conversationId={} stopReason=MAX_STEPS_REACHED stepCount={} citationRawCount={} observationCount={}",
+        log.warn("智能体循环停止 ownerUserId={} conversationId={} stopReason=MAX_STEPS_REACHED stepCount={} citationRawCount={} observationCount={}",
                 ownerUserId, conversationId, steps.size(), citations.size(), observations.size());
         return result(null, citations, topK, metadata, steps, observations);
     }
@@ -174,7 +174,7 @@ public class AgentRuntime {
         try {
             return tool.execute(ownerUserId, actionInput);
         } catch (RuntimeException ex) {
-            log.warn("agent.tool.failed ownerUserId={} toolName={} actionInputSummary={}",
+            log.warn("智能体工具调用失败 ownerUserId={} toolName={} actionInputSummary={}",
                     ownerUserId, tool.name(), LogSanitizer.safeActionInput(actionInput), ex);
             String message = userSafeMessage(ex);
             return new AgentToolResult(

@@ -27,8 +27,8 @@ const requiredActions = [
 const missing = requiredActions.filter((action) => !source.includes(`${action}:`));
 
 if (missing.length > 0) {
-  console.error(`Missing review audit action labels: ${missing.join(', ')}`);
+  console.error(`缺少审阅审计操作标签：${missing.join(', ')}`);
   process.exit(1);
 }
 
-console.log('Review audit action labels cover known audit actions.');
+console.log('审阅审计操作标签覆盖已知审计操作。');

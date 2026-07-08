@@ -61,18 +61,24 @@ class PaperStructuredParseServiceTest {
         ownerUserId = UUID.randomUUID();
     }
 
+    /**
+     * 测试generate和regenerate方法应该在调用者事务之外运行。
+     */
     @Test
     void generateAndRegenerateShouldRunOutsideCallerTransaction() throws Exception {
         assertNotSupportedTransaction("generate");
         assertNotSupportedTransaction("regenerate");
     }
 
+    /**
+     * 测试当结果更新失败时，应该持久化失败状态。
+     */
     @Test
     void generateShouldPersistFailureWhenResultUpsertFails() {
         DocumentPersistenceService.DocumentDetail document = document("论文标题", "摘要文本", "全文");
         DocumentEntity entity = documentEntity(document);
-        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of(), List.of());
-        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of(), List.of());
+        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of());
+        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of());
         PaperStructuredParseEntity failed = new PaperStructuredParseEntity();
         failed.setId(UUID.randomUUID());
         failed.setOwnerUserId(ownerUserId);
@@ -84,7 +90,7 @@ class PaperStructuredParseServiceTest {
         when(ruleParser.parse(document)).thenReturn(ruleResult);
         when(modelCompleter.complete(document, ruleResult)).thenReturn(new ModelCompletionResult(modelResult, "{}", null));
         when(mergePolicy.merge(ruleResult, modelResult)).thenReturn(ruleResult);
-        when(structuredParseMapper.upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null)))
+        when(structuredParseMapper.upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null)))
                 .thenThrow(new IllegalStateException("结果保存失败"));
         when(structuredParseMapper.selectOne(any(Wrapper.class))).thenReturn(failed);
 
@@ -94,13 +100,16 @@ class PaperStructuredParseServiceTest {
         verify(structuredParseMapper).upsertFailed(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), eq("结果保存失败"));
     }
 
+    /**
+     * 测试应该持久化合并结果。
+     */
     @Test
     void generateShouldPersistMergedResult() {
         DocumentPersistenceService.DocumentDetail document = document("论文标题", "摘要文本", "全文");
         DocumentEntity entity = documentEntity(document);
-        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of("conclusion"), List.of());
-        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of(), List.of());
-        StructuredParseResult mergedResult = new StructuredParseResult(PaperStructuredContentSupport.withValue(PaperStructuredContentSupport.emptyContent(), "title", "论文标题"), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of(), List.of());
+        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of("conclusion"));
+        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of());
+        StructuredParseResult mergedResult = new StructuredParseResult(PaperStructuredContentSupport.withValue(PaperStructuredContentSupport.emptyContent(), "title", "论文标题"), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of());
         PaperStructuredParseEntity saved = new PaperStructuredParseEntity();
         saved.setId(UUID.randomUUID());
         saved.setOwnerUserId(ownerUserId);
@@ -118,15 +127,18 @@ class PaperStructuredParseServiceTest {
         PaperStructuredParseEntity result = service.generate(ownerUserId, "source-1");
 
         assertThat(result.getStatus()).isEqualTo("COMPLETED");
-        verify(structuredParseMapper).upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null));
+        verify(structuredParseMapper).upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), eq("{}"), eq("COMPLETED"), eq(null));
     }
 
+    /**
+     * 测试当模型补全失败时，应该持久化规则解析状态。
+     */
     @Test
     void generateShouldPersistRuleParsedWhenModelCompletionFails() {
         DocumentPersistenceService.DocumentDetail document = document("论文标题", "摘要文本", "全文");
         DocumentEntity entity = documentEntity(document);
-        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of("conclusion"), List.of());
-        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of(), List.of());
+        StructuredParseResult ruleResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("RULE"), List.of("conclusion"));
+        StructuredParseResult modelResult = new StructuredParseResult(PaperStructuredContentSupport.emptyContent(), PaperStructuredContentSupport.emptyEvidence("MODEL"), List.of());
         PaperStructuredParseEntity saved = new PaperStructuredParseEntity();
         saved.setId(UUID.randomUUID());
         saved.setOwnerUserId(ownerUserId);
@@ -143,9 +155,12 @@ class PaperStructuredParseServiceTest {
         PaperStructuredParseEntity result = service.generate(ownerUserId, "source-1");
 
         assertThat(result.getStatus()).isEqualTo("RULE_PARSED");
-        verify(structuredParseMapper).upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("模型没有输出 JSON"), eq("RULE_PARSED"), eq("模型结构化解析结果缺少 JSON 对象"));
+        verify(structuredParseMapper).upsertResult(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), anyString(), anyString(), anyString(), anyString(), eq("模型没有输出 JSON"), eq("RULE_PARSED"), eq("模型结构化解析结果缺少 JSON 对象"));
     }
 
+    /**
+     * 测试当解析器失败时，应该持久化失败状态。
+     */
     @Test
     void generateShouldPersistFailureWhenParserFails() {
         DocumentPersistenceService.DocumentDetail document = document("论文标题", "摘要文本", "全文");
@@ -167,6 +182,12 @@ class PaperStructuredParseServiceTest {
         verify(structuredParseMapper).upsertFailed(any(UUID.class), eq(ownerUserId), eq(entity.getId()), eq("source-1"), eq("全文"), eq("解析失败"));
     }
 
+    /**
+     * 断言方法不支持事务传播。
+     *
+     * @param methodName 方法名
+     * @throws NoSuchMethodException 如果方法不存在
+     */
     private void assertNotSupportedTransaction(String methodName) throws NoSuchMethodException {
         Transactional transactional = PaperStructuredParseServiceImpl.class
                 .getMethod(methodName, UUID.class, String.class)
@@ -175,6 +196,14 @@ class PaperStructuredParseServiceTest {
         assertThat(transactional.propagation()).isEqualTo(Propagation.NOT_SUPPORTED);
     }
 
+    /**
+     * 创建测试用的文档详情。
+     *
+     * @param title        标题
+     * @param abstractText 摘要
+     * @param contentText  全文
+     * @return 文档详情
+     */
     private DocumentPersistenceService.DocumentDetail document(String title, String abstractText, String contentText) {
         OffsetDateTime now = OffsetDateTime.now();
         return new DocumentPersistenceService.DocumentDetail(
@@ -202,6 +231,12 @@ class PaperStructuredParseServiceTest {
         );
     }
 
+    /**
+     * 创建测试用的文档实体。
+     *
+     * @param document 文档详情
+     * @return 文档实体
+     */
     private DocumentEntity documentEntity(DocumentPersistenceService.DocumentDetail document) {
         DocumentEntity entity = new DocumentEntity();
         entity.setId(UUID.randomUUID());

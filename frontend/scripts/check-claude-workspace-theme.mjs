@@ -50,6 +50,98 @@ for (const selector of ['.el-message', '.el-select__popper', '.el-dropdown__popp
   }
 }
 
+function findRuleBlock(selector) {
+  const rulePattern = /(?<selectors>[^{}]+)\{(?<body>[^{}]*)\}/g;
+  let match;
+  while ((match = rulePattern.exec(theme)) !== null) {
+    const selectors = match.groups.selectors
+      .split(',')
+      .map((item) => item.trim());
+    if (selectors.includes(selector)) {
+      return match.groups.body;
+    }
+  }
+  return '';
+}
+
+for (const selector of ['.review-page .el-loading-mask', '.leader-page .el-loading-mask']) {
+  const block = findRuleBlock(selector);
+  if (!block.includes('background: rgba(250, 249, 245, 0.76);')) {
+    throw new Error(`${selector} must use the Claude canvas loading mask instead of Element Plus white.`);
+  }
+}
+
+const defaultButtonSelectors = [
+  '.el-dialog.claude-workspace-dialog .el-button',
+  '.el-drawer.claude-workspace-drawer .el-button',
+  '.el-message-box .el-button',
+];
+
+for (const selector of defaultButtonSelectors) {
+  const block = findRuleBlock(selector);
+  if (!block) {
+    throw new Error(`Claude workspace theme must define neutral default button styles for ${selector}`);
+  }
+
+  for (const token of [
+    '--el-button-bg-color: var(--app-surface);',
+    '--el-button-border-color: var(--app-border);',
+    '--el-button-text-color: var(--app-text);',
+    '--el-button-hover-bg-color: var(--app-surface-soft);',
+    '--el-button-hover-border-color: var(--app-border-strong);',
+    '--el-button-hover-text-color: var(--app-text);',
+    '--el-button-active-bg-color: var(--app-surface-muted);',
+    '--el-button-active-border-color: var(--app-border-strong);',
+  ]) {
+    if (!block.includes(token)) {
+      throw new Error(`Claude workspace default button ${selector} is missing ${token}`);
+    }
+  }
+}
+
+for (const selector of [
+  '.el-dialog.claude-workspace-dialog .el-button:not(.is-disabled):hover',
+  '.el-drawer.claude-workspace-drawer .el-button:not(.is-disabled):hover',
+  '.el-message-box .el-button:not(.is-disabled):hover',
+]) {
+  const block = findRuleBlock(selector);
+  if (!block.includes('transform: scale(1.02);')) {
+    throw new Error(`Claude workspace default button hover should subtly scale for ${selector}`);
+  }
+}
+
+for (const selector of [
+  '.el-dialog.claude-workspace-dialog .el-button:not(.is-disabled):active',
+  '.el-drawer.claude-workspace-drawer .el-button:not(.is-disabled):active',
+  '.el-message-box .el-button:not(.is-disabled):active',
+]) {
+  const block = findRuleBlock(selector);
+  if (!block.includes('transform: scale(0.98);')) {
+    throw new Error(`Claude workspace default button active state should press down for ${selector}`);
+  }
+}
+
+for (const selector of [
+  '.el-dialog.claude-workspace-dialog .el-button--primary',
+  '.el-drawer.claude-workspace-drawer .el-button--primary',
+  '.el-message-box .el-button--primary',
+]) {
+  const block = findRuleBlock(selector);
+  if (!block) {
+    throw new Error(`Claude workspace theme must define primary button styles for ${selector}`);
+  }
+
+  for (const token of [
+    '--el-button-text-color: var(--app-text-on-primary);',
+    '--el-button-hover-text-color: var(--app-text-on-primary);',
+    '--el-button-active-text-color: var(--app-text-on-primary);',
+  ]) {
+    if (!block.includes(token)) {
+      throw new Error(`Claude workspace primary button ${selector} is missing readable text token ${token}`);
+    }
+  }
+}
+
 const themedScreens = ['src/views/LoginView.vue', 'src/views/UserWorkspaceView.vue'];
 for (const file of themedScreens) {
   const content = fs.readFileSync(path.join(root, file), 'utf8');
@@ -58,4 +150,4 @@ for (const file of themedScreens) {
   }
 }
 
-console.log('Claude workspace theme covers admin, review, login, user, and teleport overlays.');
+console.log('Claude工作区主题覆盖管理、审阅、登录、用户和传送门覆盖层。');

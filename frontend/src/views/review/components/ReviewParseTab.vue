@@ -7,7 +7,6 @@ defineProps<{
   structuredContent: Partial<PaperStructuredContent>;
   selectedTask: ReviewTask | null;
   missingFields: string[];
-  lowConfidenceFields: string[];
   assignmentSubmitted: boolean;
   structuredParseLoading: boolean;
   regeneratingStructuredParse: boolean;
@@ -26,9 +25,6 @@ defineEmits<{
         <p>独立于 AI 评审报告的论文结构化解析结果</p>
       </div>
       <div class="section-actions">
-        <el-tag :type="structuredParse?.status === 'FAILED' ? 'danger' : structuredParse ? 'success' : 'info'" size="small" effect="plain">
-          {{ structuredParse?.status || '未生成' }}
-        </el-tag>
         <el-button size="small" :disabled="assignmentSubmitted" :loading="regeneratingStructuredParse" @click="$emit('rerunStructuredParse')">
           生成解析
         </el-button>
@@ -43,9 +39,6 @@ defineEmits<{
       </el-tag>
       <el-tag v-for="field in missingFields" :key="`missing-${field}`" type="warning" size="small" effect="plain">
         缺失：{{ field }}
-      </el-tag>
-      <el-tag v-for="field in lowConfidenceFields" :key="`low-${field}`" type="danger" size="small" effect="plain">
-        低置信：{{ field }}
       </el-tag>
     </div>
     <div class="section-grid">

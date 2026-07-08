@@ -18,7 +18,7 @@ class ReviewOutputParserTest {
                 ```json
                 {
                   "paperSections": {"title": "论文A",},
-                  "scores": [{"code": "LOGIC", "score": 130, "maxScore": 100, "confidence": 1.4,}],
+                  "scores": [{"code": "LOGIC", "score": 130, "maxScore": 100,}],
                   "comments": {"summary": "可读",},
                   "risks": [],
                   "totalScore": 120,
@@ -30,7 +30,6 @@ class ReviewOutputParserTest {
         List<?> scores = (List<?>) parsed.get("scores");
         Map<?, ?> first = (Map<?, ?>) scores.get(0);
         assertThat(first.get("score")).isEqualTo(100);
-        assertThat(first.get("confidence")).isEqualTo(1.0);
     }
 
     @Test
@@ -69,9 +68,9 @@ class ReviewOutputParserTest {
         Map<String, Object> parsed = parser.parse("""
                 {
                   "scores": [
-                    {"code": "MISSING", "score": 120, "confidence": "0.7"},
-                    {"code": "TEXT", "score": "12", "maxScore": "10", "confidence": "1.2"},
-                    {"code": "BAD", "score": "bad", "maxScore": "bad", "confidence": "bad"}
+                    {"code": "MISSING", "score": 120},
+                    {"code": "TEXT", "score": "12", "maxScore": "10"},
+                    {"code": "BAD", "score": "bad", "maxScore": "bad"}
                   ],
                   "totalScore": 50
                 }
@@ -81,17 +80,14 @@ class ReviewOutputParserTest {
         Map<?, ?> missing = (Map<?, ?>) scores.get(0);
         assertThat(missing.get("maxScore")).isEqualTo(100);
         assertThat(missing.get("score")).isEqualTo(100);
-        assertThat(missing.get("confidence")).isEqualTo(0.7);
 
         Map<?, ?> text = (Map<?, ?>) scores.get(1);
         assertThat(text.get("maxScore")).isEqualTo(10);
         assertThat(text.get("score")).isEqualTo(10);
-        assertThat(text.get("confidence")).isEqualTo(1.0);
 
         Map<?, ?> bad = (Map<?, ?>) scores.get(2);
         assertThat(bad.get("maxScore")).isEqualTo(100);
         assertThat(bad.get("score")).isEqualTo(0);
-        assertThat(bad.get("confidence")).isEqualTo(0.0);
     }
 
     @Test

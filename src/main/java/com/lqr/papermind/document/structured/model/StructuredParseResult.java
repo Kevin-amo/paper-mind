@@ -9,7 +9,6 @@ import java.util.Map;
 public record StructuredParseResult(
         PaperStructuredContent content,
         Map<String, StructuredFieldEvidence> evidence,
-        List<String> missingFields,
-        List<String> lowConfidenceFields
+        List<String> missingFields
 ) {
 }

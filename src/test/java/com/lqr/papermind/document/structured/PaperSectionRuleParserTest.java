@@ -19,6 +19,9 @@ class PaperSectionRuleParserTest {
 
     private final PaperSectionRuleParserImpl parser = new PaperSectionRuleParserImpl();
 
+    /**
+     * 测试解析器应该识别中文编号章节。
+     */
     @Test
     void parseShouldRecognizeChineseNumberedSections() {
         String text = """
@@ -52,6 +55,9 @@ class PaperSectionRuleParserTest {
         assertThat(result.content().references()).contains("示例文献");
     }
 
+    /**
+     * 测试解析器应该识别英文章节。
+     */
     @Test
     void parseShouldRecognizeEnglishSections() {
         String text = """
@@ -86,6 +92,9 @@ class PaperSectionRuleParserTest {
         assertThat(result.content().conclusion()).contains("Main conclusion");
     }
 
+    /**
+     * 测试解析器不应该将生成器元数据用作摘要。
+     */
     @Test
     void parseShouldNotUseGeneratorMetadataAsAbstract() {
         String text = """
@@ -101,6 +110,9 @@ class PaperSectionRuleParserTest {
         assertThat(result.content().abstractText()).doesNotContain("python-docx");
     }
 
+    /**
+     * 测试解析器应该在遇到未知编号标题时停止引言。
+     */
     @Test
     void parseShouldStopIntroductionAtUnknownNumberedHeading() {
         String text = """
@@ -119,6 +131,9 @@ class PaperSectionRuleParserTest {
         assertThat(result.content().methodology()).contains("前后端分离架构");
     }
 
+    /**
+     * 测试解析器应该识别课程设计章节名称。
+     */
     @Test
     void parseShouldRecognizeCourseDesignSectionNames() {
         String text = """
@@ -137,6 +152,9 @@ class PaperSectionRuleParserTest {
         assertThat(result.content().conclusion()).contains("主要功能");
     }
 
+    /**
+     * 测试解析器应该忽略正文章节前的目录页码。
+     */
     @Test
     void parseShouldIgnoreContentsPageNumbersBeforeBodySections() {
         String text = """
@@ -176,6 +194,9 @@ class PaperSectionRuleParserTest {
         assertThat(result.content().conclusion()).contains("主要功能设计与实现");
     }
 
+    /**
+     * 测试解析器应该识别带有尾随页码的标题。
+     */
     @Test
     void parseShouldRecognizeHeadingsWithTrailingPageNumbers() {
         String text = """
@@ -196,6 +217,15 @@ class PaperSectionRuleParserTest {
         assertThat(result.content().conclusion()).contains("博客系统主要功能");
     }
 
+    /**
+     * 创建测试用的文档详情。
+     *
+     * @param title        标题
+     * @param abstractText 摘要
+     * @param keywords     关键词
+     * @param contentText  全文
+     * @return 文档详情
+     */
     private DocumentPersistenceService.DocumentDetail document(String title, String abstractText, Object keywords, String contentText) {
         OffsetDateTime now = OffsetDateTime.now();
         return new DocumentPersistenceService.DocumentDetail(

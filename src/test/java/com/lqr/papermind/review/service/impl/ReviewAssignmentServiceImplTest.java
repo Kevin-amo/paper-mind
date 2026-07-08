@@ -118,7 +118,6 @@ class ReviewAssignmentServiceImplTest {
     @Test
     void assignReviewersCreatesAdminOverrideAssignmentsAndAuditLog() {
         UUID adminId = UUID.randomUUID();
-        UUID batchId = UUID.randomUUID();
         UUID groupId = UUID.randomUUID();
         UUID groupLeaderId = UUID.randomUUID();
         UUID taskId = UUID.randomUUID();
@@ -126,7 +125,7 @@ class ReviewAssignmentServiceImplTest {
         UUID reviewerBId = UUID.randomUUID();
         OffsetDateTime dueAt = OffsetDateTime.now().plusDays(5);
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, groupId, ReviewTaskStatuses.PENDING_ASSIGNMENT));
-        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, batchId, groupLeaderId, "ACTIVE"));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, groupLeaderId, "ACTIVE"));
         when(memberMapper.selectActiveByGroupAndUser(groupId, reviewerAId)).thenReturn(member(groupId, reviewerAId, "REVIEWER"));
         when(memberMapper.selectActiveByGroupAndUser(groupId, reviewerBId)).thenReturn(member(groupId, reviewerBId, "REVIEWER"));
         when(userMapper.selectById(reviewerAId)).thenReturn(user(reviewerAId, "reviewer-a", "评审员A", "ACTIVE"));
@@ -144,7 +143,7 @@ class ReviewAssignmentServiceImplTest {
         assertThat(assignmentCaptor.getAllValues()).extracting(ReviewAssignmentEntity::getReviewerUserId).containsExactly(reviewerAId, reviewerBId);
         assertThat(assignmentCaptor.getAllValues()).extracting(ReviewAssignmentEntity::getRole).containsExactly(ReviewAssignmentRoles.REVIEWER, ReviewAssignmentRoles.LEAD);
         assertThat(assignments).hasSize(2);
-        verify(taskMapper).markAssignedByAdminOverride(taskId, batchId, groupId, adminId, groupLeaderId, reviewerAId, dueAt);
+        verify(taskMapper).markAssignedByAdminOverride(taskId, groupId, adminId, groupLeaderId, reviewerAId, dueAt);
     }
 
     @Test
@@ -154,14 +153,14 @@ class ReviewAssignmentServiceImplTest {
         UUID groupLeaderId = UUID.randomUUID();
         UUID reviewerId = UUID.randomUUID();
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, null, ReviewTaskStatuses.PENDING_ASSIGNMENT));
-        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, UUID.randomUUID(), groupLeaderId, "ACTIVE"));
+        when(groupMapper.selectById(groupId)).thenReturn(group(groupId, groupLeaderId, "ACTIVE"));
 
         assertThatThrownBy(() -> service.assignReviewers(taskId, UUID.randomUUID(), new ReviewAssignmentRequest(List.of(reviewerId), reviewerId, groupId, null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("只能分配给本组有效评审员");
 
         verify(assignmentMapper, never()).insert(any(ReviewAssignmentEntity.class));
-        verify(taskMapper, never()).markAssignedByAdminOverride(any(), any(), any(), any(), any(), any(), any());
+        verify(taskMapper, never()).markAssignedByAdminOverride(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -498,13 +497,8 @@ class ReviewAssignmentServiceImplTest {
     }
 
     private ReviewGroupEntity group(UUID groupId, UUID leaderId, String status) {
-        return group(groupId, UUID.randomUUID(), leaderId, status);
-    }
-
-    private ReviewGroupEntity group(UUID groupId, UUID batchId, UUID leaderId, String status) {
         ReviewGroupEntity group = new ReviewGroupEntity();
         group.setId(groupId);
-        group.setBatchId(batchId);
         group.setLeaderUserId(leaderId);
         group.setStatus(status);
         return group;

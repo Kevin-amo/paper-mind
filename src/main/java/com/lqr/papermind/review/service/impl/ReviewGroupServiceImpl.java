@@ -1,27 +1,21 @@
 package com.lqr.papermind.review.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.lqr.papermind.auth.entity.SysUser;
 import com.lqr.papermind.auth.mapper.SysRoleMapper;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.auth.security.RoleCodes;
-import com.lqr.papermind.document.dto.PageResponse;
 import com.lqr.papermind.review.dto.AdminReviewTaskSummaryResponse;
-import com.lqr.papermind.review.dto.ReviewBatchRequest;
-import com.lqr.papermind.review.dto.ReviewBatchResponse;
 import com.lqr.papermind.review.dto.ReviewGroupMemberResponse;
 import com.lqr.papermind.review.dto.ReviewGroupMemberUpdateRequest;
 import com.lqr.papermind.review.dto.ReviewGroupRequest;
 import com.lqr.papermind.review.dto.ReviewGroupResponse;
 import com.lqr.papermind.review.entity.ReviewAssignmentEntity;
-import com.lqr.papermind.review.entity.ReviewBatchEntity;
 import com.lqr.papermind.review.entity.ReviewConsensusEntity;
 import com.lqr.papermind.review.entity.ReviewGroupEntity;
 import com.lqr.papermind.review.entity.ReviewGroupMemberEntity;
 import com.lqr.papermind.review.entity.ReviewTaskEntity;
 import com.lqr.papermind.review.mapper.ReviewAssignmentMapper;
-import com.lqr.papermind.review.mapper.ReviewBatchMapper;
 import com.lqr.papermind.review.mapper.ReviewConsensusMapper;
 import com.lqr.papermind.review.mapper.ReviewGroupMapper;
 import com.lqr.papermind.review.mapper.ReviewGroupMemberMapper;
@@ -45,13 +39,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ReviewGroupServiceImpl implements ReviewGroupService {
 
-    private static final int MAX_PAGE_SIZE = 100;
     private static final String STATUS_ACTIVE = "ACTIVE";
-    private static final String STATUS_DRAFT = "DRAFT";
     private static final String MEMBER_ROLE_LEADER = "LEADER";
     private static final String MEMBER_ROLE_REVIEWER = "REVIEWER";
 
-    private final ReviewBatchMapper batchMapper;
     private final ReviewGroupMapper groupMapper;
     private final ReviewGroupMemberMapper memberMapper;
     private final ReviewTaskMapper taskMapper;
@@ -61,81 +52,15 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
     private final SysRoleMapper roleMapper;
 
     /**
-     * 分页查询评审批次列表，按更新时间和创建时间降序排列。
+     * 查询评审小组列表，按更新时间和创建时间降序排列。
      *
-     * @param page 页码（从0开始）
-     * @param size 每页大小，最大为100
-     * @return 分页后的评审批次响应列表
-     */
-    @Override
-    public PageResponse<ReviewBatchResponse> listBatches(int page, int size) {
-        int safePage = Math.max(page, 0);
-        int safeSize = Math.max(1, Math.min(size, MAX_PAGE_SIZE));
-        Page<ReviewBatchEntity> result = batchMapper.selectPage(
-                new Page<>(safePage + 1L, safeSize),
-                new LambdaQueryWrapper<ReviewBatchEntity>()
-                        .orderByDesc(ReviewBatchEntity::getUpdatedAt)
-                        .orderByDesc(ReviewBatchEntity::getCreatedAt)
-        );
-        return new PageResponse<>(
-                result.getRecords().stream().map(ReviewBatchResponse::from).toList(),
-                safePage,
-                safeSize,
-                result.getTotal()
-        );
-    }
-
-    /**
-     * 创建新的评审批次。
-     *
-     * @param operatorUserId 操作用户ID
-     * @param request 批次创建请求，包含名称、描述、状态等信息
-     * @return 创建后的评审批次响应
-     */
-    @Override
-    @Transactional
-    public ReviewBatchResponse createBatch(UUID operatorUserId, ReviewBatchRequest request) {
-        OffsetDateTime now = OffsetDateTime.now();
-        ReviewBatchEntity batch = new ReviewBatchEntity();
-        batch.setId(UUID.randomUUID());
-        applyBatchRequest(batch, request);
-        batch.setCreatedByUserId(operatorUserId);
-        batch.setCreatedAt(now);
-        batch.setUpdatedAt(now);
-        batchMapper.insert(batch);
-        return ReviewBatchResponse.from(batch);
-    }
-
-    /**
-     * 更新现有的评审批次信息。
-     *
-     * @param batchId 批次ID
-     * @param request 批次更新请求，包含要更新的字段
-     * @return 更新后的评审批次响应
-     */
-    @Override
-    @Transactional
-    public ReviewBatchResponse updateBatch(UUID batchId, ReviewBatchRequest request) {
-        ReviewBatchEntity batch = requireBatch(batchId);
-        applyBatchRequest(batch, request);
-        batch.setUpdatedAt(OffsetDateTime.now());
-        batchMapper.updateById(batch);
-        return ReviewBatchResponse.from(batchMapper.selectById(batchId));
-    }
-
-    /**
-     * 查询评审小组列表。如果batchId为null则查询所有小组，否则按批次ID筛选。
-     *
-     * @param batchId 批次ID，可为null
      * @return 评审小组响应列表
      */
     @Override
-    public List<ReviewGroupResponse> listGroups(UUID batchId) {
-        List<ReviewGroupEntity> groups = batchId == null
-                ? groupMapper.selectList(new LambdaQueryWrapper<ReviewGroupEntity>()
+    public List<ReviewGroupResponse> listGroups() {
+        List<ReviewGroupEntity> groups = groupMapper.selectList(new LambdaQueryWrapper<ReviewGroupEntity>()
                 .orderByDesc(ReviewGroupEntity::getUpdatedAt)
-                .orderByDesc(ReviewGroupEntity::getCreatedAt))
-                : groupMapper.selectByBatchId(batchId);
+                .orderByDesc(ReviewGroupEntity::getCreatedAt));
         return groups.stream().map(this::toGroupResponse).toList();
     }
 
@@ -149,12 +74,10 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
     @Override
     @Transactional
     public ReviewGroupResponse createGroup(UUID operatorUserId, ReviewGroupRequest request) {
-        requireBatch(request.batchId());
         SysUser leader = requireActiveReviewer(request.leaderUserId(), "组长用户不可用");
         OffsetDateTime now = OffsetDateTime.now();
         ReviewGroupEntity group = new ReviewGroupEntity();
         group.setId(UUID.randomUUID());
-        group.setBatchId(request.batchId());
         group.setName(requireText(request.name(), "小组名称不能为空"));
         group.setLeaderUserId(leader.getId());
         group.setStatus(normalizeGroupStatus(request.status()));
@@ -177,9 +100,7 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
     @Transactional
     public ReviewGroupResponse updateGroup(UUID groupId, ReviewGroupRequest request) {
         ReviewGroupEntity group = requireGroup(groupId);
-        requireBatch(request.batchId());
         SysUser leader = requireActiveReviewer(request.leaderUserId(), "组长用户不可用");
-        group.setBatchId(request.batchId());
         group.setName(requireText(request.name(), "小组名称不能为空"));
         group.setLeaderUserId(leader.getId());
         group.setStatus(normalizeGroupStatus(request.status()));
@@ -294,34 +215,6 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
     }
 
     /**
-     * 将批次请求应用到批次实体，设置名称、描述、状态、开始和结束时间。
-     *
-     * @param batch 批次实体
-     * @param request 批次请求
-     */
-    private void applyBatchRequest(ReviewBatchEntity batch, ReviewBatchRequest request) {
-        batch.setName(requireText(request.name(), "批次名称不能为空"));
-        batch.setDescription(blankToNull(request.description()));
-        batch.setStatus(normalizeBatchStatus(request.status()));
-        batch.setStartsAt(request.startsAt());
-        batch.setEndsAt(request.endsAt());
-    }
-
-    /**
-     * 根据批次ID查找评审批次，不存在时抛出404异常。
-     *
-     * @param batchId 批次ID
-     * @return 评审批次实体
-     */
-    private ReviewBatchEntity requireBatch(UUID batchId) {
-        ReviewBatchEntity batch = batchMapper.selectById(batchId);
-        if (batch == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "评审批次不存在");
-        }
-        return batch;
-    }
-
-    /**
      * 根据小组ID查找评审小组，不存在时抛出404异常。
      *
      * @param groupId 小组ID
@@ -431,7 +324,6 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
         SysUser leader = group.getLeaderUserId() == null ? null : userMapper.selectById(group.getLeaderUserId());
         return new ReviewGroupResponse(
                 group.getId(),
-                group.getBatchId(),
                 group.getName(),
                 group.getLeaderUserId(),
                 leader == null ? null : leader.getUsername(),
@@ -515,23 +407,6 @@ public class ReviewGroupServiceImpl implements ReviewGroupService {
     private OffsetDateTime dueAtForTask(ReviewTaskEntity task) {
         OffsetDateTime dueAt = assignmentMapper.maxDueAtByTaskId(task.getId());
         return dueAt == null ? task.getDueAt() : dueAt;
-    }
-
-    /**
-     * 标准化批次状态值，将空值默认为DRAFT，不合法状态抛出异常。
-     *
-     * @param status 原始状态值
-     * @return 标准化后的状态值（大写）
-     */
-    private String normalizeBatchStatus(String status) {
-        if (status == null || status.isBlank()) {
-            return STATUS_DRAFT;
-        }
-        String normalized = status.trim().toUpperCase();
-        if (!List.of("DRAFT", "ACTIVE", "CLOSED", "ARCHIVED").contains(normalized)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "批次状态不合法");
-        }
-        return normalized;
     }
 
     /**

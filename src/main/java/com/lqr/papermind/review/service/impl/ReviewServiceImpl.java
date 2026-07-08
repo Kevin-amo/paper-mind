@@ -59,7 +59,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.lang.reflect.Array;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -78,6 +77,8 @@ public class ReviewServiceImpl implements ReviewService {
     private static final int PAPER_TEXT_LIMIT = 10000;
     private static final ZoneId REVIEW_ZONE = ZoneId.of("Asia/Shanghai");
     private static final String PROMPT_VERSION = "1.0";
+    private static final String RISK_REVIEW_STATUS_KEY = "riskReviewStatus";
+    private static final String NO_RISK_CONFIRMED = "NO_RISK_CONFIRMED";
 
     @Value("${spring.ai.dashscope.chat.options.model:unknown}")
     private String chatModelName;
@@ -314,7 +315,6 @@ public class ReviewServiceImpl implements ReviewService {
         report.setModelVersion(chatModelName);
         report.setPromptVersion(PROMPT_VERSION);
         report.setCriterionVersion(extractCriterionVersion(criteria));
-        report.setConfidence(calculateOverallConfidence(parsed));
         report.setGeneratedAt(now);
         report.setUpdatedAt(now);
         if (creating) {
@@ -430,6 +430,9 @@ public class ReviewServiceImpl implements ReviewService {
         if (request.finalRecommendation() != null) {
             report.setFinalRecommendation(blankToNull(request.finalRecommendation()));
         }
+        if (request.riskReviewStatus() != null) {
+            setRiskReviewStatus(report, request.riskReviewStatus());
+        }
         String nextStatus = request.status() == null || request.status().isBlank() ? "ADJUSTED" : request.status().trim().toUpperCase();
         report.setStatus(nextStatus);
         report.setAdjustedAt(OffsetDateTime.now());
@@ -510,6 +513,9 @@ public class ReviewServiceImpl implements ReviewService {
         ReviewReportEntity report = reportMapper.selectByAssignmentId(assignmentId);
         if (report == null && !ReviewAssignmentStatuses.SUBMITTED.equals(assignment.getStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先生成或保存评审报告再提交");
+        }
+        if (!ReviewAssignmentStatuses.SUBMITTED.equals(assignment.getStatus())) {
+            validateRiskReviewCompleted(report);
         }
         return assignmentService.submitAssignment(currentUserId, assignmentId);
     }
@@ -632,7 +638,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional
     public List<ReviewCriterionResponse> batchUpdateWeights(ReviewCriterionWeightBatchRequest request) {
-        // First validate all IDs exist
         for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
             ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
             if (entity == null) {
@@ -643,8 +648,6 @@ public class ReviewServiceImpl implements ReviewService {
             }
         }
 
-        // Calculate total weight sum for all enabled criteria after update
-        // Get all enabled criteria that are NOT in the update list
         List<UUID> updateIds = request.weights().stream().map(ReviewCriterionWeightBatchRequest.WeightItem::id).toList();
         LambdaQueryWrapper<ReviewCriterionEntity> wrapper = new LambdaQueryWrapper<ReviewCriterionEntity>()
                 .eq(ReviewCriterionEntity::getEnabled, true)
@@ -652,7 +655,6 @@ public class ReviewServiceImpl implements ReviewService {
         List<ReviewCriterionEntity> otherEnabled = criterionMapper.selectList(wrapper);
         int otherWeightSum = otherEnabled.stream().mapToInt(e -> e.getWeight() == null ? 20 : e.getWeight()).sum();
 
-        // Add weights from the update list for enabled criteria
         int updateWeightSum = 0;
         for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
             ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
@@ -667,7 +669,6 @@ public class ReviewServiceImpl implements ReviewService {
                     "启用指标权重之和必须等于100，当前总和为" + totalSum + "，请调整权重配置");
         }
 
-        // Apply updates
         OffsetDateTime now = OffsetDateTime.now();
         for (ReviewCriterionWeightBatchRequest.WeightItem item : request.weights()) {
             ReviewCriterionEntity entity = criterionMapper.selectById(item.id());
@@ -698,7 +699,6 @@ public class ReviewServiceImpl implements ReviewService {
                                 displayName = user.getDisplayName();
                             }
                         } catch (Exception ignored) {
-                            // fallback: leave username/displayName as null
                         }
                     }
                     return ReviewAuditLogResponse.from(log, username, displayName);
@@ -821,7 +821,7 @@ public class ReviewServiceImpl implements ReviewService {
                 + "JSON 模板：\n"
                 + "{\n"
                 + "  \"paperSections\": {\"title\": \"\", \"abstract\": \"\", \"introduction\": \"\", \"method\": \"\", \"conclusion\": \"\", \"keywords\": [], \"researchObject\": \"\", \"methodPath\": \"\"},\n"
-                + "  \"scores\": [{\"code\": \"\", \"name\": \"\", \"score\": 0, \"maxScore\": 100, \"reason\": \"\", \"confidence\": 0.8}],\n"
+                + "  \"scores\": [{\"code\": \"\", \"name\": \"\", \"score\": 0, \"maxScore\": 100, \"reason\": \"\"}],\n"
                 + "  \"comments\": {\"summary\": \"\", \"strengths\": [], \"weaknesses\": [], \"suggestions\": [], \"finalAdvice\": \"\"},\n"
                 + "  \"risks\": [{\"type\": \"\", \"level\": \"LOW\", \"evidence\": \"\", \"suggestion\": \"\"}],\n"
                 + "  \"totalScore\": 0,\n"
@@ -1085,6 +1085,7 @@ public class ReviewServiceImpl implements ReviewService {
         snapshot.put("scores", report.getScores());
         snapshot.put("comments", report.getComments());
         snapshot.put("risks", report.getRisks());
+        snapshot.put("riskReviewStatus", riskReviewStatus(report));
         snapshot.put("totalScore", report.getTotalScore());
         snapshot.put("finalRecommendation", report.getFinalRecommendation());
         snapshot.put("status", report.getStatus());
@@ -1103,7 +1104,8 @@ public class ReviewServiceImpl implements ReviewService {
                 "scoreChanged", !Objects.equals(before.get("scores"), after.get("scores")) || !Objects.equals(before.get("totalScore"), after.get("totalScore")),
                 "commentEdited", !Objects.equals(before.get("comments"), after.get("comments")),
                 "riskOverridden", !Objects.equals(before.get("risks"), after.get("risks")),
-                "finalRecommendationChanged", !Objects.equals(before.get("finalRecommendation"), after.get("finalRecommendation"))
+                "finalRecommendationChanged", !Objects.equals(before.get("finalRecommendation"), after.get("finalRecommendation")),
+                "riskReviewStatusChanged", !Objects.equals(before.get("riskReviewStatus"), after.get("riskReviewStatus"))
         );
     }
 
@@ -1116,32 +1118,6 @@ public class ReviewServiceImpl implements ReviewService {
                 .map(ReviewCriterionResponse::version)
                 .max(Integer::compareTo)
                 .orElse(1);
-    }
-
-    /**
-     * 计算报告整体置信度。
-     * 取各评分项 confidence 的加权平均值，若无则返回 null。
-     */
-    private BigDecimal calculateOverallConfidence(Map<String, Object> parsed) {
-        Object scoresObj = parsed.get("scores");
-        if (!(scoresObj instanceof List<?> scoreList) || scoreList.isEmpty()) {
-            return null;
-        }
-        double sum = 0.0;
-        int count = 0;
-        for (Object item : scoreList) {
-            if (item instanceof Map<?, ?> scoreMap) {
-                Object conf = scoreMap.get("confidence");
-                if (conf instanceof Number n) {
-                    sum += n.doubleValue();
-                    count++;
-                }
-            }
-        }
-        if (count == 0) {
-            return null;
-        }
-        return BigDecimal.valueOf(sum / count).setScale(4, java.math.RoundingMode.HALF_UP);
     }
 
     /**
@@ -1193,6 +1169,46 @@ public class ReviewServiceImpl implements ReviewService {
      */
     private Object valueOrDefault(Object value, Object fallback) {
         return value == null ? fallback : value;
+    }
+
+    private void setRiskReviewStatus(ReviewReportEntity report, String value) {
+        String normalized = normalizeRiskReviewStatus(value);
+        Map<String, Object> rawOutput = report.getRawModelOutput() == null
+                ? new LinkedHashMap<>()
+                : new LinkedHashMap<>(report.getRawModelOutput());
+        if (normalized == null) {
+            rawOutput.remove(RISK_REVIEW_STATUS_KEY);
+        } else {
+            rawOutput.put(RISK_REVIEW_STATUS_KEY, normalized);
+        }
+        report.setRawModelOutput(rawOutput);
+    }
+
+    private String normalizeRiskReviewStatus(String value) {
+        String text = blankToNull(value);
+        if (text == null) {
+            return null;
+        }
+        String normalized = text.toUpperCase();
+        if (!NO_RISK_CONFIRMED.equals(normalized)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "风险检查状态非法");
+        }
+        return normalized;
+    }
+
+    private String riskReviewStatus(ReviewReportEntity report) {
+        Object value = report.getRawModelOutput() == null ? null : report.getRawModelOutput().get(RISK_REVIEW_STATUS_KEY);
+        return value == null ? null : value.toString();
+    }
+
+    private void validateRiskReviewCompleted(ReviewReportEntity report) {
+        if (report == null || !hasRiskItems(report.getRisks()) && !NO_RISK_CONFIRMED.equals(riskReviewStatus(report))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "请先完成风险检查，或确认本稿暂无风险项后再提交");
+        }
+    }
+
+    private boolean hasRiskItems(Object risks) {
+        return risks instanceof List<?> list && !list.isEmpty();
     }
 
     /**
@@ -1284,11 +1300,46 @@ public class ReviewServiceImpl implements ReviewService {
                     "level", risk.riskLevel(),
                     "evidence", risk.evidence(),
                     "suggestion", risk.suggestion(),
-                    "detector", "REFERENCE_RULE",
-                    "confidence", risk.confidence()
+                    "detector", "REFERENCE_RULE"
             ));
         }
-        return merged;
+        return dedupeRisks(merged);
+    }
+
+    private List<Object> dedupeRisks(List<Object> risks) {
+        Map<String, Object> unique = new LinkedHashMap<>();
+        int passthroughIndex = 0;
+        for (Object item : risks) {
+            if (!(item instanceof Map<?, ?> risk)) {
+                unique.put("__raw_" + passthroughIndex++, item);
+                continue;
+            }
+            unique.putIfAbsent(riskDedupeKey(risk), item);
+        }
+        return new ArrayList<>(unique.values());
+    }
+
+    private String riskDedupeKey(Map<?, ?> risk) {
+        return normalizedRiskPart(firstPresent(risk, "type", "riskType"), true)
+                + "|"
+                + normalizedRiskPart(firstPresent(risk, "level", "riskLevel"), true)
+                + "|"
+                + normalizedRiskPart(risk.get("evidence"), false)
+                + "|"
+                + normalizedRiskPart(risk.get("suggestion"), false);
+    }
+
+    private Object firstPresent(Map<?, ?> map, String primaryKey, String fallbackKey) {
+        Object value = map.get(primaryKey);
+        return value == null ? map.get(fallbackKey) : value;
+    }
+
+    private String normalizedRiskPart(Object value, boolean uppercase) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = String.valueOf(value).trim().replaceAll("\\s+", " ");
+        return uppercase ? normalized.toUpperCase() : normalized;
     }
 
     /**

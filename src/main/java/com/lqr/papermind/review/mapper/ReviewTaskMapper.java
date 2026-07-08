@@ -35,7 +35,7 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
     @Update("""
             insert into public.review_task (document_id, submitter_user_id, source_id, title, status)
             select d.id, d.owner_user_id, d.source_id, d.title, 'PENDING_ASSIGNMENT'
-            from public.paper_document d
+            from public.document d
             where d.deleted_at is null
               and d.status = 'INDEXED'
               and upper(coalesce(d.metadata ->> 'sourceType', '')) = 'REVIEW'
@@ -129,7 +129,6 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
     @Update("""
             update public.review_task
             set status = 'PENDING_ASSIGNMENT',
-                batch_id = #{batchId},
                 group_id = #{groupId},
                 assigned_by_user_id = #{assignedByUserId},
                 leader_user_id = #{leaderUserId},
@@ -139,7 +138,6 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
             where id = #{id}
             """)
     int dispatchToGroup(@Param("id") UUID id,
-                        @Param("batchId") UUID batchId,
                         @Param("groupId") UUID groupId,
                         @Param("assignedByUserId") UUID assignedByUserId,
                         @Param("leaderUserId") UUID leaderUserId,
@@ -151,7 +149,6 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
     @Update("""
             update public.review_task
             set status = 'ASSIGNED',
-                batch_id = #{batchId},
                 group_id = #{groupId},
                 reviewer_user_id = #{reviewerUserId},
                 assigned_by_user_id = #{assignedByUserId},
@@ -162,7 +159,6 @@ public interface ReviewTaskMapper extends BaseMapper<ReviewTaskEntity> {
             where id = #{id}
             """)
     int markAssignedByAdminOverride(@Param("id") UUID id,
-                                    @Param("batchId") UUID batchId,
                                     @Param("groupId") UUID groupId,
                                     @Param("assignedByUserId") UUID assignedByUserId,
                                     @Param("leaderUserId") UUID leaderUserId,

@@ -93,7 +93,7 @@ public class ReviewAssignmentServiceImpl implements ReviewAssignmentService {
                 .map(reviewerId -> newAssignment(taskId, group.getId(), operatorUserId, reviewerId, leadReviewerUserId, request.dueAt(), now))
                 .toList();
         assignments.forEach(assignmentMapper::insert);
-        taskMapper.markAssignedByAdminOverride(taskId, group.getBatchId(), group.getId(), operatorUserId, group.getLeaderUserId(), reviewerIds.getFirst(), request.dueAt());
+        taskMapper.markAssignedByAdminOverride(taskId, group.getId(), operatorUserId, group.getLeaderUserId(), reviewerIds.getFirst(), request.dueAt());
         AuditContext.set(new AuditContext()
                 .taskId(taskId)
                 .operatorUserId(operatorUserId)

@@ -93,7 +93,7 @@ defineExpose({ fillQuestion });
       </div>
     </div>
 
-    <p class="composer-hint">PaperMind may make mistakes. Please double-check generated research claims.</p>
+    <p class="composer-hint">PaperMind 可能会犯错误。请务必仔细检查生成的研究声明。</p>
 
     <el-dialog v-model="advancedVisible" title="高级设置" width="420px" class="advanced-dialog claude-workspace-dialog" append-to-body align-center>
       <div class="advanced-setting-card">

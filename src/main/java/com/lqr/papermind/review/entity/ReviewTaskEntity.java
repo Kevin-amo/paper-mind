@@ -18,15 +18,12 @@ public class ReviewTaskEntity {
     @TableId(value = "id", type = IdType.INPUT)
     /** 任务唯一标识 */
     private UUID id;
-
     /** 关联的文档ID */
     private UUID documentId;
     /** 提交论文的用户ID */
     private UUID submitterUserId;
     /** 被分配的评审人用户ID */
     private UUID reviewerUserId;
-    /** 所属评审批次ID */
-    private UUID batchId;
     /** 所属评审小组ID */
     private UUID groupId;
     /** 分配该任务的用户ID */

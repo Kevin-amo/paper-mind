@@ -37,7 +37,7 @@ import java.util.UUID;
 
 /**
  * 管理员评审控制器
- * <p>提供管理员专用的评审任务管理、分配和共识管理API接口</p>
+ * 提供管理员专用的评审任务管理、分配和共识管理API接口
  */
 @RestController
 @RequestMapping("/admin/reviews")

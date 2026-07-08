@@ -51,17 +51,17 @@ public class LiteratureSearchServiceImpl implements LiteratureSearchService {
         String dateFrom = normalizeText(request.dateFrom());
         String dateTo = normalizeText(request.dateTo());
         LiteratureSearchCache.Key cacheKey = new LiteratureSearchCache.Key(query, limit, sortBy, categories, dateFrom, dateTo);
-        log.info("literature.search.start queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} categoryCount={} cacheEnabled={}",
+        log.info("文献搜索开始 queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} categoryCount={} cacheEnabled={}",
                 LogSanitizer.safeExcerpt(query, 160), limit, sortBy, dateFrom, dateTo, categories.size(), literatureProperties.cache().isEnabled());
 
         if (literatureProperties.cache().isEnabled()) {
             var cached = cache.get(cacheKey);
             if (cached.isPresent()) {
-                log.info("literature.search.cache.hit queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} resultCount={} costMs={}",
+                log.info("文献搜索缓存命中 queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} resultCount={} costMs={}",
                         LogSanitizer.safeExcerpt(query, 160), limit, sortBy, dateFrom, dateTo, cached.get().items().size(), elapsedMs(startNanos));
                 return cached.get();
             }
-            log.info("literature.search.cache.miss queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={}",
+            log.info("文献搜索缓存未命中 queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={}",
                     LogSanitizer.safeExcerpt(query, 160), limit, sortBy, dateFrom, dateTo);
             return searchWithCacheRebuildGuard(request, cacheKey, query, categories, dateFrom, dateTo, sortBy, limit, startNanos);
         }
@@ -88,7 +88,7 @@ public class LiteratureSearchServiceImpl implements LiteratureSearchService {
             try {
                 var cached = cache.get(cacheKey);
                 if (cached.isPresent()) {
-                    log.info("literature.search.cache.hit.after_lock limit={} sortBy={} dateFrom={} dateTo={} resultCount={} costMs={}",
+                    log.info("文献搜索缓存命中(获取锁后) limit={} sortBy={} dateFrom={} dateTo={} resultCount={} costMs={}",
                             limit, sortBy, dateFrom, dateTo, cached.get().items().size(), elapsedMs(startNanos));
                     return cached.get();
                 }
@@ -122,13 +122,13 @@ public class LiteratureSearchServiceImpl implements LiteratureSearchService {
                 Thread.sleep(cacheProperties.waitRetryInterval().toMillis());
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
-                log.warn("literature.search.cache.wait.interrupted limit={} sortBy={} dateFrom={} dateTo={} attempt={} costMs={}",
+                log.warn("文献搜索缓存等待中断 limit={} sortBy={} dateFrom={} dateTo={} attempt={} costMs={}",
                         limit, sortBy, dateFrom, dateTo, attempt + 1, elapsedMs(startNanos));
                 return Optional.empty();
             }
             var cached = cache.get(cacheKey);
             if (cached.isPresent()) {
-                log.info("literature.search.cache.hit.after_wait limit={} sortBy={} dateFrom={} dateTo={} attempt={} resultCount={} costMs={}",
+                log.info("文献搜索缓存命中(等待后) limit={} sortBy={} dateFrom={} dateTo={} attempt={} resultCount={} costMs={}",
                         limit, sortBy, dateFrom, dateTo, attempt + 1, cached.get().items().size(), elapsedMs(startNanos));
                 return cached;
             }
@@ -151,14 +151,14 @@ public class LiteratureSearchServiceImpl implements LiteratureSearchService {
             long startNanos
     ) {
         if (!literatureProperties.openalex().isEnabled()) {
-            log.warn("literature.search.fallback queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} reason=OPENALEX_DISABLED",
+            log.warn("文献搜索回退 queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} reason=OPENALEX_DISABLED",
                     LogSanitizer.safeExcerpt(query, 160), limit, sortBy, dateFrom, dateTo);
             throw new LiteratureSearchException(HttpStatus.SERVICE_UNAVAILABLE, "OPENALEX_DISABLED", OPENALEX_DISABLED_MESSAGE);
         }
 
         try {
             int fetchLimit = resolveFetchLimit(limit, sortBy);
-            log.info("literature.search.openalex.start queryExcerpt={} limit={} fetchLimit={} sortBy={} dateFrom={} dateTo={}",
+            log.info("文献搜索OpenAlex开始 queryExcerpt={} limit={} fetchLimit={} sortBy={} dateFrom={} dateTo={}",
                     LogSanitizer.safeExcerpt(query, 160), limit, fetchLimit, sortBy, dateFrom, dateTo);
             List<LiteratureSearchResult> items = openAlexLiteratureClient.search(
                     normalizedRequest(request, query, categories, dateFrom, dateTo, sortBy),
@@ -168,11 +168,11 @@ public class LiteratureSearchServiceImpl implements LiteratureSearchService {
             );
             LiteratureSearchResponse response = new LiteratureSearchResponse(sortAndTrimToUserLimit(items, limit, sortBy));
             cacheIfEnabled(cacheKey, response);
-            log.info("literature.search.done queryExcerpt={} limit={} fetchLimit={} sortBy={} dateFrom={} dateTo={} resultCount={} costMs={}",
+            log.info("文献搜索完成 queryExcerpt={} limit={} fetchLimit={} sortBy={} dateFrom={} dateTo={} resultCount={} costMs={}",
                     LogSanitizer.safeExcerpt(query, 160), limit, fetchLimit, sortBy, dateFrom, dateTo, response.items().size(), elapsedMs(startNanos));
             return response;
         } catch (RuntimeException ex) {
-            log.warn("literature.search.failed queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} reason={} costMs={}",
+            log.warn("文献搜索失败 queryExcerpt={} limit={} sortBy={} dateFrom={} dateTo={} reason={} costMs={}",
                     LogSanitizer.safeExcerpt(query, 160), limit, sortBy, dateFrom, dateTo, exceptionCode(ex), elapsedMs(startNanos), ex);
             throw allSourcesUnavailable(ex);
         }

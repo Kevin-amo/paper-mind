@@ -63,33 +63,33 @@ public class AgentPlanner {
                                 List<String> observations,
                                 Integer topK) {
         long startNanos = System.nanoTime();
-        log.info("agent.plan.start questionLength={} questionExcerpt={} historyCount={} stepsCount={} observationsCount={} topK={}",
+        log.info("智能体规划开始 questionLength={} questionExcerpt={} historyCount={} stepsCount={} observationsCount={} topK={}",
                 textLength(question), LogSanitizer.safeExcerpt(question, 160), size(history), size(steps), size(observations), topK);
         try {
             AgentDecision hybridDecision = hybridTaskPolicy.decide(question, steps, topK);
             if (hybridDecision != null) {
-                log.info("agent.plan.done action={} finish={} actionInputSummary={} reason=HYBRID_TASK costMs={}",
+                log.info("智能体规划完成 action={} finish={} actionInputSummary={} reason=HYBRID_TASK costMs={}",
                         hybridDecision.action(), hybridDecision.finish(), LogSanitizer.safeActionInput(hybridDecision.actionInput()), elapsedMs(startNanos));
                 return hybridDecision;
             }
             PromptConstructionService.Prompt prompt = promptFactory.decisionPrompt(question, history, lastLiteratureContext, steps, observations, topK);
-            log.debug("agent.plan.prompt questionExcerpt={} promptSystemExcerpt={} promptUserExcerpt={}",
+            log.debug("智能体规划提示词 questionExcerpt={} promptSystemExcerpt={} promptUserExcerpt={}",
                     LogSanitizer.safeExcerpt(question, 160), LogSanitizer.safeExcerpt(prompt.systemMessage(), 500), LogSanitizer.safeExcerpt(prompt.userMessage(), 500));
             AgentDecision contextDecision = literatureContextPolicy.finishFromPreviousItems(question, lastLiteratureContext, observations);
             if (contextDecision != null) {
-                log.info("agent.plan.done action={} finish={} actionInputSummary={} reason=PREVIOUS_LITERATURE_ITEMS costMs={}",
+                log.info("智能体规划完成 action={} finish={} actionInputSummary={} reason=PREVIOUS_LITERATURE_ITEMS costMs={}",
                         contextDecision.action(), contextDecision.finish(), LogSanitizer.safeActionInput(contextDecision.actionInput()), elapsedMs(startNanos));
                 return contextDecision;
             }
             String content = llmService.generate(prompt);
             AgentDecision decision = decisionParser.parse(content, question, lastLiteratureContext, topK);
-            log.info("agent.plan.done action={} finish={} actionInputSummary={} costMs={}",
+            log.info("智能体规划完成 action={} finish={} actionInputSummary={} costMs={}",
                     decision.action(), decision.finish(), LogSanitizer.safeActionInput(decision.actionInput()), elapsedMs(startNanos));
-            log.debug("agent.plan.response action={} finish={} answerExcerpt={}",
+            log.debug("智能体规划响应 action={} finish={} answerExcerpt={}",
                     decision.action(), decision.finish(), LogSanitizer.safeExcerpt(decision.answer(), 500));
             return decision;
         } catch (RuntimeException ex) {
-            log.warn("agent.plan.fallback questionLength={} observationsCount={} topK={} reason=RUNTIME_EXCEPTION costMs={}",
+            log.warn("智能体规划回退 questionLength={} observationsCount={} topK={} reason=RUNTIME_EXCEPTION costMs={}",
                     textLength(question), size(observations), topK, elapsedMs(startNanos), ex);
             return fallbackPolicy.decision(question, steps, observations, lastLiteratureContext, topK);
         }
@@ -111,19 +111,19 @@ public class AgentPlanner {
         long startNanos = System.nanoTime();
         try {
             PromptConstructionService.Prompt prompt = promptFactory.finalAnswerPrompt(question, history, steps, observations);
-            log.debug("agent.answer.prompt questionExcerpt={} promptSystemExcerpt={} promptUserExcerpt={}",
+            log.debug("智能体回答提示词 questionExcerpt={} promptSystemExcerpt={} promptUserExcerpt={}",
                     LogSanitizer.safeExcerpt(question, 160), LogSanitizer.safeExcerpt(prompt.systemMessage(), 500), LogSanitizer.safeExcerpt(prompt.userMessage(), 500));
             String answer = llmService.generate(prompt);
             if (answer == null || answer.isBlank()) {
-                log.warn("agent.answer.fallback reason=EMPTY_ANSWER observationsCount={} costMs={}", size(observations), elapsedMs(startNanos));
+                log.warn("智能体回答回退 reason=EMPTY_ANSWER observationsCount={} costMs={}", size(observations), elapsedMs(startNanos));
                 return fallbackPolicy.answerFromObservations(observations);
             }
-            log.info("agent.answer.done answerLength={} stepsCount={} observationsCount={} costMs={}",
+            log.info("智能体回答完成 answerLength={} stepsCount={} observationsCount={} costMs={}",
                     answer.trim().length(), size(steps), size(observations), elapsedMs(startNanos));
-            log.debug("agent.answer.response answerExcerpt={}", LogSanitizer.safeExcerpt(answer, 500));
+            log.debug("智能体回答响应 answerExcerpt={}", LogSanitizer.safeExcerpt(answer, 500));
             return answer.trim();
         } catch (RuntimeException ex) {
-            log.warn("agent.answer.fallback reason=RUNTIME_EXCEPTION observationsCount={} costMs={}", size(observations), elapsedMs(startNanos), ex);
+            log.warn("智能体回答回退 reason=RUNTIME_EXCEPTION observationsCount={} costMs={}", size(observations), elapsedMs(startNanos), ex);
             return fallbackPolicy.answerFromObservations(observations);
         }
     }
@@ -142,7 +142,7 @@ public class AgentPlanner {
                                           List<AgentStep> steps,
                                           List<String> observations) {
         PromptConstructionService.Prompt prompt = promptFactory.finalAnswerPrompt(question, history, steps, observations);
-        log.debug("agent.answer.stream.prompt questionExcerpt={} promptSystemExcerpt={} promptUserExcerpt={}",
+        log.debug("智能体流式回答提示词 questionExcerpt={} promptSystemExcerpt={} promptUserExcerpt={}",
                 LogSanitizer.safeExcerpt(question, 160), LogSanitizer.safeExcerpt(prompt.systemMessage(), 500), LogSanitizer.safeExcerpt(prompt.userMessage(), 500));
         return llmService.streamGenerate(prompt)
                 .filter(delta -> delta != null && !delta.isEmpty());

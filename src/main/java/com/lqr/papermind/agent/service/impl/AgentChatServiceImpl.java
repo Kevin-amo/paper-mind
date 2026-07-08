@@ -41,7 +41,7 @@ public class AgentChatServiceImpl implements AgentChatService {
         return Flux.<AgentStreamEvent>create(sink -> {
             UUID activeConversationId = request.conversationId();
             long startNanos = System.nanoTime();
-            log.info("agent.ask.start ownerUserId={} conversationId={} questionLength={} questionExcerpt={} topK={}",
+            log.info("智能体问答开始 ownerUserId={} conversationId={} questionLength={} questionExcerpt={} topK={}",
                     ownerUserId, activeConversationId, textLength(request.question()), LogSanitizer.safeExcerpt(request.question(), 160), request.topK());
             try {
                 ConversationService.ConversationView conversation = resolveConversation(ownerUserId, activeConversationId, request.question());
@@ -55,7 +55,7 @@ public class AgentChatServiceImpl implements AgentChatService {
                         ConversationService.DEFAULT_HISTORY_MESSAGE_LIMIT
                 );
                 LiteratureSearchContext lastLiteratureContext = literatureSearchContextResolver.resolve(history).orElse(null);
-                log.info("agent.ask.context ownerUserId={} conversationId={} historyCount={} topK={} hasLiteratureContext={}",
+                log.info("智能体问答上下文 ownerUserId={} conversationId={} historyCount={} topK={} hasLiteratureContext={}",
                         ownerUserId, resolvedConversationId, history.size(), request.topK(), lastLiteratureContext != null);
 
                 AgentLoop.AgentLoopResult result = agentLoop.run(
@@ -75,12 +75,12 @@ public class AgentChatServiceImpl implements AgentChatService {
                         result.citations(),
                         result.metadata()
                 );
-                log.info("agent.ask.done ownerUserId={} conversationId={} answerLength={} citationCount={} stepCount={} costMs={}",
+                log.info("智能体问答完成 ownerUserId={} conversationId={} answerLength={} citationCount={} stepCount={} costMs={}",
                         ownerUserId, resolvedConversationId, textLength(answer), result.citations().size(), result.steps().size(), elapsedMs(startNanos));
                 sink.next(AgentStreamEvent.done(resolvedConversationId, answer, result.citations(), result.metadata()));
                 sink.complete();
             } catch (RuntimeException ex) {
-                log.error("agent.ask.failed ownerUserId={} conversationId={} questionLength={} costMs={}",
+                log.error("智能体问答失败 ownerUserId={} conversationId={} questionLength={} costMs={}",
                         ownerUserId, activeConversationId, textLength(request.question()), elapsedMs(startNanos), ex);
                 sink.next(AgentStreamEvent.error(activeConversationId, userSafeMessage(ex)));
                 sink.complete();
@@ -119,7 +119,7 @@ public class AgentChatServiceImpl implements AgentChatService {
                                      AgentLoop.AgentLoopResult result,
                                      Consumer<AgentStreamEvent> sink) {
         long startNanos = System.nanoTime();
-        log.info("agent.answer.start conversationId={} stepCount={} observationCount={} citationCount={}",
+        log.info("智能体回答开始 conversationId={} stepCount={} observationCount={} citationCount={}",
                 conversationId, result.steps().size(), result.observations().size(), result.citations().size());
         StringBuilder answerBuffer = new StringBuilder();
         RuntimeException streamFailure = null;
@@ -129,7 +129,7 @@ public class AgentChatServiceImpl implements AgentChatService {
                     .blockLast();
         } catch (RuntimeException ex) {
             streamFailure = ex;
-            log.warn("agent.answer.failed conversationId={} partialAnswerLength={} costMs={}",
+            log.warn("智能体回答失败 conversationId={} partialAnswerLength={} costMs={}",
                     conversationId, answerBuffer.length(), elapsedMs(startNanos), ex);
         }
 
@@ -137,11 +137,11 @@ public class AgentChatServiceImpl implements AgentChatService {
             throw streamFailure;
         }
         if (answerBuffer.length() == 0) {
-            log.warn("agent.answer.fallback conversationId={} reason=EMPTY_STREAM", conversationId);
+            log.warn("智能体回答回退 conversationId={} reason=EMPTY_STREAM", conversationId);
             emitAnswerDelta(conversationId, fallbackFinalAnswer(question, history, result), answerBuffer, sink);
         }
-        log.info("agent.answer.done conversationId={} answerLength={} costMs={}", conversationId, answerBuffer.length(), elapsedMs(startNanos));
-        log.debug("agent.answer.debug conversationId={} answerExcerpt={}", conversationId, LogSanitizer.safeExcerpt(answerBuffer.toString(), 500));
+        log.info("智能体回答完成 conversationId={} answerLength={} costMs={}", conversationId, answerBuffer.length(), elapsedMs(startNanos));
+        log.debug("智能体回答调试 conversationId={} answerExcerpt={}", conversationId, LogSanitizer.safeExcerpt(answerBuffer.toString(), 500));
         return answerBuffer.toString();
     }
 

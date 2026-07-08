@@ -316,7 +316,13 @@ public class ReviewConsensusServiceImpl implements ReviewConsensusService {
         consensus.setCommentSummary(result.commentSummary());
         consensus.setDisagreementItems(result.disagreementItems());
         consensus.setFinalScore(result.finalScore());
-        consensus.setStatus(ReviewConsensusStatuses.DRAFT);
+        // 当存在评分分歧时，将共识状态设为"讨论中"，提示组长需要人工协调解决；
+        // 无分歧时保持"草稿"状态。
+        boolean needsDiscussion = result.disagreementItems() != null
+                && !result.disagreementItems().isEmpty();
+        consensus.setStatus(needsDiscussion
+                ? ReviewConsensusStatuses.IN_DISCUSSION
+                : ReviewConsensusStatuses.DRAFT);
         consensus.setUpdatedAt(now);
         if (creating) {
             consensusMapper.insert(consensus);

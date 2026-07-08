@@ -38,7 +38,7 @@ public class DocumentManagementServiceImpl implements DocumentManagementService 
     @Override
     public void restore(UUID ownerUserId, String sourceId) {
         documentPersistenceService.restore(ownerUserId, sourceId);
-        log.info("document.restore.done ownerUserId={} sourceId={}", ownerUserId, sourceId);
+        log.info("文档恢复完成 ownerUserId={} sourceId={}", ownerUserId, sourceId);
     }
 
     /**
@@ -54,12 +54,12 @@ public class DocumentManagementServiceImpl implements DocumentManagementService 
     @Transactional
     public ReindexResult reindex(UUID ownerUserId, String sourceId) {
         long startNanos = System.nanoTime();
-        log.info("document.reindex.start ownerUserId={} sourceId={}", ownerUserId, sourceId);
+        log.info("文档重建索引开始 ownerUserId={} sourceId={}", ownerUserId, sourceId);
         DocumentPersistenceService.DocumentDetail document = documentPersistenceService.findDocument(ownerUserId, sourceId)
                 .orElseThrow(() -> new IllegalArgumentException("文档不存在: " + sourceId));
         if (document.contentText() == null || document.contentText().isBlank()) {
             documentPersistenceService.markFailed(ownerUserId, sourceId, "文档全文为空，无法重建索引");
-            log.warn("document.reindex.failed ownerUserId={} sourceId={} reason=EMPTY_CONTENT contentLength={}",
+            log.warn("文档重建索引失败 ownerUserId={} sourceId={} reason=内容为空 contentLength={}",
                     ownerUserId, sourceId, contentLength(document.contentText()));
             throw new IllegalStateException("文档全文为空，无法重建索引");
         }
@@ -76,12 +76,12 @@ public class DocumentManagementServiceImpl implements DocumentManagementService 
             List<EmbeddingService.EmbeddingVector> vectors = embeddingService.embed(chunks);
             vectorWriteService.upsert(ownerUserId, vectors);
             documentPersistenceService.markIndexed(ownerUserId, sourceId, chunks.size());
-            log.info("document.reindex.done ownerUserId={} sourceId={} contentLength={} chunkCount={} vectorCount={} costMs={}",
+            log.info("文档重建索引完成 ownerUserId={} sourceId={} contentLength={} chunkCount={} vectorCount={} costMs={}",
                     ownerUserId, sourceId, contentLength(document.contentText()), chunks.size(), vectors.size(), elapsedMs(startNanos));
             return new ReindexResult(sourceId, chunks.size());
         } catch (RuntimeException ex) {
             documentPersistenceService.markFailed(ownerUserId, sourceId, ex.getMessage());
-            log.error("document.reindex.failed ownerUserId={} sourceId={} contentLength={} costMs={}",
+            log.error("文档重建索引失败 ownerUserId={} sourceId={} contentLength={} costMs={}",
                     ownerUserId, sourceId, contentLength(document.contentText()), elapsedMs(startNanos), ex);
             throw ex;
         }

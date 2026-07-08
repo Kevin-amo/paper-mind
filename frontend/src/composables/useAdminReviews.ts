@@ -21,7 +21,7 @@ export function useAdminReviews() {
   const tasks = ref<AdminReviewTaskSummary[]>([]);
   const total = ref(0);
   const page = ref(0);
-  const size = ref(20);
+  const size = ref(10);
   const keyword = ref('');
   const status = ref('');
   const selectedTask = ref<AdminReviewTaskDetail | null>(null);

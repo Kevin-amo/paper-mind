@@ -9,7 +9,7 @@ defineProps<{
 }>();
 
 defineEmits<{
-  'set-risk-status': [riskId: string, status: 'CONFIRMED' | 'IGNORED' | 'RESOLVED'];
+  'set-risk-status': [riskId: string, status: 'CONFIRMED' | 'IGNORED'];
 }>();
 
 function isRiskUpdating(riskId: string, updatingIds: string[]) {
@@ -18,7 +18,7 @@ function isRiskUpdating(riskId: string, updatingIds: string[]) {
 
 function isRiskActionDisabled(
   risk: ReviewRiskRecord,
-  status: 'CONFIRMED' | 'IGNORED' | 'RESOLVED',
+  status: 'CONFIRMED' | 'IGNORED',
   updatingIds: string[],
 ) {
   return isRiskUpdating(risk.id, updatingIds) || risk.status === status;
@@ -43,10 +43,6 @@ function isRiskActionDisabled(
           </div>
           <p class="risk-evidence">{{ risk.evidence || '未给出证据' }}</p>
           <p class="risk-suggestion">{{ risk.suggestion || '建议人工复核' }}</p>
-          <div class="risk-meta">
-            <span v-if="risk.confidence != null">置信度 {{ risk.confidence }}</span>
-            <span v-if="risk.detector">检测器 {{ risk.detector }}</span>
-          </div>
           <div class="risk-actions">
             <el-button
               size="small"
@@ -67,20 +63,14 @@ function isRiskActionDisabled(
             >
               忽略
             </el-button>
-            <el-button
-              size="small"
-              type="success"
-              plain
-              :loading="isRiskUpdating(risk.id, riskStatusUpdatingIds)"
-              :disabled="isRiskActionDisabled(risk, 'RESOLVED', riskStatusUpdatingIds)"
-              @click="$emit('set-risk-status', risk.id, 'RESOLVED')"
-            >
-              标记解决
-            </el-button>
           </div>
         </article>
       </div>
-      <el-empty v-else description="暂无风险提示" />
+      <section v-else class="review-empty-state">
+        <div class="review-doc-icon" aria-hidden="true"></div>
+        <strong>暂无风险提示</strong>
+        <p>生成辅助评审后，这里会展示需要人工确认的风险线索。</p>
+      </section>
     </div>
   </section>
 </template>
@@ -180,18 +170,6 @@ function isRiskActionDisabled(
   line-height: 1.6;
 }
 
-.risk-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.risk-meta span {
-  color: var(--app-text-subtle);
-  font-size: 12px;
-}
-
 .risk-actions {
   display: flex;
   align-items: center;
@@ -199,5 +177,62 @@ function isRiskActionDisabled(
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--app-border);
+}
+
+.review-empty-state {
+  display: grid;
+  justify-items: center;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, rgba(245, 240, 232, 0.58), rgba(250, 249, 245, 0));
+  padding: 30px 18px;
+  text-align: center;
+}
+
+.review-doc-icon {
+  position: relative;
+  width: 32px;
+  height: 42px;
+  margin-bottom: 12px;
+  border: 1.5px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+}
+
+.review-doc-icon::before {
+  position: absolute;
+  top: -1.5px;
+  right: -1.5px;
+  width: 13px;
+  height: 13px;
+  border-bottom: 1.5px solid var(--app-border);
+  border-left: 1.5px solid var(--app-border);
+  border-radius: 0 7px 0 4px;
+  background: var(--app-surface-strong);
+  content: "";
+}
+
+.review-doc-icon::after {
+  position: absolute;
+  top: 20px;
+  left: 9px;
+  right: 9px;
+  height: 1.5px;
+  background: var(--app-border);
+  box-shadow: 0 7px 0 var(--app-border);
+  content: "";
+}
+
+.review-empty-state strong {
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.review-empty-state p {
+  margin: 6px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
 }
 </style>

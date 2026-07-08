@@ -14,16 +14,33 @@ import java.util.UUID;
 @Mapper
 public interface PaperStructuredParseMapper extends BaseMapper<PaperStructuredParseEntity> {
 
+    /**
+     * 插入或更新论文结构化解析结果。
+     *
+     * @param id               主键ID
+     * @param ownerUserId      用户ID
+     * @param documentId       文档ID
+     * @param sourceId         来源ID
+     * @param rawText          原始文本
+     * @param ruleResultJson   规则解析结果JSON
+     * @param modelResultJson  模型解析结果JSON
+     * @param mergedResultJson 合并结果JSON
+     * @param missingFieldsJson 缺失字段JSON
+     * @param rawModelOutput   模型原始输出
+     * @param status           状态
+     * @param errorMessage     错误信息
+     * @return 受影响的行数
+     */
     @Update("""
-            insert into public.paper_structured_parse (
+            insert into public.document_structured_parse (
                 id, owner_user_id, document_id, source_id, raw_text,
-                rule_result, model_result, merged_result, field_confidence,
-                missing_fields, low_confidence_fields, raw_model_output,
+                rule_result, model_result, merged_result,
+                missing_fields, raw_model_output,
                 status, error_message, parsed_at, created_at, updated_at
             ) values (
                 #{id}, #{ownerUserId}, #{documentId}, #{sourceId}, #{rawText,jdbcType=LONGVARCHAR},
-                cast(#{ruleResultJson} as jsonb), cast(#{modelResultJson} as jsonb), cast(#{mergedResultJson} as jsonb), cast(#{fieldConfidenceJson} as jsonb),
-                cast(#{missingFieldsJson} as jsonb), cast(#{lowConfidenceFieldsJson} as jsonb), #{rawModelOutput,jdbcType=LONGVARCHAR},
+                cast(#{ruleResultJson} as jsonb), cast(#{modelResultJson} as jsonb), cast(#{mergedResultJson} as jsonb),
+                cast(#{missingFieldsJson} as jsonb), #{rawModelOutput,jdbcType=LONGVARCHAR},
                 #{status}, #{errorMessage,jdbcType=LONGVARCHAR}, now(), now(), now()
             )
             on conflict (owner_user_id, source_id) do update set
@@ -32,9 +49,7 @@ public interface PaperStructuredParseMapper extends BaseMapper<PaperStructuredPa
                 rule_result = excluded.rule_result,
                 model_result = excluded.model_result,
                 merged_result = excluded.merged_result,
-                field_confidence = excluded.field_confidence,
                 missing_fields = excluded.missing_fields,
-                low_confidence_fields = excluded.low_confidence_fields,
                 raw_model_output = excluded.raw_model_output,
                 status = excluded.status,
                 error_message = excluded.error_message,
@@ -49,23 +64,32 @@ public interface PaperStructuredParseMapper extends BaseMapper<PaperStructuredPa
                      @Param("ruleResultJson") String ruleResultJson,
                      @Param("modelResultJson") String modelResultJson,
                      @Param("mergedResultJson") String mergedResultJson,
-                     @Param("fieldConfidenceJson") String fieldConfidenceJson,
                      @Param("missingFieldsJson") String missingFieldsJson,
-                     @Param("lowConfidenceFieldsJson") String lowConfidenceFieldsJson,
                      @Param("rawModelOutput") String rawModelOutput,
                      @Param("status") String status,
                      @Param("errorMessage") String errorMessage);
 
+    /**
+     * 插入或更新失败的论文结构化解析结果。
+     *
+     * @param id           主键ID
+     * @param ownerUserId  用户ID
+     * @param documentId   文档ID
+     * @param sourceId     来源ID
+     * @param rawText      原始文本
+     * @param errorMessage 错误信息
+     * @return 受影响的行数
+     */
     @Update("""
-            insert into public.paper_structured_parse (
+            insert into public.document_structured_parse (
                 id, owner_user_id, document_id, source_id, raw_text,
-                rule_result, model_result, merged_result, field_confidence,
-                missing_fields, low_confidence_fields,
+                rule_result, model_result, merged_result,
+                missing_fields,
                 status, error_message, created_at, updated_at
             ) values (
                 #{id}, #{ownerUserId}, #{documentId}, #{sourceId}, #{rawText,jdbcType=LONGVARCHAR},
-                '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
-                '[]'::jsonb, '[]'::jsonb,
+                '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
+                '[]'::jsonb,
                 'FAILED', #{errorMessage,jdbcType=LONGVARCHAR}, now(), now()
             )
             on conflict (owner_user_id, source_id) do update set

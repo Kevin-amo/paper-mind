@@ -1,7 +1,3 @@
--- Paper RAG aggregated SQL script.
--- This file concatenates all SQL scripts from `src/main/resources/sql` in dependency-safe execution order.
--- It is meant for one-shot initialization or manual execution in a single import.
-
 -- ===== 00_extensions.sql =====
 -- PostgreSQL 扩展初始化脚本。
 -- pgvector 用于存储向量；uuid-ossp 用于生成 UUID。
@@ -194,10 +190,6 @@ CREATE TABLE IF NOT EXISTS public.vector_store
     CONSTRAINT vector_store_pkey PRIMARY KEY (id)
 );
 
-CREATE INDEX IF NOT EXISTS vector_store_embedding_idx
-    ON public.vector_store
-    USING hnsw (embedding public.vector_cosine_ops);
-
 create index if not exists vector_store_owner_user_id_idx
     on public.vector_store ((metadata ->> 'ownerUserId'));
 
@@ -207,13 +199,13 @@ CREATE INDEX IF NOT EXISTS vector_store_source_id_idx
 CREATE INDEX IF NOT EXISTS vector_store_chunk_id_idx
     ON public.vector_store ((metadata ->> 'chunkId'));
 
--- ===== 02_paper_document.sql =====
+-- ===== 02_document.sql =====
 -- 论文/文档主表。
 -- 该表保存文档级元数据和入库状态；向量内容仍由 public.vector_store 保存。
 
 create extension if not exists "uuid-ossp";
 
-create table if not exists public.paper_document (
+create table if not exists public.document (
     id uuid primary key default uuid_generate_v4(),
     owner_user_id uuid not null references public.sys_user(id) on delete cascade,
     source_id varchar(128) not null,
@@ -242,53 +234,53 @@ create table if not exists public.paper_document (
     updated_at timestamptz not null default now(),
     deleted_at timestamptz,
 
-    constraint chk_paper_document_status check (status in ('PENDING', 'QUEUED', 'PARSING', 'CHUNKING', 'EMBEDDING', 'INDEXING', 'INDEXED', 'FAILED', 'DELETED')),
-    constraint chk_paper_document_publish_year check (publish_year is null or publish_year between 1500 and 3000),
-    constraint chk_paper_document_chunk_count check (chunk_count >= 0)
+    constraint chk_document_status check (status in ('PENDING', 'QUEUED', 'PARSING', 'CHUNKING', 'EMBEDDING', 'INDEXING', 'INDEXED', 'FAILED', 'DELETED')),
+    constraint chk_document_publish_year check (publish_year is null or publish_year between 1500 and 3000),
+    constraint chk_document_chunk_count check (chunk_count >= 0)
 );
 
-comment on table public.paper_document is '论文/文档主表，保存文档级元数据和入库状态';
-comment on column public.paper_document.owner_user_id is '文档归属用户 ID';
-comment on column public.paper_document.source_id is '文档来源唯一标识，对应代码中的 DocumentSource.sourceId';
-comment on column public.paper_document.content_text is '解析后的全文文本，便于重建索引和问题排查';
-comment on column public.paper_document.metadata is '文档级扩展元数据';
-comment on column public.paper_document.status is '入库状态：PENDING、QUEUED、PARSING、CHUNKING、EMBEDDING、INDEXING、INDEXED、FAILED、DELETED';
+comment on table public.document is '论文/文档主表，保存文档级元数据和入库状态';
+comment on column public.document.owner_user_id is '文档归属用户 ID';
+comment on column public.document.source_id is '文档来源唯一标识，对应代码中的 DocumentSource.sourceId';
+comment on column public.document.content_text is '解析后的全文文本，便于重建索引和问题排查';
+comment on column public.document.metadata is '文档级扩展元数据';
+comment on column public.document.status is '入库状态：PENDING、QUEUED、PARSING、CHUNKING、EMBEDDING、INDEXING、INDEXED、FAILED、DELETED';
 
-create index if not exists idx_paper_document_owner_updated_at
-    on public.paper_document using btree (owner_user_id, updated_at desc)
+create index if not exists idx_document_owner_updated_at
+    on public.document using btree (owner_user_id, updated_at desc)
     where deleted_at is null;
 
-create unique index if not exists uq_paper_document_owner_source
-    on public.paper_document using btree (owner_user_id, source_id);
+create unique index if not exists uq_document_owner_source
+    on public.document using btree (owner_user_id, source_id);
 
-create index if not exists idx_paper_document_title
-    on public.paper_document using btree (title);
+create index if not exists idx_document_title
+    on public.document using btree (title);
 
-create index if not exists idx_paper_document_status
-    on public.paper_document using btree (status);
+create index if not exists idx_document_status
+    on public.document using btree (status);
 
-create index if not exists idx_paper_document_publish_year
-    on public.paper_document using btree (publish_year);
+create index if not exists idx_document_publish_year
+    on public.document using btree (publish_year);
 
-create index if not exists idx_paper_document_created_at
-    on public.paper_document using btree (created_at desc);
+create index if not exists idx_document_created_at
+    on public.document using btree (created_at desc);
 
-create index if not exists idx_paper_document_metadata
-    on public.paper_document using gin (metadata);
+create index if not exists idx_document_metadata
+    on public.document using gin (metadata);
 
-create index if not exists idx_paper_document_authors
-    on public.paper_document using gin (authors);
+create index if not exists idx_document_authors
+    on public.document using gin (authors);
 
-create index if not exists idx_paper_document_keywords
-    on public.paper_document using gin (keywords);
+create index if not exists idx_document_keywords
+    on public.document using gin (keywords);
 
--- ===== 03_paper_document_chunk.sql =====
+-- ===== 03_document_chunk.sql =====
 -- 文档切分片段表。
 -- 该表保存 chunk 的原始文本和位置信息，用于引用回溯、重建向量索引和审计。
 
 create extension if not exists "uuid-ossp";
 
-create table if not exists public.paper_document_chunk (
+create table if not exists public.document_chunk (
     id uuid primary key default uuid_generate_v4(),
     owner_user_id uuid not null references public.sys_user(id) on delete cascade,
     chunk_id varchar(128) not null,
@@ -309,54 +301,54 @@ create table if not exists public.paper_document_chunk (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
 
-    constraint fk_paper_document_chunk_source
+    constraint fk_document_chunk_source
         foreign key (owner_user_id, source_id)
-        references public.paper_document (owner_user_id, source_id)
+        references public.document (owner_user_id, source_id)
         on update cascade
         on delete cascade,
 
-    constraint fk_paper_document_chunk_vector_store
+    constraint fk_document_chunk_vector_store
         foreign key (vector_store_id)
         references public.vector_store (id)
         on update cascade
         on delete set null,
 
-    constraint uq_paper_document_chunk_owner_chunk unique (owner_user_id, chunk_id),
-    constraint uq_paper_document_chunk_source_index unique (owner_user_id, source_id, chunk_index),
-    constraint chk_paper_document_chunk_index check (chunk_index >= 0),
-    constraint chk_paper_document_chunk_range check (
+    constraint uq_document_chunk_owner_chunk unique (owner_user_id, chunk_id),
+    constraint uq_document_chunk_source_index unique (owner_user_id, source_id, chunk_index),
+    constraint chk_document_chunk_index check (chunk_index >= 0),
+    constraint chk_document_chunk_range check (
         chunk_start is null
         or chunk_end is null
         or chunk_end >= chunk_start
     )
 );
 
-comment on table public.paper_document_chunk is '文档切分片段表，保存 chunk 原文、位置和向量表关联';
-comment on column public.paper_document_chunk.owner_user_id is '分块归属用户 ID';
-comment on column public.paper_document_chunk.chunk_id is '片段唯一标识，对应代码中的 DocumentChunk.chunkId';
-comment on column public.paper_document_chunk.source_id is '所属文档来源标识，对应 paper_document.source_id';
-comment on column public.paper_document_chunk.vector_store_id is '关联 vector_store.id，用于定位向量记录';
-comment on column public.paper_document_chunk.metadata is '片段级扩展元数据，例如页码、章节、字符范围等';
+comment on table public.document_chunk is '文档切分片段表，保存 chunk 原文、位置和向量表关联';
+comment on column public.document_chunk.owner_user_id is '分块归属用户 ID';
+comment on column public.document_chunk.chunk_id is '片段唯一标识，对应代码中的 DocumentChunk.chunkId';
+comment on column public.document_chunk.source_id is '所属文档来源标识，对应 document.source_id';
+comment on column public.document_chunk.vector_store_id is '关联 vector_store.id，用于定位向量记录';
+comment on column public.document_chunk.metadata is '片段级扩展元数据，例如页码、章节、字符范围等';
 
-create index if not exists idx_paper_document_chunk_owner_source_id
-    on public.paper_document_chunk using btree (owner_user_id, source_id);
+create index if not exists idx_document_chunk_owner_source_id
+    on public.document_chunk using btree (owner_user_id, source_id);
 
-create index if not exists idx_paper_document_chunk_source_id
-    on public.paper_document_chunk using btree (source_id);
+create index if not exists idx_document_chunk_source_id
+    on public.document_chunk using btree (source_id);
 
-create index if not exists idx_paper_document_chunk_vector_store_id
-    on public.paper_document_chunk using btree (vector_store_id);
+create index if not exists idx_document_chunk_vector_store_id
+    on public.document_chunk using btree (vector_store_id);
 
-create index if not exists idx_paper_document_chunk_metadata
-    on public.paper_document_chunk using gin (metadata);
+create index if not exists idx_document_chunk_metadata
+    on public.document_chunk using gin (metadata);
 
--- ===== 04_paper_document_asset.sql =====
+-- ===== 04_document_asset.sql =====
 -- 文档资产表。
 -- 该表保存 Word 内嵌图片等二进制资产，用于前端预览和引用回溯。
 
 create extension if not exists "uuid-ossp";
 
-create table if not exists public.paper_document_asset (
+create table if not exists public.document_asset (
     id uuid primary key default uuid_generate_v4(),
     owner_user_id uuid not null references public.sys_user(id) on delete cascade,
     asset_id varchar(128) not null,
@@ -378,43 +370,43 @@ create table if not exists public.paper_document_asset (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
 
-    constraint fk_paper_document_asset_source
+    constraint fk_document_asset_source
         foreign key (owner_user_id, source_id)
-        references public.paper_document (owner_user_id, source_id)
+        references public.document (owner_user_id, source_id)
         on update cascade
         on delete cascade,
 
-    constraint uq_paper_document_asset_owner_asset unique (owner_user_id, asset_id),
-    constraint uq_paper_document_asset_source_index unique (owner_user_id, source_id, asset_index),
-    constraint chk_paper_document_asset_index check (asset_index >= 0),
-    constraint chk_paper_document_asset_size check (file_size >= 0),
-    constraint chk_paper_document_asset_type check (asset_type in ('IMAGE', 'ATTACHMENT')),
-    constraint chk_paper_document_asset_text_range check (
+    constraint uq_document_asset_owner_asset unique (owner_user_id, asset_id),
+    constraint uq_document_asset_source_index unique (owner_user_id, source_id, asset_index),
+    constraint chk_document_asset_index check (asset_index >= 0),
+    constraint chk_document_asset_size check (file_size >= 0),
+    constraint chk_document_asset_type check (asset_type in ('IMAGE', 'ATTACHMENT')),
+    constraint chk_document_asset_text_range check (
         text_start is null
         or text_end is null
         or text_end >= text_start
     )
 );
 
-comment on table public.paper_document_asset is '文档资产表，保存图片等二进制内容及其 OCR 文本';
-comment on column public.paper_document_asset.owner_user_id is '资产归属用户 ID';
-comment on column public.paper_document_asset.asset_id is '资产唯一标识，对应代码中的 DocumentAsset.assetId';
-comment on column public.paper_document_asset.source_id is '所属文档来源标识，对应 paper_document.source_id';
-comment on column public.paper_document_asset.content is '资产二进制内容，用于预览或下载';
-comment on column public.paper_document_asset.extracted_text is '从资产中抽取出的文本，例如图片 OCR 结果';
-comment on column public.paper_document_asset.metadata is '资产级扩展元数据，例如原始包内路径';
+comment on table public.document_asset is '文档资产表，保存图片等二进制内容及其 OCR 文本';
+comment on column public.document_asset.owner_user_id is '资产归属用户 ID';
+comment on column public.document_asset.asset_id is '资产唯一标识，对应代码中的 DocumentAsset.assetId';
+comment on column public.document_asset.source_id is '所属文档来源标识，对应 document.source_id';
+comment on column public.document_asset.content is '资产二进制内容，用于预览或下载';
+comment on column public.document_asset.extracted_text is '从资产中抽取出的文本，例如图片 OCR 结果';
+comment on column public.document_asset.metadata is '资产级扩展元数据，例如原始包内路径';
 
-create index if not exists idx_paper_document_asset_owner_source_id
-    on public.paper_document_asset using btree (owner_user_id, source_id);
+create index if not exists idx_document_asset_owner_source_id
+    on public.document_asset using btree (owner_user_id, source_id);
 
-create index if not exists idx_paper_document_asset_source_id
-    on public.paper_document_asset using btree (source_id);
+create index if not exists idx_document_asset_source_id
+    on public.document_asset using btree (source_id);
 
-create index if not exists idx_paper_document_asset_type
-    on public.paper_document_asset using btree (asset_type);
+create index if not exists idx_document_asset_type
+    on public.document_asset using btree (asset_type);
 
-create index if not exists idx_paper_document_asset_metadata
-    on public.paper_document_asset using gin (metadata);
+create index if not exists idx_document_asset_metadata
+    on public.document_asset using gin (metadata);
 
 -- ===== 11_document_ingestion_job.sql =====
 -- 文档异步入库任务表。
@@ -455,24 +447,22 @@ create index if not exists idx_document_ingestion_job_owner_source
 create index if not exists idx_document_ingestion_job_status
     on public.document_ingestion_job using btree (status);
 
--- ===== 12_paper_structured_parse.sql =====
+-- ===== 12_document_structured_parse.sql =====
 -- 论文结构化解析结果表。
 
 create extension if not exists "uuid-ossp";
 
-create table if not exists public.paper_structured_parse (
+create table if not exists public.document_structured_parse (
     id uuid primary key default uuid_generate_v4(),
     owner_user_id uuid not null references public.sys_user(id) on delete cascade,
-    document_id uuid not null references public.paper_document(id) on delete cascade,
+    document_id uuid not null references public.document(id) on delete cascade,
     source_id varchar(128) not null,
     raw_text text,
 
     rule_result jsonb not null default '{}'::jsonb,
     model_result jsonb not null default '{}'::jsonb,
     merged_result jsonb not null default '{}'::jsonb,
-    field_confidence jsonb not null default '{}'::jsonb,
     missing_fields jsonb not null default '[]'::jsonb,
-    low_confidence_fields jsonb not null default '[]'::jsonb,
     raw_model_output text,
     parser_version varchar(64),
     model_version varchar(128),
@@ -485,42 +475,41 @@ create table if not exists public.paper_structured_parse (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
 
-    constraint fk_paper_structured_parse_source
+    constraint fk_document_structured_parse_source
         foreign key (owner_user_id, source_id)
-        references public.paper_document (owner_user_id, source_id)
+        references public.document (owner_user_id, source_id)
         on update cascade
         on delete cascade,
 
-    constraint uq_paper_structured_parse_owner_source unique (owner_user_id, source_id),
-    constraint chk_paper_structured_parse_status check (status in ('PENDING', 'RULE_PARSED', 'MODEL_COMPLETED', 'COMPLETED', 'FAILED'))
+    constraint uq_document_structured_parse_owner_source unique (owner_user_id, source_id),
+    constraint chk_document_structured_parse_status check (status in ('PENDING', 'RULE_PARSED', 'MODEL_COMPLETED', 'COMPLETED', 'FAILED'))
 );
 
-alter table public.paper_structured_parse
+alter table public.document_structured_parse
     add column if not exists parser_version varchar(64),
     add column if not exists model_version varchar(128),
     add column if not exists prompt_version varchar(64),
     add column if not exists quality_metrics jsonb not null default '{}'::jsonb;
 
-comment on table public.paper_structured_parse is '论文结构化解析结果表';
-comment on column public.paper_structured_parse.raw_text is '结构化解析所依据的全文快照';
-comment on column public.paper_structured_parse.rule_result is '规则章节识别结果 JSON';
-comment on column public.paper_structured_parse.model_result is '模型补全结果 JSON';
-comment on column public.paper_structured_parse.merged_result is '最终合并后的结构化解析结果 JSON';
-comment on column public.paper_structured_parse.field_confidence is '字段级来源、置信度和证据 JSON';
-comment on column public.paper_structured_parse.parser_version is '结构化解析器版本';
-comment on column public.paper_structured_parse.model_version is '模型版本';
-comment on column public.paper_structured_parse.prompt_version is '提示词版本';
-comment on column public.paper_structured_parse.quality_metrics is '结构化解析质量指标 JSON';
-comment on column public.paper_structured_parse.status is '解析状态：PENDING、RULE_PARSED、MODEL_COMPLETED、COMPLETED、FAILED';
+comment on table public.document_structured_parse is '论文结构化解析结果表';
+comment on column public.document_structured_parse.raw_text is '结构化解析所依据的全文快照';
+comment on column public.document_structured_parse.rule_result is '规则章节识别结果 JSON';
+comment on column public.document_structured_parse.model_result is '模型补全结果 JSON';
+comment on column public.document_structured_parse.merged_result is '最终合并后的结构化解析结果 JSON';
+comment on column public.document_structured_parse.parser_version is '结构化解析器版本';
+comment on column public.document_structured_parse.model_version is '模型版本';
+comment on column public.document_structured_parse.prompt_version is '提示词版本';
+comment on column public.document_structured_parse.quality_metrics is '结构化解析质量指标 JSON';
+comment on column public.document_structured_parse.status is '解析状态：PENDING、RULE_PARSED、MODEL_COMPLETED、COMPLETED、FAILED';
 
-create index if not exists idx_paper_structured_parse_owner_source
-    on public.paper_structured_parse using btree (owner_user_id, source_id);
+create index if not exists idx_document_structured_parse_owner_source
+    on public.document_structured_parse using btree (owner_user_id, source_id);
 
-create index if not exists idx_paper_structured_parse_document_id
-    on public.paper_structured_parse using btree (document_id);
+create index if not exists idx_document_structured_parse_document_id
+    on public.document_structured_parse using btree (document_id);
 
-create index if not exists idx_paper_structured_parse_status
-    on public.paper_structured_parse using btree (status);
+create index if not exists idx_document_structured_parse_status
+    on public.document_structured_parse using btree (status);
 
 -- ===== 13_review.sql =====
 -- 论文辅助评审数据表。
@@ -580,28 +569,8 @@ on conflict (code) do update set
     sort_order = excluded.sort_order,
     updated_at = now();
 
-create table if not exists public.review_batch (
-    id uuid primary key default uuid_generate_v4(),
-    name varchar(160) not null,
-    description text,
-    status varchar(32) not null default 'DRAFT',
-    starts_at timestamptz,
-    ends_at timestamptz,
-    created_by_user_id uuid references public.sys_user(id) on delete set null,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    constraint chk_review_batch_status check (status in ('DRAFT', 'ACTIVE', 'CLOSED', 'ARCHIVED'))
-);
-
-comment on table public.review_batch is '评审批次表';
-comment on column public.review_batch.status is '批次状态：DRAFT、ACTIVE、CLOSED、ARCHIVED';
-
-create index if not exists idx_review_batch_status_updated_at
-    on public.review_batch using btree (status, updated_at desc);
-
 create table if not exists public.review_group (
     id uuid primary key default uuid_generate_v4(),
-    batch_id uuid not null references public.review_batch(id) on delete cascade,
     name varchar(160) not null,
     leader_user_id uuid not null references public.sys_user(id) on delete restrict,
     status varchar(32) not null default 'ACTIVE',
@@ -614,8 +583,6 @@ create table if not exists public.review_group (
 comment on table public.review_group is '评审小组表';
 comment on column public.review_group.leader_user_id is '小组长用户 ID';
 
-create index if not exists idx_review_group_batch_status
-    on public.review_group using btree (batch_id, status);
 create index if not exists idx_review_group_leader_status
     on public.review_group using btree (leader_user_id, status);
 
@@ -643,10 +610,9 @@ create index if not exists idx_review_group_member_user_status
 
 create table if not exists public.review_task (
     id uuid primary key default uuid_generate_v4(),
-    document_id uuid not null references public.paper_document(id) on delete cascade,
+    document_id uuid not null references public.document(id) on delete cascade,
     submitter_user_id uuid not null references public.sys_user(id) on delete cascade,
     reviewer_user_id uuid references public.sys_user(id) on delete set null,
-    batch_id uuid references public.review_batch(id) on delete set null,
     group_id uuid references public.review_group(id) on delete set null,
     assigned_by_user_id uuid references public.sys_user(id) on delete set null,
     leader_user_id uuid references public.sys_user(id) on delete set null,
@@ -675,8 +641,8 @@ create index if not exists idx_review_task_submitter
 create index if not exists idx_review_task_reviewer
     on public.review_task using btree (reviewer_user_id, updated_at desc);
 
-create index if not exists idx_review_task_batch_group_status
-    on public.review_task using btree (batch_id, group_id, status, updated_at desc);
+create index if not exists idx_review_task_group_status
+    on public.review_task using btree (group_id, status, updated_at desc);
 
 create index if not exists idx_review_task_leader_status
     on public.review_task using btree (leader_user_id, status, updated_at desc);
@@ -708,7 +674,7 @@ create unique index if not exists uq_review_assignment_task_active_lead
 create table if not exists public.review_report (
     id uuid primary key default uuid_generate_v4(),
     task_id uuid not null references public.review_task(id) on delete cascade,
-    document_id uuid not null references public.paper_document(id) on delete cascade,
+    document_id uuid not null references public.document(id) on delete cascade,
     reviewer_user_id uuid references public.sys_user(id) on delete set null,
     assignment_id uuid references public.review_assignment(id) on delete cascade,
     paper_sections jsonb not null default '{}'::jsonb,
@@ -719,7 +685,6 @@ create table if not exists public.review_report (
     criterion_version int,
     model_version varchar(128),
     prompt_version varchar(64),
-    confidence numeric(5,4),
     manual_delta jsonb not null default '{}'::jsonb,
     total_score int,
     final_recommendation text,
@@ -730,7 +695,6 @@ create table if not exists public.review_report (
     updated_at timestamptz not null default now(),
 
     constraint chk_review_report_total_score check (total_score is null or total_score between 0 and 100),
-    constraint chk_review_report_confidence check (confidence is null or (confidence >= 0 and confidence <= 1)),
     constraint chk_review_report_status check (status in ('AI_GENERATED', 'ADJUSTED', 'CONFIRMED', 'COMPLETED'))
 );
 
@@ -761,13 +725,11 @@ create table if not exists public.review_risk_item (
     evidence_location jsonb not null default '{}'::jsonb,
     suggestion text,
     detector varchar(64),
-    confidence numeric(5,4),
     status varchar(32) not null default 'OPEN',
     reviewer_note text,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     constraint chk_review_risk_level check (risk_level in ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
-    constraint chk_review_risk_confidence check (confidence is null or (confidence >= 0 and confidence <= 1)),
     constraint chk_review_risk_status check (status in ('OPEN', 'CONFIRMED', 'IGNORED', 'RESOLVED'))
 );
 
@@ -876,62 +838,62 @@ comment on column public.vector_store.content is '向量对应文本内容';
 comment on column public.vector_store.metadata is '向量元数据 JSON';
 comment on column public.vector_store.embedding is '文本嵌入向量';
 
-comment on column public.paper_document.id is '文档主键 ID';
-comment on column public.paper_document.owner_user_id is '文档所属用户 ID';
-comment on column public.paper_document.source_id is '文档来源 ID';
-comment on column public.paper_document.title is '文档标题';
-comment on column public.paper_document.origin is '文档来源说明';
-comment on column public.paper_document.file_name is '原始文件名';
-comment on column public.paper_document.file_type is '文件类型';
-comment on column public.paper_document.file_size is '文件大小字节数';
-comment on column public.paper_document.authors is '作者列表 JSON';
-comment on column public.paper_document.abstract is '论文摘要';
-comment on column public.paper_document.doi is 'DOI 标识';
-comment on column public.paper_document.journal is '期刊或会议名称';
-comment on column public.paper_document.publish_year is '发表年份';
-comment on column public.paper_document.keywords is '关键词列表 JSON';
-comment on column public.paper_document.content_text is '文档全文文本';
-comment on column public.paper_document.metadata is '文档元数据 JSON';
-comment on column public.paper_document.status is '文档处理状态';
-comment on column public.paper_document.chunk_count is '文档分块数量';
-comment on column public.paper_document.error_message is '处理错误信息';
-comment on column public.paper_document.created_at is '创建时间';
-comment on column public.paper_document.updated_at is '更新时间';
-comment on column public.paper_document.deleted_at is '软删除时间';
+comment on column public.document.id is '文档主键 ID';
+comment on column public.document.owner_user_id is '文档所属用户 ID';
+comment on column public.document.source_id is '文档来源 ID';
+comment on column public.document.title is '文档标题';
+comment on column public.document.origin is '文档来源说明';
+comment on column public.document.file_name is '原始文件名';
+comment on column public.document.file_type is '文件类型';
+comment on column public.document.file_size is '文件大小字节数';
+comment on column public.document.authors is '作者列表 JSON';
+comment on column public.document.abstract is '论文摘要';
+comment on column public.document.doi is 'DOI 标识';
+comment on column public.document.journal is '期刊或会议名称';
+comment on column public.document.publish_year is '发表年份';
+comment on column public.document.keywords is '关键词列表 JSON';
+comment on column public.document.content_text is '文档全文文本';
+comment on column public.document.metadata is '文档元数据 JSON';
+comment on column public.document.status is '文档处理状态';
+comment on column public.document.chunk_count is '文档分块数量';
+comment on column public.document.error_message is '处理错误信息';
+comment on column public.document.created_at is '创建时间';
+comment on column public.document.updated_at is '更新时间';
+comment on column public.document.deleted_at is '软删除时间';
 
-comment on column public.paper_document_chunk.id is '文档分块主键 ID';
-comment on column public.paper_document_chunk.owner_user_id is '分块所属用户 ID';
-comment on column public.paper_document_chunk.chunk_id is '业务分块 ID';
-comment on column public.paper_document_chunk.source_id is '文档来源 ID';
-comment on column public.paper_document_chunk.chunk_index is '分块序号';
-comment on column public.paper_document_chunk.content is '分块文本内容';
-comment on column public.paper_document_chunk.content_hash is '分块内容哈希';
-comment on column public.paper_document_chunk.chunk_start is '分块起始字符位置';
-comment on column public.paper_document_chunk.chunk_end is '分块结束字符位置';
-comment on column public.paper_document_chunk.page_number is '分块所在页码';
-comment on column public.paper_document_chunk.section_title is '分块所属章节标题';
-comment on column public.paper_document_chunk.metadata is '分块元数据 JSON';
-comment on column public.paper_document_chunk.vector_store_id is '关联向量 ID';
-comment on column public.paper_document_chunk.created_at is '创建时间';
-comment on column public.paper_document_chunk.updated_at is '更新时间';
+comment on column public.document_chunk.id is '文档分块主键 ID';
+comment on column public.document_chunk.owner_user_id is '分块所属用户 ID';
+comment on column public.document_chunk.chunk_id is '业务分块 ID';
+comment on column public.document_chunk.source_id is '文档来源 ID';
+comment on column public.document_chunk.chunk_index is '分块序号';
+comment on column public.document_chunk.content is '分块文本内容';
+comment on column public.document_chunk.content_hash is '分块内容哈希';
+comment on column public.document_chunk.chunk_start is '分块起始字符位置';
+comment on column public.document_chunk.chunk_end is '分块结束字符位置';
+comment on column public.document_chunk.page_number is '分块所在页码';
+comment on column public.document_chunk.section_title is '分块所属章节标题';
+comment on column public.document_chunk.metadata is '分块元数据 JSON';
+comment on column public.document_chunk.vector_store_id is '关联向量 ID';
+comment on column public.document_chunk.created_at is '创建时间';
+comment on column public.document_chunk.updated_at is '更新时间';
 
-comment on column public.paper_document_asset.id is '文档资源主键 ID';
-comment on column public.paper_document_asset.owner_user_id is '资源所属用户 ID';
-comment on column public.paper_document_asset.asset_id is '业务资源 ID';
-comment on column public.paper_document_asset.source_id is '文档来源 ID';
-comment on column public.paper_document_asset.asset_index is '资源序号';
-comment on column public.paper_document_asset.asset_type is '资源类型';
-comment on column public.paper_document_asset.file_name is '资源文件名';
-comment on column public.paper_document_asset.content_type is '资源 MIME 类型';
-comment on column public.paper_document_asset.file_size is '资源文件大小字节数';
-comment on column public.paper_document_asset.content_hash is '资源内容哈希';
-comment on column public.paper_document_asset.content is '资源二进制内容';
-comment on column public.paper_document_asset.extracted_text is '资源提取文本';
-comment on column public.paper_document_asset.text_start is '资源文本起始字符位置';
-comment on column public.paper_document_asset.text_end is '资源文本结束字符位置';
-comment on column public.paper_document_asset.metadata is '资源元数据 JSON';
-comment on column public.paper_document_asset.created_at is '创建时间';
-comment on column public.paper_document_asset.updated_at is '更新时间';
+comment on column public.document_asset.id is '文档资源主键 ID';
+comment on column public.document_asset.owner_user_id is '资源所属用户 ID';
+comment on column public.document_asset.asset_id is '业务资源 ID';
+comment on column public.document_asset.source_id is '文档来源 ID';
+comment on column public.document_asset.asset_index is '资源序号';
+comment on column public.document_asset.asset_type is '资源类型';
+comment on column public.document_asset.file_name is '资源文件名';
+comment on column public.document_asset.content_type is '资源 MIME 类型';
+comment on column public.document_asset.file_size is '资源文件大小字节数';
+comment on column public.document_asset.content_hash is '资源内容哈希';
+comment on column public.document_asset.content is '资源二进制内容';
+comment on column public.document_asset.extracted_text is '资源提取文本';
+comment on column public.document_asset.text_start is '资源文本起始字符位置';
+comment on column public.document_asset.text_end is '资源文本结束字符位置';
+comment on column public.document_asset.metadata is '资源元数据 JSON';
+comment on column public.document_asset.created_at is '创建时间';
+comment on column public.document_asset.updated_at is '更新时间';
 
 comment on column public.document_ingestion_job.id is '文档导入任务主键 ID';
 comment on column public.document_ingestion_job.owner_user_id is '任务所属用户 ID';
@@ -948,27 +910,25 @@ comment on column public.document_ingestion_job.updated_at is '更新时间';
 comment on column public.document_ingestion_job.started_at is '任务开始时间';
 comment on column public.document_ingestion_job.finished_at is '任务完成时间';
 
-comment on column public.paper_structured_parse.id is '结构化解析主键 ID';
-comment on column public.paper_structured_parse.owner_user_id is '解析所属用户 ID';
-comment on column public.paper_structured_parse.document_id is '关联文档 ID';
-comment on column public.paper_structured_parse.source_id is '文档来源 ID';
-comment on column public.paper_structured_parse.raw_text is '原始解析文本';
-comment on column public.paper_structured_parse.rule_result is '规则解析结果 JSON';
-comment on column public.paper_structured_parse.model_result is '模型补全结果 JSON';
-comment on column public.paper_structured_parse.merged_result is '合并后的结构化结果 JSON';
-comment on column public.paper_structured_parse.field_confidence is '字段置信度 JSON';
-comment on column public.paper_structured_parse.missing_fields is '缺失字段列表 JSON';
-comment on column public.paper_structured_parse.low_confidence_fields is '低置信字段列表 JSON';
-comment on column public.paper_structured_parse.raw_model_output is '模型原始输出';
-comment on column public.paper_structured_parse.parser_version is '结构化解析器版本';
-comment on column public.paper_structured_parse.model_version is '模型版本';
-comment on column public.paper_structured_parse.prompt_version is '提示词版本';
-comment on column public.paper_structured_parse.quality_metrics is '结构化解析质量指标 JSON';
-comment on column public.paper_structured_parse.status is '解析状态';
-comment on column public.paper_structured_parse.error_message is '解析错误信息';
-comment on column public.paper_structured_parse.parsed_at is '解析完成时间';
-comment on column public.paper_structured_parse.created_at is '创建时间';
-comment on column public.paper_structured_parse.updated_at is '更新时间';
+comment on column public.document_structured_parse.id is '结构化解析主键 ID';
+comment on column public.document_structured_parse.owner_user_id is '解析所属用户 ID';
+comment on column public.document_structured_parse.document_id is '关联文档 ID';
+comment on column public.document_structured_parse.source_id is '文档来源 ID';
+comment on column public.document_structured_parse.raw_text is '原始解析文本';
+comment on column public.document_structured_parse.rule_result is '规则解析结果 JSON';
+comment on column public.document_structured_parse.model_result is '模型补全结果 JSON';
+comment on column public.document_structured_parse.merged_result is '合并后的结构化结果 JSON';
+comment on column public.document_structured_parse.missing_fields is '缺失字段列表 JSON';
+comment on column public.document_structured_parse.raw_model_output is '模型原始输出';
+comment on column public.document_structured_parse.parser_version is '结构化解析器版本';
+comment on column public.document_structured_parse.model_version is '模型版本';
+comment on column public.document_structured_parse.prompt_version is '提示词版本';
+comment on column public.document_structured_parse.quality_metrics is '结构化解析质量指标 JSON';
+comment on column public.document_structured_parse.status is '解析状态';
+comment on column public.document_structured_parse.error_message is '解析错误信息';
+comment on column public.document_structured_parse.parsed_at is '解析完成时间';
+comment on column public.document_structured_parse.created_at is '创建时间';
+comment on column public.document_structured_parse.updated_at is '更新时间';
 
 comment on column public.review_criterion.id is '评审指标主键 ID';
 comment on column public.review_criterion.code is '评审指标编码';
@@ -985,18 +945,7 @@ comment on column public.review_criterion.sort_order is '排序序号';
 comment on column public.review_criterion.created_at is '创建时间';
 comment on column public.review_criterion.updated_at is '更新时间';
 
-comment on column public.review_batch.id is '评审批次主键 ID';
-comment on column public.review_batch.name is '评审批次名称';
-comment on column public.review_batch.description is '评审批次描述';
-comment on column public.review_batch.status is '批次状态';
-comment on column public.review_batch.starts_at is '批次开始时间';
-comment on column public.review_batch.ends_at is '批次结束时间';
-comment on column public.review_batch.created_by_user_id is '批次创建人用户 ID';
-comment on column public.review_batch.created_at is '创建时间';
-comment on column public.review_batch.updated_at is '更新时间';
-
 comment on column public.review_group.id is '评审小组主键 ID';
-comment on column public.review_group.batch_id is '所属评审批次 ID';
 comment on column public.review_group.name is '评审小组名称';
 comment on column public.review_group.leader_user_id is '小组长用户 ID';
 comment on column public.review_group.status is '小组状态';
@@ -1018,7 +967,6 @@ comment on column public.review_task.id is '评审任务主键 ID';
 comment on column public.review_task.document_id is '关联文档 ID';
 comment on column public.review_task.submitter_user_id is '提交人用户 ID';
 comment on column public.review_task.reviewer_user_id is '评审人用户 ID';
-comment on column public.review_task.batch_id is '所属评审批次 ID';
 comment on column public.review_task.group_id is '所属评审小组 ID';
 comment on column public.review_task.assigned_by_user_id is '分配人用户 ID';
 comment on column public.review_task.leader_user_id is '小组长用户 ID';
@@ -1057,7 +1005,6 @@ comment on column public.review_report.raw_model_output is '模型原始输出 J
 comment on column public.review_report.criterion_version is '评审指标版本';
 comment on column public.review_report.model_version is '模型版本';
 comment on column public.review_report.prompt_version is '提示词版本';
-comment on column public.review_report.confidence is '报告置信度';
 comment on column public.review_report.manual_delta is '人工修改差异 JSON';
 comment on column public.review_report.total_score is '总分';
 comment on column public.review_report.final_recommendation is '最终建议';
@@ -1076,7 +1023,6 @@ comment on column public.review_risk_item.evidence is '风险证据';
 comment on column public.review_risk_item.evidence_location is '证据位置 JSON';
 comment on column public.review_risk_item.suggestion is '处理建议';
 comment on column public.review_risk_item.detector is '风险检测器';
-comment on column public.review_risk_item.confidence is '风险置信度';
 comment on column public.review_risk_item.status is '风险项状态';
 comment on column public.review_risk_item.reviewer_note is '评审人备注';
 comment on column public.review_risk_item.created_at is '创建时间';

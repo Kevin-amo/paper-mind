@@ -41,6 +41,7 @@ public record ReviewReportResponse(
         String finalRecommendation,
         /* 报告状态 */
         String status,
+        String riskReviewStatus,
         /* AI生成时间 */
         OffsetDateTime generatedAt,
         /* 人工调整时间 */
@@ -87,10 +88,16 @@ public record ReviewReportResponse(
                 entity.getTotalScore(),
                 entity.getFinalRecommendation(),
                 entity.getStatus(),
+                riskReviewStatus(entity),
                 entity.getGeneratedAt(),
                 entity.getAdjustedAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
+    }
+
+    private static String riskReviewStatus(ReviewReportEntity entity) {
+        Object status = entity.getRawModelOutput() == null ? null : entity.getRawModelOutput().get("riskReviewStatus");
+        return status == null ? null : status.toString();
     }
 }

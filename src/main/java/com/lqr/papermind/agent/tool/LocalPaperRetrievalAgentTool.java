@@ -62,13 +62,15 @@ public class LocalPaperRetrievalAgentTool implements AgentTool {
         long startNanos = System.nanoTime();
         String query = stringValue(input.get("query"));
         int topK = intValue(input.get("topK"), ragProperties.defaultTopK());
-        log.info("agent.tool.local_paper.start ownerUserId={} queryExcerpt={} topK={}", ownerUserId, LogSanitizer.safeExcerpt(query, 160), topK);
+        log.info("智能体工具本地论文检索开始 ownerUserId={} queryExcerpt={} topK={}", ownerUserId, LogSanitizer.safeExcerpt(query, 160), topK);
         if (query.isBlank()) {
-            log.warn("agent.tool.local_paper.skipped ownerUserId={} reason=EMPTY_QUERY", ownerUserId);
+            log.warn("智能体工具本地论文检索跳过 ownerUserId={} reason=EMPTY_QUERY", ownerUserId);
             return new AgentToolResult("本地检索跳过：query 为空。", "", List.of(), Map.of("localPaperChunks", List.of()));
         }
         List<RetrievedChunk> chunks = ragRetrievalService.retrieve(ownerUserId, query, topK);
+        // 构建引用列表
         List<AnswerCitation> citations = buildCitations(chunks);
+        // 构建元数据列表
         List<Map<String, Object>> chunkMetadata = chunks.stream()
                 .map(chunk -> {
                     Map<String, Object> item = new LinkedHashMap<>();
@@ -81,6 +83,7 @@ public class LocalPaperRetrievalAgentTool implements AgentTool {
                     return item;
                 })
                 .toList();
+        // 构建证据
         String evidence = chunks.stream()
                 .map(chunk -> "[本地论文] "
                         + firstNonBlank(stringMetadata(chunk.chunk().metadata(), MetadataKeys.TITLE), chunk.chunk().sourceId())
@@ -89,7 +92,7 @@ public class LocalPaperRetrievalAgentTool implements AgentTool {
                 .reduce((left, right) -> left + "\n\n" + right)
                 .orElse("未检索到本地论文片段。");
         Map<String, Object> metadata = Map.of("localPaperChunks", chunkMetadata);
-        log.info("agent.tool.local_paper.done ownerUserId={} queryExcerpt={} topK={} chunkCount={} citationCount={} metadataKeys={} costMs={}",
+        log.info("智能体工具本地论文检索完成 ownerUserId={} queryExcerpt={} topK={} chunkCount={} citationCount={} metadataKeys={} costMs={}",
                 ownerUserId, LogSanitizer.safeExcerpt(query, 160), topK, chunks.size(), citations.size(), metadata.keySet(), elapsedMs(startNanos));
         return new AgentToolResult("本地论文检索完成，找到 " + chunks.size() + " 个相关片段。", evidence, citations, metadata);
     }
@@ -107,7 +110,7 @@ public class LocalPaperRetrievalAgentTool implements AgentTool {
                     CitationFilter.Reason reason = citationFilter.reason(chunk.chunk().content());
                     if (reason != CitationFilter.Reason.DISPLAYABLE) {
                         stats.increment(reason);
-                        log.debug("citation.filter sourceId={} chunkId={} chunkIndex={} reason={} excerpt={}",
+                        log.debug("引用过滤 sourceId={} chunkId={} chunkIndex={} reason={} excerpt={}",
                                 chunk.chunk().sourceId(), chunk.chunk().chunkId(), chunk.chunk().chunkIndex(), reason, LogSanitizer.safeExcerpt(chunk.chunk().content(), 160));
                         return false;
                     }
@@ -121,12 +124,12 @@ public class LocalPaperRetrievalAgentTool implements AgentTool {
                             stringMetadata(chunk.chunk().metadata(), MetadataKeys.TITLE),
                             cut(chunk.chunk().content(), 160),
                             chunk.rankScore());
-                    log.debug("citation.build.item sourceId={} chunkIndex={} rankScore={} excerpt={}",
+                    log.debug("引用构建条目 sourceId={} chunkIndex={} rankScore={} excerpt={}",
                             citation.sourceId(), citation.chunkIndex(), citation.rankScore(), LogSanitizer.safeExcerpt(citation.excerpt(), 160));
                     return citation;
                 })
                 .toList();
-        log.info("citation.build.done rawCount={} finalCount={} emptyCount={} tooShortCount={} titleOnlyCount={} contentsEntryCount={}",
+        log.info("引用构建完成 rawCount={} finalCount={} emptyCount={} tooShortCount={} titleOnlyCount={} contentsEntryCount={}",
                 chunks.size(), citations.size(), stats.emptyCount(), stats.tooShortCount(), stats.titleOnlyCount(), stats.contentsEntryCount());
         return citations;
     }

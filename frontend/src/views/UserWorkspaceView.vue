@@ -241,13 +241,10 @@ onMounted(async () => {
       :messages-loading="conversationsState.messagesLoading.value"
       :document-total="documentsState.pagination.total"
       :current-user-avatar-url="currentUserAvatarUrl"
-      :upload-queue="chatUpload.queue.value"
       @submit="handleChatSubmit"
       @open-documents="documentLibraryVisible = true"
       @drop-files="handleDropFiles"
       @select-files="handleSelectFiles"
-      @remove-queue-item="chatUpload.removeItem"
-      @clear-queue="chatUpload.clearQueue"
     />
 
     <DocumentLibraryDrawer

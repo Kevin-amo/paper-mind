@@ -98,7 +98,7 @@ paper-mind/
 │   ├── main/
 │   │   ├── java/com/lqr/papermind/
 │   │   │   ├── agent/           # Agent 编排、工具调用和流式问答入口
-│   │   │   ├── ai/              # LLM、Embedding、Rerank、Prompt 构造
+│   │   │   ├── ai/              # LLM、Embedding、Prompt 构造
 │   │   │   ├── auth/            # 认证、用户、角色、JWT、验证码频控
 │   │   │   ├── common/          # 通用响应、异常、日志和类型处理
 │   │   │   ├── config/          # Spring Security、MyBatis 和应用配置
@@ -106,7 +106,7 @@ paper-mind/
 │   │   │   ├── document/        # 文档上传、解析、切分、入库、资源管理和结构化解析
 │   │   │   ├── literature/      # OpenAlex 外部文献检索、意图解析和缓存
 │   │   │   ├── mail/            # Resend 邮件发送配置和服务
-│   │   │   ├── rag/             # RAG 检索和回答
+│   │   │   ├── rag/             # RAG 检索、Rerank 和回答
 │   │   │   ├── review/          # 论文辅助评审任务、评分报告、评审标准、共识和留档
 │   │   │   ├── storage/         # 阿里云 OSS 对象存储
 │   │   │   └── vector/          # 向量写入
@@ -181,18 +181,29 @@ spring:
   ai:
     dashscope:
       api-key: ${DASHSCOPE_API_KEY:your-api-key}
+    model:
+      chat: ${SPRING_AI_MODEL_CHAT:dashscope}
+      embedding: ${SPRING_AI_MODEL_EMBEDDING:dashscope}
 ```
 
 也可以直接使用环境变量：
 
 ```powershell
 $env:DASHSCOPE_API_KEY="your-api-key"
+$env:SPRING_AI_MODEL_CHAT="dashscope"
+$env:SPRING_AI_MODEL_EMBEDDING="dashscope"
+$env:PGVECTOR_DIMENSIONS="1536"
+$env:PGVECTOR_INDEX_TYPE="none"
 ```
 
 Linux/macOS：
 
 ```bash
 export DASHSCOPE_API_KEY="your-api-key"
+export SPRING_AI_MODEL_CHAT="dashscope"
+export SPRING_AI_MODEL_EMBEDDING="dashscope"
+export PGVECTOR_DIMENSIONS="1536"
+export PGVECTOR_INDEX_TYPE="none"
 ```
 
 如需初始化管理员账号，可设置：
@@ -363,21 +374,25 @@ src/main/resources/application-local.yaml
 
 | 配置项 | 说明 | 默认值 |
 | --- | --- | --- |
+| `spring.ai.model.chat` | Chat Provider | `dashscope` |
 | `spring.ai.dashscope.chat.options.model` | 对话模型 | `qwen3.6-27b` |
 | `spring.ai.dashscope.chat.options.temperature` | 温度 | `0.2` |
 | `spring.ai.dashscope.chat.options.max-tokens` | 最大输出 token | `6144` |
 | `spring.ai.dashscope.chat.options.enable-thinking` | 启用思考模式 | `false` |
+| `spring.ai.model.embedding` | Embedding Provider | `dashscope` |
 | `spring.ai.dashscope.embedding.options.model` | Embedding 模型 | `text-embedding-v4` |
-| `spring.ai.dashscope.embedding.options.dimensions` | Embedding 维度 | `1536` |
+| `spring.ai.dashscope.embedding.options.dimensions` | Embedding 输出维度 | `1536` |
 
 ### PgVector 配置
 
 | 配置项 | 说明 | 默认值 |
 | --- | --- | --- |
-| `spring.ai.vectorstore.pgvector.dimensions` | 向量维度 | `1536` |
-| `spring.ai.vectorstore.pgvector.index-type` | 索引类型 | `hnsw` |
+| `spring.ai.vectorstore.pgvector.dimensions` | 向量维度，需与 `text-embedding-v4` 输出维度一致 | `1536` |
+| `spring.ai.vectorstore.pgvector.index-type` | 向量 ANN 索引类型 | `none` |
 | `spring.ai.vectorstore.pgvector.distance-type` | 距离类型 | `cosine_distance` |
 | `spring.ai.vectorstore.pgvector.table-name` | 表名 | `vector_store` |
+
+> 从 Ollama 4096 维向量切回 DashScope `text-embedding-v4` 时，需要先执行 `src/main/resources/sql/migrate-vector-store-to-dashscope-1536.sql` 清空旧向量并将 `vector_store.embedding` 改为 `vector(1536)`，再通过文档重建索引接口重新生成向量。
 
 ### RAG 配置 (`app.rag`)
 
@@ -632,12 +647,12 @@ OPEN → CONFIRMED / IGNORED / RESOLVED
 ### 预置评审指标
 
 | 指标 | 代码 | 权重 | 分类 |
-| --- | --- | --- | --- |
+| --- | --- |----| --- |
 | 政策导向 | `POLICY` | 20 | CONTENT |
 | 专业匹配 | `MATCH` | 20 | CONTENT |
 | 创新性 | `INNOVATION` | 20 | QUALITY |
-| 逻辑性 | `LOGIC` | 20 | QUALITY |
-| 语言质量 | `LANGUAGE` | 20 | QUALITY |
+| 逻辑性 | `LOGIC` | 15 | QUALITY |
+| 语言质量 | `LANGUAGE` | 15 | QUALITY |
 | 参考文献规范 | `REFERENCE` | 10 | FORMAT |
 
 ## 数据库初始化
@@ -654,9 +669,15 @@ src/main/resources/sql
 src/main/resources/sql/paper-mind.sql
 ```
 
-如果 SQL 已修改但数据库卷已经存在，需要清理卷后重新初始化：
+新创建的数据库卷会直接使用当前初始化脚本中的表名，例如 `public.document`、`public.document_chunk`、
+`public.document_asset` 和 `public.document_structured_parse`。如果只是一次性本地开发环境且不需要保留数据，
+可以清理卷后重新初始化：
 
 ```bash
 docker compose down -v
 docker compose up -d
 ```
+
+已有数据库不要通过清理数据卷来完成表名整理。请先备份数据库，再按当前 `paper-mind.sql`
+中的表结构对照处理旧表、索引和约束名称，避免误删文档或向量数据。`document_chunk.vector_store_id`
+会继续引用 `public.vector_store(id)`。

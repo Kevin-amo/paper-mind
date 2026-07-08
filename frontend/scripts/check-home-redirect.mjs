@@ -59,4 +59,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('Home redirect routes reviewer leaders to the leader workspace.');
+console.log('首页重定向将审阅负责人路由到负责人工作区。');

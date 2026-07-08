@@ -29,13 +29,16 @@ spring:
     password: ${RABBITMQ_PASSWORD:admin}
 
   ai:
+    model:
+      chat: ${SPRING_AI_MODEL_CHAT:dashscope}
+      embedding: ${SPRING_AI_MODEL_EMBEDDING:dashscope}
     dashscope:
       api-key: ${DASHSCOPE_API_KEY:}
       base-url: https://dashscope.aliyuncs.com
       chat:
         enabled: true
         options:
-          model: qwen3.6-27b
+          model: qwen3.6-35b-a3b
           temperature: 0.2
           max-tokens: 6144
           enable-thinking: false
@@ -49,7 +52,7 @@ spring:
       pgvector:
         initialize-schema: false
         dimensions: ${PGVECTOR_DIMENSIONS:1536}
-        index-type: ${PGVECTOR_INDEX_TYPE:hnsw}
+        index-type: ${PGVECTOR_INDEX_TYPE:none}
         distance-type: ${PGVECTOR_DISTANCE_TYPE:cosine_distance}
         max-document-batch-size: ${PGVECTOR_BATCH_SIZE:10000}
         schema-validation: false
@@ -123,9 +126,12 @@ app:
   document-ingestion:
     storage-dir: ${DOCUMENT_INGESTION_STORAGE_DIR:storage/document-ingestion}
     keep-upload-file: ${DOCUMENT_INGESTION_KEEP_UPLOAD_FILE:false}
+    # 上传文件最大重试次数
     max-retry-count: ${DOCUMENT_INGESTION_MAX_RETRY_COUNT:3}
     cleanup:
+    # 清理任务是否启用
       enabled: ${DOCUMENT_INGESTION_CLEANUP_ENABLED:true}
+      # 清理任务保留时间
       retention: ${DOCUMENT_INGESTION_CLEANUP_RETENTION:24h}
       cron: "${DOCUMENT_INGESTION_CLEANUP_CRON:0 0 * * * *}"
     listener:
@@ -148,9 +154,9 @@ app:
       window: ${LOGIN_ATTEMPT_WINDOW:10m}
       lock-duration: ${LOGIN_ATTEMPT_LOCK_DURATION:10m}
     bootstrap-admin:
-      enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
+      enabled: ${BOOTSTRAP_ADMIN_ENABLED:true}
       username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
-      password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:admin}
       display-name: ${BOOTSTRAP_ADMIN_DISPLAY_NAME:系统管理员}
 
 management:

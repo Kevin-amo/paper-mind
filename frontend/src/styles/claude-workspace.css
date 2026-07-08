@@ -193,6 +193,19 @@
   --app-dark-soft: var(--claude-dark-soft);
   --app-on-dark: var(--claude-on-dark);
   --app-on-dark-soft: var(--claude-on-dark-soft);
+  --el-mask-color: rgba(250, 249, 245, 0.76);
+  --el-mask-color-extra-light: rgba(250, 249, 245, 0.42);
+}
+
+.review-page .el-loading-mask,
+.leader-page .el-loading-mask {
+  background: rgba(250, 249, 245, 0.76);
+  backdrop-filter: blur(1px);
+}
+
+.review-page .el-loading-spinner .path,
+.leader-page .el-loading-spinner .path {
+  stroke: var(--app-primary);
 }
 
 .admin-layout h1,
@@ -280,6 +293,22 @@
   --el-button-hover-text-color: var(--app-text-on-primary);
   --el-button-active-bg-color: var(--app-primary-active);
   --el-button-active-border-color: var(--app-primary-active);
+  --el-button-disabled-bg-color: var(--app-primary);
+  --el-button-disabled-border-color: var(--app-primary);
+  --el-button-disabled-text-color: var(--app-text-on-primary);
+}
+
+.admin-layout .el-button--primary.is-disabled,
+.review-page .el-button--primary.is-disabled,
+.leader-page .el-button--primary.is-disabled,
+.auth-layout .el-button--primary.is-disabled,
+.user-app-shell .el-button--primary.is-disabled,
+.admin-layout .el-button--primary.is-disabled:hover,
+.review-page .el-button--primary.is-disabled:hover,
+.leader-page .el-button--primary.is-disabled:hover,
+.auth-layout .el-button--primary.is-disabled:hover,
+.user-app-shell .el-button--primary.is-disabled:hover {
+  opacity: 0.45;
 }
 
 .admin-layout .el-button--success,
@@ -291,6 +320,22 @@
   --el-button-border-color: var(--app-success);
   --el-button-hover-bg-color: var(--app-success-hover);
   --el-button-hover-border-color: var(--app-success-hover);
+  --el-button-disabled-bg-color: var(--app-success);
+  --el-button-disabled-border-color: var(--app-success);
+  --el-button-disabled-text-color: #fff;
+}
+
+.admin-layout .el-button--success.is-disabled,
+.review-page .el-button--success.is-disabled,
+.leader-page .el-button--success.is-disabled,
+.auth-layout .el-button--success.is-disabled,
+.user-app-shell .el-button--success.is-disabled,
+.admin-layout .el-button--success.is-disabled:hover,
+.review-page .el-button--success.is-disabled:hover,
+.leader-page .el-button--success.is-disabled:hover,
+.auth-layout .el-button--success.is-disabled:hover,
+.user-app-shell .el-button--success.is-disabled:hover {
+  opacity: 0.45;
 }
 
 .admin-layout .el-button.is-text,
@@ -667,18 +712,53 @@
 
 .el-dialog.claude-workspace-dialog .el-button,
 .el-drawer.claude-workspace-drawer .el-button {
+  --el-button-bg-color: var(--app-surface);
+  --el-button-border-color: var(--app-border);
+  --el-button-text-color: var(--app-text);
+  --el-button-hover-bg-color: var(--app-surface-soft);
+  --el-button-hover-border-color: var(--app-border-strong);
+  --el-button-hover-text-color: var(--app-text);
+  --el-button-active-bg-color: var(--app-surface-muted);
+  --el-button-active-border-color: var(--app-border-strong);
   border-radius: var(--app-radius-md);
-  transform: none;
+  transition:
+    background-color var(--app-transition-fast),
+    border-color var(--app-transition-fast),
+    color var(--app-transition-fast),
+    transform var(--app-transition-fast);
+}
+
+.el-dialog.claude-workspace-dialog .el-button:not(.is-disabled):hover,
+.el-drawer.claude-workspace-drawer .el-button:not(.is-disabled):hover {
+  transform: scale(1.02);
+}
+
+.el-dialog.claude-workspace-dialog .el-button:not(.is-disabled):active,
+.el-drawer.claude-workspace-drawer .el-button:not(.is-disabled):active {
+  transform: scale(0.98);
 }
 
 .el-dialog.claude-workspace-dialog .el-button--primary,
 .el-drawer.claude-workspace-drawer .el-button--primary {
   --el-button-bg-color: var(--app-primary);
   --el-button-border-color: var(--app-primary);
+  --el-button-text-color: var(--app-text-on-primary);
   --el-button-hover-bg-color: var(--app-primary-hover);
   --el-button-hover-border-color: var(--app-primary-hover);
+  --el-button-hover-text-color: var(--app-text-on-primary);
   --el-button-active-bg-color: var(--app-primary-active);
   --el-button-active-border-color: var(--app-primary-active);
+  --el-button-active-text-color: var(--app-text-on-primary);
+  --el-button-disabled-bg-color: var(--app-primary);
+  --el-button-disabled-border-color: var(--app-primary);
+  --el-button-disabled-text-color: var(--app-text-on-primary);
+}
+
+.el-dialog.claude-workspace-dialog .el-button--primary.is-disabled,
+.el-drawer.claude-workspace-drawer .el-button--primary.is-disabled,
+.el-dialog.claude-workspace-dialog .el-button--primary.is-disabled:hover,
+.el-drawer.claude-workspace-drawer .el-button--primary.is-disabled:hover {
+  opacity: 0.45;
 }
 
 .el-dialog.claude-workspace-dialog .el-input__wrapper,
@@ -880,15 +960,46 @@
 }
 
 .el-message-box .el-button {
+  --el-button-bg-color: var(--app-surface);
+  --el-button-border-color: var(--app-border);
+  --el-button-text-color: var(--app-text);
+  --el-button-hover-bg-color: var(--app-surface-soft);
+  --el-button-hover-border-color: var(--app-border-strong);
+  --el-button-hover-text-color: var(--app-text);
+  --el-button-active-bg-color: var(--app-surface-muted);
+  --el-button-active-border-color: var(--app-border-strong);
   border-radius: var(--app-radius-md);
-  transform: none;
+  transition:
+    background-color var(--app-transition-fast),
+    border-color var(--app-transition-fast),
+    color var(--app-transition-fast),
+    transform var(--app-transition-fast);
+}
+
+.el-message-box .el-button:not(.is-disabled):hover {
+  transform: scale(1.02);
+}
+
+.el-message-box .el-button:not(.is-disabled):active {
+  transform: scale(0.98);
 }
 
 .el-message-box .el-button--primary {
   --el-button-bg-color: var(--app-primary);
   --el-button-border-color: var(--app-primary);
+  --el-button-text-color: var(--app-text-on-primary);
   --el-button-hover-bg-color: var(--app-primary-hover);
   --el-button-hover-border-color: var(--app-primary-hover);
+  --el-button-hover-text-color: var(--app-text-on-primary);
   --el-button-active-bg-color: var(--app-primary-active);
   --el-button-active-border-color: var(--app-primary-active);
+  --el-button-active-text-color: var(--app-text-on-primary);
+  --el-button-disabled-bg-color: var(--app-primary);
+  --el-button-disabled-border-color: var(--app-primary);
+  --el-button-disabled-text-color: var(--app-text-on-primary);
+}
+
+.el-message-box .el-button--primary.is-disabled,
+.el-message-box .el-button--primary.is-disabled:hover {
+  opacity: 0.45;
 }

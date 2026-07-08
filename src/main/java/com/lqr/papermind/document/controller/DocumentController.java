@@ -87,16 +87,16 @@ public class DocumentController {
         long startNanos = System.nanoTime();
         UUID ownerUserId = principal.getId();
         String fileName = file.getOriginalFilename();
-        log.info("document.upload.start ownerUserId={} sourceId={} fileName={} fileType={} fileSize={}",
+        log.info("文档上传开始 ownerUserId={} sourceId={} fileName={} fileType={} fileSize={}",
                 ownerUserId, sourceId, fileName, file.getContentType(), file.getSize());
         try {
             DocumentIngestionJob job = documentUploadWorkflowService.createAndPublishJob(ownerUserId, file, sourceId, title, null, MetadataKeys.SOURCE_TYPE_USER);
-            log.info("document.upload.done ownerUserId={} jobId={} sourceId={} fileName={} fileType={} fileSize={} costMs={}",
+            log.info("文档上传完成 ownerUserId={} jobId={} sourceId={} fileName={} fileType={} fileSize={} costMs={}",
                     ownerUserId, job.getId(), job.getSourceId(), job.getFileName(), file.getContentType(), file.getSize(), elapsedMs(startNanos));
             return ResponseEntity.status(HttpStatus.ACCEPTED)
                     .body(DocumentUploadAcceptedResponse.from(job));
         } catch (IOException | RuntimeException ex) {
-            log.error("document.upload.failed ownerUserId={} sourceId={} fileName={} fileType={} fileSize={} costMs={}",
+            log.error("文档上传失败 ownerUserId={} sourceId={} fileName={} fileType={} fileSize={} costMs={}",
                     ownerUserId, sourceId, fileName, file.getContentType(), file.getSize(), elapsedMs(startNanos), ex);
             throw ex;
         }
@@ -127,23 +127,24 @@ public class DocumentController {
             BatchDocumentIngestionItemRequest item = requests.get(index);
             String fileName = originalFileName(file, item);
             long itemStartNanos = System.nanoTime();
-            log.info("document.upload.start ownerUserId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={}",
+            log.info("文档上传开始 ownerUserId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={}",
                     principal.getId(), item.sourceId(), fileName, file.getContentType(), file.getSize(), index, files.length);
             try {
+                // 创建并发布入库任务
                 DocumentIngestionJob job = documentUploadWorkflowService.createAndPublishJob(principal.getId(), file, item.sourceId(), item.title(), fileName, MetadataKeys.SOURCE_TYPE_USER);
-                log.info("document.upload.done ownerUserId={} jobId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={} costMs={}",
+                log.info("文档上传完成 ownerUserId={} jobId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={} costMs={}",
                         principal.getId(), job.getId(), job.getSourceId(), job.getFileName(), file.getContentType(), file.getSize(), index, files.length, elapsedMs(itemStartNanos));
                 results.add(BatchDocumentIngestionItemResponse.accepted(index, fileName, job));
                 acceptedCount++;
             } catch (Exception ex) {
-                log.error("document.upload.failed ownerUserId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={} costMs={}",
+                log.error("文档上传失败 ownerUserId={} sourceId={} fileName={} fileType={} fileSize={} batchIndex={} batchSize={} costMs={}",
                         principal.getId(), item.sourceId(), fileName, file.getContentType(), file.getSize(), index, files.length, elapsedMs(itemStartNanos), ex);
                 String errorMessage = ex.getMessage() == null || ex.getMessage().isBlank() ? "上传失败" : ex.getMessage();
                 results.add(BatchDocumentIngestionItemResponse.failure(index, fileName, errorMessage));
             }
         }
 
-        log.info("document.upload.batch.done ownerUserId={} totalCount={} acceptedCount={} failedCount={}",
+        log.info("批量文档上传完成 ownerUserId={} totalCount={} acceptedCount={} failedCount={}",
                 principal.getId(), files.length, acceptedCount, files.length - acceptedCount);
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(new BatchDocumentIngestionResponse(results, acceptedCount, files.length - acceptedCount));

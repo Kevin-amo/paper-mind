@@ -15,7 +15,7 @@ import java.util.UUID;
  * 文档主实体，对应论文文档基础信息、全文内容和索引状态。
  */
 @Data
-@TableName(value = "public.paper_document", autoResultMap = true)
+@TableName(value = "public.document", autoResultMap = true)
 public class DocumentEntity {
 
     @TableId(value = "id", type = IdType.INPUT)

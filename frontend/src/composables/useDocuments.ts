@@ -134,7 +134,7 @@ export function useDocuments() {
       lastBatchUploadResult.value = await uploadDocumentsBatch(payload);
       const { acceptedCount, failureCount } = lastBatchUploadResult.value;
       if (acceptedCount > 0 && failureCount === 0) {
-        ElMessage.success(`上传请求已提交，共 ${acceptedCount} 个文件进入处理队列`);
+        ElMessage.success(`上传请求已提交，共 ${acceptedCount} 个文件正在处理`);
       } else if (acceptedCount > 0) {
         ElMessage.warning(`上传请求已提交：已入队 ${acceptedCount} 个，失败 ${failureCount} 个`);
       } else {

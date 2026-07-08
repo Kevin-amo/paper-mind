@@ -58,8 +58,6 @@ public class ReviewReportEntity {
     private String modelVersion;
     /** 使用的提示词版本 */
     private String promptVersion;
-    /** 模型输出的置信度 */
-    private BigDecimal confidence;
 
     /** 人工调整的差异记录（JSON格式） */
     @TableField(value = "manual_delta", typeHandler = JsonbTypeHandler.class)

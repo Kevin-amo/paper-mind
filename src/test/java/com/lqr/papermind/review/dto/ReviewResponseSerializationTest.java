@@ -6,7 +6,6 @@ import com.lqr.papermind.review.entity.ReviewAuditLogEntity;
 import com.lqr.papermind.review.entity.ReviewReportEntity;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
@@ -26,13 +25,12 @@ class ReviewResponseSerializationTest {
         entity.setCriterionVersion(2);
         entity.setModelVersion("qwen3.6-27b");
         entity.setPromptVersion("1.0");
-        entity.setConfidence(BigDecimal.valueOf(0.913));
         entity.setManualDelta(Map.of("scoreChanged", true));
 
         Map<String, Object> json = toMap(ReviewReportResponse.from(entity));
 
         assertThat(json).containsEntry("modelVersion", "qwen3.6-27b");
-        assertThat(json).doesNotContainKeys("criterionVersion", "promptVersion", "confidence", "manualDelta");
+        assertThat(json).doesNotContainKeys("criterionVersion", "promptVersion", "manualDelta");
     }
 
     @Test

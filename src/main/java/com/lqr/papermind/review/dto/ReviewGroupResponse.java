@@ -9,8 +9,6 @@ import java.util.UUID;
 public record ReviewGroupResponse(
         /* 小组唯一标识 */
         UUID id,
-        /* 所属批次ID */
-        UUID batchId,
         /* 小组名称 */
         String name,
         /* 组长用户ID */

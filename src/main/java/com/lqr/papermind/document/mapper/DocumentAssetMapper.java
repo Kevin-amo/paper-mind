@@ -13,8 +13,8 @@ import java.util.UUID;
 public interface DocumentAssetMapper extends BaseMapper<DocumentAssetEntity> {
 
     @Delete("""
-            delete from public.paper_document_asset a
-            using public.paper_document d
+            delete from public.document_asset a
+            using public.document d
             where a.owner_user_id = #{ownerUserId}
               and d.owner_user_id = a.owner_user_id
               and d.source_id = a.source_id

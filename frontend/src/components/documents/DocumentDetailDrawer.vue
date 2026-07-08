@@ -61,27 +61,6 @@ function formatFileSize(size: number | null) {
   return `${(size / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function formatList(value: unknown) {
-  if (!value) return '-';
-  if (Array.isArray(value)) {
-    return value.map((item) => (typeof item === 'string' ? item : JSON.stringify(item))).join('、') || '-';
-  }
-  if (typeof value === 'string') return value;
-  return JSON.stringify(value);
-}
-
-function formatValue(value: unknown) {
-  if (value === null || value === undefined || value === '') {
-    return '-';
-  }
-
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-
-  return JSON.stringify(value, null, 2);
-}
-
 function chunkAssetIds(chunk: DocumentChunk) {
   const assetIds = chunk.metadata?.assetIds;
   return Array.isArray(assetIds) ? assetIds.filter((value): value is string => typeof value === 'string') : [];
@@ -121,36 +100,6 @@ function handleChunkSizeChange(size: number) {
             <span>{{ props.detail.sourceId }}</span>
           </div>
           <StatusTag :status="props.detail.status" />
-        </section>
-
-        <section class="detail-section">
-          <h3>基础信息</h3>
-          <dl class="info-grid">
-            <div>
-              <dt>作者</dt>
-              <dd>{{ formatList(props.detail.authors) }}</dd>
-            </div>
-            <div>
-              <dt>DOI</dt>
-              <dd>{{ props.detail.doi || '-' }}</dd>
-            </div>
-            <div>
-              <dt>期刊</dt>
-              <dd>{{ props.detail.journal || '-' }}</dd>
-            </div>
-            <div>
-              <dt>年份</dt>
-              <dd>{{ props.detail.publishYear || '-' }}</dd>
-            </div>
-            <div>
-              <dt>关键词</dt>
-              <dd>{{ formatList(props.detail.keywords) }}</dd>
-            </div>
-            <div>
-              <dt>来源</dt>
-              <dd>{{ props.detail.origin || '-' }}</dd>
-            </div>
-          </dl>
         </section>
 
         <section class="detail-section">
@@ -237,11 +186,6 @@ function handleChunkSizeChange(size: number) {
                     </div>
                   </div>
                 </div>
-
-                <details v-if="chunk.metadata && Object.keys(chunk.metadata).length" class="chunk-extra">
-                  <summary>片段元数据</summary>
-                  <pre>{{ formatValue(chunk.metadata) }}</pre>
-                </details>
               </article>
             </div>
             <div v-if="props.chunkTotal > 0" class="chunk-pagination">
@@ -258,11 +202,6 @@ function handleChunkSizeChange(size: number) {
               />
             </div>
           </el-skeleton>
-        </section>
-
-        <section class="detail-section reading-section">
-          <h3>元数据</h3>
-          <pre>{{ formatValue({ ownerUserId: props.detail.ownerUserId, origin: props.detail.origin, metadata: props.detail.metadata, deletedAt: props.detail.deletedAt }) }}</pre>
         </section>
       </template>
 
@@ -382,9 +321,7 @@ dd {
 }
 
 .reading-section p,
-.reading-section pre,
-.content-preview,
-.chunk-extra pre {
+.content-preview {
   max-height: 320px;
   overflow: auto;
   margin: 0;
@@ -437,12 +374,10 @@ dd {
   white-space: pre-wrap;
 }
 
-.chunk-assets,
-.chunk-extra {
+.chunk-assets {
   margin-top: 12px;
 }
 
-.chunk-extra summary,
 .chunk-assets small {
   display: inline-block;
   margin-bottom: 8px;

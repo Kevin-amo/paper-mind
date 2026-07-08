@@ -88,6 +88,35 @@ class ReviewConsensusServiceImplTest {
         assertThat(response.submittedReports().getFirst().reviewerDisplayName()).isEqualTo("评审员A");
     }
     @Test
+    void recalculateShouldSetInDiscussionWhenOverallDisagreement() {
+        // 用户报告的场景：0 分和 88 分，分差 88 >> 阈值 15
+        UUID taskId = UUID.randomUUID();
+        UUID leadUserId = UUID.randomUUID();
+        UUID reviewerId = UUID.randomUUID();
+        ReviewAssignmentEntity lead = assignment(taskId, leadUserId);
+        when(reportMapper.selectSubmittedByTaskId(taskId)).thenReturn(List.of(
+                report(taskId, reviewerId, 0, "建议拒收"),
+                report(taskId, UUID.randomUUID(), 88, "建议通过")
+        ));
+        when(consensusMapper.selectByTaskId(taskId)).thenReturn(null);
+        when(assignmentMapper.selectLeadByTaskId(taskId)).thenReturn(lead);
+        when(userMapper.selectById(reviewerId)).thenReturn(user(reviewerId, "reviewer-a", "评审员A"));
+        markAllSubmitted(taskId, 2L);
+
+        ReviewConsensusResponse response = service.recalculate(taskId);
+
+        ArgumentCaptor<ReviewConsensusEntity> captor = ArgumentCaptor.forClass(ReviewConsensusEntity.class);
+        verify(consensusMapper).insert(captor.capture());
+        ReviewConsensusEntity saved = captor.getValue();
+        // 存在总分分歧时，状态应为 IN_DISCUSSION 而非 DRAFT
+        assertThat(saved.getStatus()).isEqualTo(ReviewConsensusStatuses.IN_DISCUSSION);
+        // finalScore 应为 null，而非平均值 44
+        assertThat(saved.getFinalScore()).isNull();
+        assertThat(response.status()).isEqualTo(ReviewConsensusStatuses.IN_DISCUSSION);
+        assertThat(response.finalScore()).isNull();
+    }
+
+    @Test
     void recalculateShouldPreferTaskLeaderSnapshotOverLegacyLeadAssignment() {
         UUID taskId = UUID.randomUUID();
         UUID operatorUserId = UUID.randomUUID();

@@ -87,4 +87,4 @@ if (missing.length) {
   process.exit(1);
 }
 
-console.log('Admin sidebar static checks passed.');
+console.log('管理后台侧边栏静态检查通过。');

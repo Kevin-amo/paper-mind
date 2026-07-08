@@ -34,7 +34,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            insert into public.paper_document (
+            insert into public.document (
                 owner_user_id, source_id, title, origin, file_name, file_type, file_size,
                 authors, abstract, doi, journal, publish_year, keywords,
                 content_text, metadata, status, chunk_count, error_message
@@ -95,7 +95,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set title = coalesce(#{title,jdbcType=VARCHAR}, title),
                 authors = coalesce(cast(#{authorsJson,jdbcType=VARCHAR} as jsonb), authors),
                 abstract = coalesce(#{abstractText,jdbcType=LONGVARCHAR}, abstract),
@@ -127,7 +127,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set status = 'PENDING', deleted_at = null, updated_at = now()
             where owner_user_id = #{ownerUserId}
               and source_id = #{sourceId}
@@ -144,7 +144,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set status = 'INDEXED', chunk_count = #{chunkCount}, error_message = null, updated_at = now()
             where owner_user_id = #{ownerUserId}
               and source_id = #{sourceId}
@@ -165,7 +165,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set status = #{status}, updated_at = now()
             where owner_user_id = #{ownerUserId}
               and source_id = #{sourceId}
@@ -186,7 +186,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set status = 'FAILED', error_message = #{errorMessage,jdbcType=LONGVARCHAR}, updated_at = now()
             where owner_user_id = #{ownerUserId}
               and source_id = #{sourceId}
@@ -203,7 +203,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set status = 'DELETED', deleted_at = now(), updated_at = now()
             where owner_user_id = #{ownerUserId}
               and source_id = #{sourceId}
@@ -218,7 +218,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set status = 'DELETED', deleted_at = now(), updated_at = now()
             where owner_user_id = #{ownerUserId}
               and source_id = #{sourceId}
@@ -233,7 +233,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set status = 'DELETED', deleted_at = now(), updated_at = now()
             where owner_user_id = #{ownerUserId}
               and deleted_at is null
@@ -248,7 +248,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      * @return 影响行数
      */
     @Update("""
-            update public.paper_document
+            update public.document
             set status = 'DELETED', deleted_at = now(), updated_at = now()
             where owner_user_id = #{ownerUserId}
               and deleted_at is null
@@ -266,7 +266,7 @@ public interface DocumentMapper extends BaseMapper<DocumentEntity> {
      */
     @Select("""
             select count(*)
-            from public.paper_document
+            from public.document
             where owner_user_id = #{ownerUserId}
               and deleted_at is null
               and status <> 'DELETED'

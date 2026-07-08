@@ -12,6 +12,22 @@ export interface ReviewSubmission {
   reviewStatus: ReviewTaskStatus | null;
   submittedAt: string;
   updatedAt: string;
+  reviewReport: ReviewSubmissionReport | null;
+}
+
+export interface ReviewSubmissionReport {
+  taskId: string;
+  finalScore: number | null;
+  finalRecommendation: string | null;
+  confirmedAt: string | null;
+  criteriaScores: ReviewSubmissionCriterionScore[];
+}
+
+export interface ReviewSubmissionCriterionScore {
+  code: string;
+  name: string;
+  score: number | null;
+  maxScore: number | null;
 }
 
 export interface ListReviewSubmissionsParams {

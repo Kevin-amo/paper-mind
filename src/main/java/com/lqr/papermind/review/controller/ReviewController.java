@@ -48,7 +48,7 @@ import java.util.UUID;
 
 /**
  * 评审任务控制器
- * <p>提供评审任务的上传、查询、共识、报告、风险和评审标准等API接口</p>
+ * 提供评审任务的上传、查询、共识、报告、风险和评审标准等API接口
  */
 @RestController
 @RequestMapping("/reviews")

@@ -32,6 +32,7 @@ export const uploadHttp = axios.create({
 });
 
 [http, literatureHttp, longRunningHttp, uploadHttp].forEach((client) => {
+  // 后续请求自动带token
   client.interceptors.request.use((config) => {
     const token = tokenProvider?.();
     if (token) {

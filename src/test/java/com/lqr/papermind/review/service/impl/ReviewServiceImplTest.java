@@ -11,6 +11,7 @@ import com.lqr.papermind.document.structured.entity.PaperStructuredParseEntity;
 import com.lqr.papermind.document.structured.service.PaperStructuredParseService;
 import com.lqr.papermind.review.assessment.ReviewOutputParser;
 import com.lqr.papermind.review.audit.ReviewAuditService;
+import com.lqr.papermind.review.dto.ReviewAssignmentResponse;
 import com.lqr.papermind.review.dto.ReviewCriterionResponse;
 import com.lqr.papermind.review.dto.ReviewReportResponse;
 import com.lqr.papermind.review.dto.ReviewReportUpdateRequest;
@@ -29,6 +30,7 @@ import com.lqr.papermind.review.model.ReviewTaskStatuses;
 import com.lqr.papermind.auth.mapper.SysUserMapper;
 import com.lqr.papermind.review.risk.ReferenceFormatChecker;
 import com.lqr.papermind.review.risk.ReviewRiskService;
+import com.lqr.papermind.review.service.ReviewAssignmentService;
 import com.lqr.papermind.review.service.ReviewConsensusService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -64,7 +66,7 @@ class ReviewServiceImplTest {
                 "suggestion", "补充讨论"
         ));
         List<ReferenceFormatChecker.ReferenceRisk> referenceRisks = List.of(
-                new ReferenceFormatChecker.ReferenceRisk("REFERENCE_FORMAT", "MEDIUM", "[1] 缺少年份", "补全年份", 0.82)
+                new ReferenceFormatChecker.ReferenceRisk("REFERENCE_FORMAT", "MEDIUM", "[1] 缺少年份", "补全年份")
         );
         ReviewServiceImpl service = serviceWithRiskAccess(null, null, null);
 
@@ -81,8 +83,25 @@ class ReviewServiceImplTest {
             assertThat(referenceRisk.get("evidence")).isEqualTo("[1] 缺少年份");
             assertThat(referenceRisk.get("suggestion")).isEqualTo("补全年份");
             assertThat(referenceRisk.get("detector")).isEqualTo("REFERENCE_RULE");
-            assertThat(referenceRisk.get("confidence")).isEqualTo(0.82);
         });
+    }
+
+    @Test
+    void mergeRisksShouldDeduplicateNormalizedRiskItems() throws Exception {
+        List<Map<String, Object>> modelRisks = List.of(
+                Map.of("type", "reference_format", "level", " medium ", "evidence", "[1]  missing   year", "suggestion", "fix year"),
+                Map.of("riskType", "REFERENCE_FORMAT", "riskLevel", "MEDIUM", "evidence", " [1] missing year ", "suggestion", " fix year ")
+        );
+        List<ReferenceFormatChecker.ReferenceRisk> referenceRisks = List.of(
+                new ReferenceFormatChecker.ReferenceRisk("REFERENCE_FORMAT", "MEDIUM", "[1] missing year", "fix year")
+        );
+        ReviewServiceImpl service = serviceWithRiskAccess(null, null, null);
+
+        Method method = ReviewServiceImpl.class.getDeclaredMethod("mergeRisks", Object.class, List.class);
+        method.setAccessible(true);
+        Object merged = method.invoke(service, modelRisks, referenceRisks);
+
+        assertThat((List<?>) merged).hasSize(1);
     }
 
     @Test
@@ -669,18 +688,23 @@ class ReviewServiceImplTest {
                 null,
                 85,
                 "PASS",
-                "confirmed"
+                "confirmed",
+                "NO_RISK_CONFIRMED"
         );
 
-        service.updateReport(currentUserId, false, reportId, request);
+        ReviewReportResponse response = service.updateReport(currentUserId, false, reportId, request);
 
         ArgumentCaptor<ReviewReportEntity> reportCaptor = ArgumentCaptor.forClass(ReviewReportEntity.class);
         verify(reportMapper).updateById(reportCaptor.capture());
+        assertThat(response.riskReviewStatus()).isEqualTo("NO_RISK_CONFIRMED");
+        assertThat(reportCaptor.getValue().getRawModelOutput())
+                .containsEntry("riskReviewStatus", "NO_RISK_CONFIRMED");
         assertThat(reportCaptor.getValue().getManualDelta())
                 .containsEntry("scoreChanged", true)
                 .containsEntry("commentEdited", true)
                 .containsEntry("riskOverridden", false)
-                .containsEntry("finalRecommendationChanged", true);
+                .containsEntry("finalRecommendationChanged", true)
+                .containsEntry("riskReviewStatusChanged", true);
     }
 
     @Test
@@ -699,7 +723,7 @@ class ReviewServiceImplTest {
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, otherReviewerId));
 
         assertThatThrownBy(() -> service.updateReport(currentUserId, false, reportId,
-                new ReviewReportUpdateRequest(null, null, null, null, null, null, null)))
+                new ReviewReportUpdateRequest(null, null, null, null, null, null, null, null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN));
 
@@ -722,7 +746,7 @@ class ReviewServiceImplTest {
         when(taskMapper.selectByIdIncludingDeleted(taskId)).thenReturn(task(taskId, currentUserId));
 
         assertThatThrownBy(() -> service.updateReport(currentUserId, false, reportId,
-                new ReviewReportUpdateRequest(null, null, null, null, null, null, null)))
+                new ReviewReportUpdateRequest(null, null, null, null, null, null, null, null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN));
 
@@ -749,7 +773,7 @@ class ReviewServiceImplTest {
         when(assignmentMapper.selectById(assignmentId)).thenReturn(assignment);
 
         assertThatThrownBy(() -> service.updateReport(currentUserId, false, reportId,
-                new ReviewReportUpdateRequest(null, null, null, null, null, null, null)))
+                new ReviewReportUpdateRequest(null, null, null, null, null, null, null, null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
 
@@ -782,6 +806,7 @@ class ReviewServiceImplTest {
                 null,
                 null,
                 updatedRisks,
+                null,
                 null,
                 null,
                 null
@@ -918,6 +943,61 @@ class ReviewServiceImplTest {
         verify(riskService, never()).listByReportId(reportId);
     }
 
+    @Test
+    void submitAssignmentShouldRejectMissingRiskReviewEvidence() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
+        ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
+        ReviewAssignmentService assignmentService = mock(ReviewAssignmentService.class);
+        ReviewServiceImpl service = serviceWithAssignmentSubmit(reportMapper, assignmentMapper, assignmentService);
+        ReviewAssignmentEntity assignment = assignment(assignmentId, taskId, currentUserId, ReviewAssignmentStatuses.REVIEWING);
+        when(assignmentMapper.selectById(assignmentId)).thenReturn(assignment);
+
+        for (Object risks : new Object[]{null, Map.of("type", "REFERENCE_FORMAT"), List.of()}) {
+            ReviewReportEntity report = report(UUID.randomUUID(), taskId);
+            report.setAssignmentId(assignmentId);
+            report.setRisks(risks);
+            when(reportMapper.selectByAssignmentId(assignmentId)).thenReturn(report);
+
+            assertThatThrownBy(() -> service.submitAssignment(currentUserId, assignmentId))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .satisfies(ex -> {
+                        ResponseStatusException statusException = (ResponseStatusException) ex;
+                        assertThat(statusException.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+                        assertThat(statusException.getReason()).isEqualTo("请先完成风险检查，或确认本稿暂无风险项后再提交");
+                    });
+        }
+
+        verify(assignmentService, never()).submitAssignment(any(), any());
+    }
+
+    @Test
+    void submitAssignmentShouldAllowConfirmedNoRiskReport() {
+        UUID currentUserId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID assignmentId = UUID.randomUUID();
+        ReviewReportMapper reportMapper = mock(ReviewReportMapper.class);
+        ReviewAssignmentMapper assignmentMapper = mock(ReviewAssignmentMapper.class);
+        ReviewAssignmentService assignmentService = mock(ReviewAssignmentService.class);
+        ReviewServiceImpl service = serviceWithAssignmentSubmit(reportMapper, assignmentMapper, assignmentService);
+        ReviewAssignmentEntity assignment = assignment(assignmentId, taskId, currentUserId, ReviewAssignmentStatuses.REVIEWING);
+        ReviewReportEntity report = report(UUID.randomUUID(), taskId);
+        report.setAssignmentId(assignmentId);
+        report.setRisks(List.of());
+        report.setRawModelOutput(Map.of("riskReviewStatus", "NO_RISK_CONFIRMED"));
+        ReviewAssignmentResponse expected = ReviewAssignmentResponse.from(assignment);
+        when(assignmentMapper.selectById(assignmentId)).thenReturn(assignment);
+        when(reportMapper.selectByAssignmentId(assignmentId)).thenReturn(report);
+        when(assignmentService.submitAssignment(currentUserId, assignmentId)).thenReturn(expected);
+
+        ReviewAssignmentResponse response = service.submitAssignment(currentUserId, assignmentId);
+
+        assertThat(response).isEqualTo(expected);
+        verify(assignmentService).submitAssignment(currentUserId, assignmentId);
+    }
+
     private PromptConstructionService.Prompt buildReviewPrompt(ReviewServiceImpl service,
                                                                   DocumentPersistenceService.DocumentDetail document,
                                                                   List<ReviewCriterionResponse> criteria) throws Exception {
@@ -951,6 +1031,29 @@ class ReviewServiceImplTest {
                 new ReferenceFormatChecker(),
                 mock(ReviewAuditService.class),
                 riskService,
+                null,
+                new ObjectMapper()
+        );
+    }
+
+    private ReviewServiceImpl serviceWithAssignmentSubmit(ReviewReportMapper reportMapper,
+                                                          ReviewAssignmentMapper assignmentMapper,
+                                                          ReviewAssignmentService assignmentService) {
+        return new ReviewServiceImpl(
+                mock(ReviewTaskMapper.class),
+                reportMapper,
+                assignmentMapper,
+                null,
+                assignmentService,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new ReferenceFormatChecker(),
+                mock(ReviewAuditService.class),
+                mock(ReviewRiskService.class),
                 null,
                 new ObjectMapper()
         );
@@ -1034,7 +1137,6 @@ class ReviewServiceImplTest {
         entity.setStatus("COMPLETED");
         entity.setMergedResult(Map.of("title", "Paper A"));
         entity.setMissingFields(List.of());
-        entity.setLowConfidenceFields(List.of());
         entity.setParsedAt(OffsetDateTime.now());
         entity.setUpdatedAt(OffsetDateTime.now());
         return entity;

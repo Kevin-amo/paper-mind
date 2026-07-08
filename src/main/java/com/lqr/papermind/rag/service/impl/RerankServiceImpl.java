@@ -1,10 +1,10 @@
-package com.lqr.papermind.ai.service.impl;
+package com.lqr.papermind.rag.service.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.lqr.papermind.ai.service.RerankService;
 import com.lqr.papermind.common.model.RetrievedChunk;
 import com.lqr.papermind.rag.config.RagProperties;
+import com.lqr.papermind.rag.service.RerankService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,11 +65,11 @@ public class RerankServiceImpl implements RerankService {
         String unavailableReason = unavailableReason(question, candidates, topN);
         // 服务不可用时，返回原候选顺序
         if (unavailableReason != null) {
-            log.warn("rerank.fallback enabled={} model={} candidateCount={} topN={} fallbackReason={} costMs={}",
+            log.warn("重排序回退 enabled={} model={} candidateCount={} topN={} fallbackReason={} costMs={}",
                     rerank.enabled(), rerank.model(), candidates == null ? 0 : candidates.size(), topN, unavailableReason, elapsedMs(startNanos));
             return candidates == null ? List.of() : candidates;
         }
-        log.info("rerank.start enabled={} model={} candidateCount={} topN={}",
+        log.info("重排序开始 enabled={} model={} candidateCount={} topN={}",
                 rerank.enabled(), rerank.model(), candidates.size(), topN);
         try {
             // 调用 DashScope rerank API
@@ -84,11 +84,11 @@ public class RerankServiceImpl implements RerankService {
                     .body(DashScopeRerankResponse.class);
             int resultCount = resultCount(response);
             List<RetrievedChunk> reranked = applyResponse(candidates, response, topN);
-            log.info("rerank.done enabled={} model={} candidateCount={} topN={} resultCount={} rerankedCount={} costMs={}",
+            log.info("重排序完成 enabled={} model={} candidateCount={} topN={} resultCount={} rerankedCount={} costMs={}",
                     rerank.enabled(), rerank.model(), candidates.size(), topN, resultCount, reranked.size(), elapsedMs(startNanos));
             return reranked;
         } catch (RuntimeException ex) {
-            log.warn("rerank.fallback enabled={} model={} candidateCount={} topN={} fallbackReason=API_EXCEPTION costMs={}",
+            log.warn("重排序回退 enabled={} model={} candidateCount={} topN={} fallbackReason=API_EXCEPTION costMs={}",
                     rerank.enabled(), rerank.model(), candidates.size(), topN, elapsedMs(startNanos), ex);
             return candidates;
         }
@@ -191,7 +191,7 @@ public class RerankServiceImpl implements RerankService {
                                                DashScopeRerankResponse response,
                                                int topN) {
         if (response == null || response.output() == null || response.output().results() == null || response.output().results().isEmpty()) {
-            log.warn("rerank.fallback candidateCount={} topN={} fallbackReason=EMPTY_RESPONSE", candidates.size(), topN);
+            log.warn("重排序回退 candidateCount={} topN={} fallbackReason=EMPTY_RESPONSE", candidates.size(), topN);
             return candidates;
         }
         // 过滤出有效结果（索引在候选列表范围内）
@@ -202,7 +202,7 @@ public class RerankServiceImpl implements RerankService {
                 .limit(Math.min(topN, candidates.size()))
                 .toList();
         if (validResults.isEmpty()) {
-            log.warn("rerank.fallback candidateCount={} topN={} resultCount={} fallbackReason=NO_VALID_RESULT",
+            log.warn("重排序回退 candidateCount={} topN={} resultCount={} fallbackReason=NO_VALID_RESULT",
                     candidates.size(), topN, response.output().results().size());
             return candidates;
         }

@@ -84,7 +84,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
-        log.error("Unhandled API exception at {}", request.getRequestURI(), ex);
+        log.error("未处理的API异常 {}", request.getRequestURI(), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", "服务内部错误：" + ex.getMessage(), request);
     }
 

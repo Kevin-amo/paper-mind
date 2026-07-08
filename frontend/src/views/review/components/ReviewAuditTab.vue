@@ -85,7 +85,11 @@ watch(() => props.taskId, loadAuditLogs);
         <strong>{{ selectedReport.modelVersion || '-' }}</strong>
       </article>
     </div>
-    <el-empty v-if="!selectedReport" description="生成辅助评审后展示留档信息" />
+    <section v-if="!selectedReport" class="review-empty-state">
+      <div class="review-doc-icon" aria-hidden="true"></div>
+      <strong>暂无留档信息</strong>
+      <p>生成辅助评审后，这里会展示模型版本和操作审计记录。</p>
+    </section>
 
     <div class="audit-timeline-section">
       <h4>操作审计日志</h4>
@@ -184,6 +188,63 @@ watch(() => props.taskId, loadAuditLogs);
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.review-empty-state {
+  display: grid;
+  justify-items: center;
+  border: 1px dashed var(--app-border);
+  border-radius: var(--app-radius-lg);
+  background: linear-gradient(180deg, rgba(245, 240, 232, 0.58), rgba(250, 249, 245, 0));
+  padding: 30px 18px;
+  text-align: center;
+}
+
+.review-doc-icon {
+  position: relative;
+  width: 32px;
+  height: 42px;
+  margin-bottom: 12px;
+  border: 1.5px solid var(--app-border);
+  border-radius: 7px;
+  background: var(--app-surface);
+}
+
+.review-doc-icon::before {
+  position: absolute;
+  top: -1.5px;
+  right: -1.5px;
+  width: 13px;
+  height: 13px;
+  border-bottom: 1.5px solid var(--app-border);
+  border-left: 1.5px solid var(--app-border);
+  border-radius: 0 7px 0 4px;
+  background: var(--app-surface-strong);
+  content: "";
+}
+
+.review-doc-icon::after {
+  position: absolute;
+  top: 20px;
+  left: 9px;
+  right: 9px;
+  height: 1.5px;
+  background: var(--app-border);
+  box-shadow: 0 7px 0 var(--app-border);
+  content: "";
+}
+
+.review-empty-state strong {
+  color: var(--app-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.review-empty-state p {
+  margin: 6px 0 0;
+  color: var(--app-text-muted);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 .timeline-item {

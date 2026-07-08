@@ -171,7 +171,6 @@ class DocumentControllerTest {
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(response.mergedResult()).isEqualTo(Map.of("title", "Paper A", "abstract", "摘要内容"));
         assertThat(response.missingFields()).containsExactly("discussion");
-        assertThat(response.lowConfidenceFields()).containsExactly("references");
         assertThat(response.rawModelOutput()).isEqualTo("{\"abstract\":\"摘要内容\"}");
         verify(paperStructuredParseService).find(ownerUserId, "source-a");
     }
@@ -189,7 +188,6 @@ class DocumentControllerTest {
         assertThat(response.sourceId()).isEqualTo("source-a");
         assertThat(response.status()).isEqualTo("COMPLETED");
         assertThat(response.missingFields()).containsExactly("discussion");
-        assertThat(response.lowConfidenceFields()).containsExactly("references");
         assertThat(response.errorMessage()).isNull();
     }
 
@@ -253,9 +251,7 @@ class DocumentControllerTest {
         entity.setRuleResult(Map.of("title", "Paper A"));
         entity.setModelResult(Map.of("abstract", "摘要内容"));
         entity.setMergedResult(Map.of("title", "Paper A", "abstract", "摘要内容"));
-        entity.setFieldConfidence(Map.of("title", Map.of("source", "RULE", "confidence", 0.9)));
         entity.setMissingFields(List.of("discussion"));
-        entity.setLowConfidenceFields(List.of("references"));
         entity.setRawModelOutput("{\"abstract\":\"摘要内容\"}");
         entity.setParsedAt(OffsetDateTime.now());
         entity.setUpdatedAt(OffsetDateTime.now());

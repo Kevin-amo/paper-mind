@@ -7,8 +7,6 @@ import type {
   PageResponse,
   ReviewAuditLog,
   ReviewAuditOperator,
-  ReviewBatch,
-  ReviewBatchPayload,
   ReviewGroup,
   ReviewGroupMember,
   ReviewGroupMemberUpdatePayload,
@@ -16,30 +14,8 @@ import type {
   ReviewerLoad,
 } from '../types';
 
-export async function listReviewBatches(params: { page?: number; size?: number } = {}) {
-  const { data } = await http.get<PageResponse<ReviewBatch>>('/admin/reviews/batches', {
-    params: compactParams({
-      page: params.page ?? 0,
-      size: params.size ?? 100,
-    }),
-  });
-  return data;
-}
-
-export async function createReviewBatch(payload: ReviewBatchPayload) {
-  const { data } = await http.post<ReviewBatch>('/admin/reviews/batches', payload);
-  return data;
-}
-
-export async function updateReviewBatch(batchId: string, payload: ReviewBatchPayload) {
-  const { data } = await http.patch<ReviewBatch>(`/admin/reviews/batches/${batchId}`, payload);
-  return data;
-}
-
-export async function listReviewGroups(batchId?: string) {
-  const { data } = await http.get<ReviewGroup[]>('/admin/reviews/groups', {
-    params: compactParams({ batchId }),
-  });
+export async function listReviewGroups() {
+  const { data } = await http.get<ReviewGroup[]>('/admin/reviews/groups');
   return data;
 }
 

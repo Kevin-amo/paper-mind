@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 基于 Qwen/DashScope 的结构化字段补全器。
+ * 基于大模型的结构化字段补全器。
  */
 @Component
 @RequiredArgsConstructor
@@ -31,6 +31,12 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
     private final LlmService llmService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 补全结构化字段。
+     * @param document   文档详情
+     * @param ruleResult 规则解析结果
+     * @return 补全结果
+     */
     @Override
     public ModelCompletionResult complete(DocumentPersistenceService.DocumentDetail document, StructuredParseResult ruleResult) {
         List<String> targetFields = targetFields(ruleResult);
@@ -47,7 +53,7 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
             PaperStructuredContent content = PaperStructuredContentSupport.fromMap(parsed);
             Map<String, StructuredFieldEvidence> evidence = evidence(content, targetFields);
             return new ModelCompletionResult(
-                    new StructuredParseResult(content, evidence, PaperStructuredContentSupport.emptyFields(content), lowConfidenceFields(evidence)),
+                    new StructuredParseResult(content, evidence, PaperStructuredContentSupport.emptyFields(content)),
                     rawOutput,
                     null
             );
@@ -58,12 +64,26 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         }
     }
 
+    /**
+     * 获取需要补全的目标字段列表。
+     *
+     * @param ruleResult 规则解析结果
+     * @return 需要补全的字段列表
+     */
     private List<String> targetFields(StructuredParseResult ruleResult) {
         return PaperStructuredContentSupport.ALL_FIELDS.stream()
-                .filter(field -> ruleResult.missingFields().contains(field) || ruleResult.lowConfidenceFields().contains(field))
+                .filter(field -> ruleResult.missingFields().contains(field))
                 .toList();
     }
 
+    /**
+     * 构建用于大模型补全的提示词。
+     *
+     * @param document     文档详情
+     * @param ruleResult   规则解析结果
+     * @param targetFields 需要补全的目标字段
+     * @return 提示词对象
+     */
     private PromptConstructionService.Prompt buildPrompt(DocumentPersistenceService.DocumentDetail document,
                                                          StructuredParseResult ruleResult,
                                                          List<String> targetFields) {
@@ -82,6 +102,14 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         return new PromptConstructionService.Prompt(systemMessage, userMessage);
     }
 
+    /**
+     * 解析模型输出的JSON，并在解析失败时尝试修复。
+     *
+     * @param firstOutput     模型第一次输出
+     * @param originalPrompt  原始提示词
+     * @param targetFields    需要补全的目标字段
+     * @return 解析后的模型输出
+     */
     private ParsedModelOutput parseJsonWithRepair(String firstOutput,
                                                   PromptConstructionService.Prompt originalPrompt,
                                                   List<String> targetFields) {
@@ -98,10 +126,26 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         }
     }
 
+    /**
+     * 合并第一次输出和修复输出。
+     *
+     * @param firstOutput  第一次输出
+     * @param repairOutput 修复输出
+     * @return 合并后的原始输出
+     */
     private String combinedRawOutput(String firstOutput, String repairOutput) {
         return "第一次输出：\n" + nullToEmpty(firstOutput) + "\n\n修复输出：\n" + nullToEmpty(repairOutput);
     }
 
+    /**
+     * 构建用于修复模型输出的提示词。
+     *
+     * @param originalPrompt 原始提示词
+     * @param badOutput      错误的模型输出
+     * @param parseError     解析错误信息
+     * @param targetFields   需要补全的目标字段
+     * @return 修复提示词对象
+     */
     private PromptConstructionService.Prompt repairPrompt(PromptConstructionService.Prompt originalPrompt,
                                                           String badOutput,
                                                           String parseError,
@@ -118,12 +162,23 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         return new PromptConstructionService.Prompt(systemMessage, userMessage);
     }
 
+    /**
+     * 获取JSON输出模板。
+     *
+     * @return JSON模板字符串
+     */
     private String jsonTemplate() {
         return """
                 {"title":null,"abstract":null,"introduction":null,"literatureReview":null,"methodology":null,"experimentResults":null,"discussion":null,"conclusion":null,"references":null,"keywords":[],"researchObject":null,"researchQuestion":null,"innovationPoints":[],"methodPath":null,"experimentDataSummary":null,"mainConclusions":[]}
                 """.trim();
     }
 
+    /**
+     * 解析JSON字符串为Map。
+     *
+     * @param value JSON字符串
+     * @return 解析后的Map
+     */
     private Map<String, Object> parseJson(String value) {
         String json = extractJson(value);
         try {
@@ -141,6 +196,12 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         }
     }
 
+    /**
+     * 从字符串中提取JSON对象。
+     *
+     * @param value 包含JSON的字符串
+     * @return 提取的JSON字符串
+     */
     private String extractJson(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("模型结构化解析结果为空");
@@ -157,17 +218,31 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         return text.substring(start, end + 1);
     }
 
+    /**
+     * 生成字段证据映射。
+     *
+     * @param content      结构化内容
+     * @param targetFields 目标字段列表
+     * @return 字段证据映射
+     */
     private Map<String, StructuredFieldEvidence> evidence(PaperStructuredContent content, List<String> targetFields) {
         Map<String, StructuredFieldEvidence> evidence = new LinkedHashMap<>();
         for (String field : PaperStructuredContentSupport.ALL_FIELDS) {
             Object value = PaperStructuredContentSupport.value(content, field);
             boolean missing = PaperStructuredContentSupport.isEmpty(value);
-            double confidence = !missing && targetFields.contains(field) ? 0.72 : 0.0;
-            evidence.put(field, new StructuredFieldEvidence(field, "MODEL", confidence, missing, missing ? null : "模型补全"));
+            evidence.put(field, new StructuredFieldEvidence(field, "MODEL", missing, missing ? null : "模型补全"));
         }
         return evidence;
     }
 
+    /**
+     * 当模型补全失败时，返回兜底结果。
+     *
+     * @param ruleResult   规则解析结果
+     * @param rawOutput    模型原始输出
+     * @param errorMessage 错误信息
+     * @return 兜底的补全结果
+     */
     private ModelCompletionResult fallbackResult(StructuredParseResult ruleResult, String rawOutput, String errorMessage) {
         PaperStructuredContent content = ruleResult.content();
         content = putIfMissing(content, "researchObject", inferResearchObject(content));
@@ -180,16 +255,24 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         for (String field : List.of("researchObject", "researchQuestion", "methodPath", "experimentDataSummary", "mainConclusions")) {
             Object value = PaperStructuredContentSupport.value(content, field);
             if (!PaperStructuredContentSupport.isEmpty(value)) {
-                evidence.put(field, new StructuredFieldEvidence(field, "RULE_DERIVED", 0.62, false, "模型补全失败后由规则解析内容兜底生成"));
+                evidence.put(field, new StructuredFieldEvidence(field, "RULE_DERIVED", false, "模型补全失败后由规则解析内容兜底生成"));
             }
         }
         return new ModelCompletionResult(
-                new StructuredParseResult(content, evidence, PaperStructuredContentSupport.emptyFields(content), lowConfidenceFields(evidence)),
+                new StructuredParseResult(content, evidence, PaperStructuredContentSupport.emptyFields(content)),
                 rawOutput,
                 errorMessage
         );
     }
 
+    /**
+     * 如果字段为空则设置值。
+     *
+     * @param content 结构化内容
+     * @param field   字段名
+     * @param value   要设置的值
+     * @return 更新后的结构化内容
+     */
     private PaperStructuredContent putIfMissing(PaperStructuredContent content, String field, Object value) {
         if (PaperStructuredContentSupport.isEmpty(PaperStructuredContentSupport.value(content, field)) && !PaperStructuredContentSupport.isEmpty(value)) {
             return PaperStructuredContentSupport.withValue(content, field, value);
@@ -197,6 +280,12 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         return content;
     }
 
+    /**
+     * 推断研究对象。
+     *
+     * @param content 结构化内容
+     * @return 推断出的研究对象
+     */
     private String inferResearchObject(PaperStructuredContent content) {
         String title = content.title();
         if (title != null) {
@@ -208,6 +297,12 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         return firstSentence(content.abstractText(), content.introduction());
     }
 
+    /**
+     * 获取第一个非空句子。
+     *
+     * @param values 可能包含句子的字符串数组
+     * @return 第一个非空句子（最多240个字符）
+     */
     private String firstSentence(String... values) {
         for (String value : values) {
             if (value == null || value.isBlank()) {
@@ -225,18 +320,24 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         return null;
     }
 
+    /**
+     * 从结论中提取结论项。
+     *
+     * @param conclusion 结论文本
+     * @return 结论项列表
+     */
     private List<String> conclusionItems(String conclusion) {
         String sentence = firstSentence(conclusion);
         return sentence == null ? List.of() : List.of(sentence);
     }
 
-    private List<String> lowConfidenceFields(Map<String, StructuredFieldEvidence> evidence) {
-        return evidence.values().stream()
-                .filter(item -> !item.missing() && item.confidence() < 0.7)
-                .map(StructuredFieldEvidence::fieldName)
-                .toList();
-    }
-
+    /**
+     * 截断字符串到指定长度。
+     *
+     * @param value 要截断的字符串
+     * @param limit 最大长度
+     * @return 截断后的字符串
+     */
     private String truncate(String value, int limit) {
         if (value == null) {
             return "";
@@ -244,6 +345,12 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         return value.length() <= limit ? value : value.substring(0, limit) + "\n[后续内容因长度限制已截断]";
     }
 
+    /**
+     * 将对象转换为JSON文本。
+     *
+     * @param value 要转换的对象
+     * @return JSON文本
+     */
     private String jsonText(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
@@ -252,10 +359,22 @@ public class PaperStructuredModelCompleterImpl implements PaperStructuredModelCo
         }
     }
 
+    /**
+     * 将null值转换为空字符串。
+     *
+     * @param value 可能为null的对象
+     * @return 非空字符串
+     */
     private String nullToEmpty(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
 
+    /**
+     * 安全获取异常消息。
+     *
+     * @param ex 异常
+     * @return 异常消息（如果为空则返回默认消息）
+     */
     private String safeMessage(Throwable ex) {
         String message = ex.getMessage();
         return message == null || message.isBlank() ? "模型补全失败" : message;

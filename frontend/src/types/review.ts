@@ -15,34 +15,13 @@ export type ReviewTaskStatus = 'PENDING' | 'PENDING_ASSIGNMENT' | 'ASSIGNED' | '
 export type ReviewAssignmentRole = 'LEAD' | 'REVIEWER' | 'ARBITER';
 export type ReviewAssignmentStatus = 'ASSIGNED' | 'REVIEWING' | 'SUBMITTED' | 'RETURNED' | 'CANCELLED';
 export type ReviewConsensusStatus = 'DRAFT' | 'IN_DISCUSSION' | 'CONFIRMED' | 'ARCHIVED' | string;
-export type ReviewBatchStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED' | 'ARCHIVED' | string;
 export type ReviewGroupStatus = 'ACTIVE' | 'DISABLED' | string;
 export type ReviewGroupMemberRole = 'LEADER' | 'REVIEWER' | string;
 export type ReviewReportStatus = 'AI_GENERATED' | 'ADJUSTED' | 'CONFIRMED' | 'COMPLETED' | string;
-
-export interface ReviewBatch {
-  id: string;
-  name: string;
-  description: string | null;
-  status: ReviewBatchStatus;
-  startsAt: string | null;
-  endsAt: string | null;
-  createdByUserId: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ReviewBatchPayload {
-  name: string;
-  description?: string | null;
-  status?: ReviewBatchStatus;
-  startsAt?: string | null;
-  endsAt?: string | null;
-}
+export type RiskReviewStatus = 'NO_RISK_CONFIRMED' | string;
 
 export interface ReviewGroup {
   id: string;
-  batchId: string;
   name: string;
   leaderUserId: string;
   leaderUsername: string | null;
@@ -55,7 +34,6 @@ export interface ReviewGroup {
 }
 
 export interface ReviewGroupPayload {
-  batchId: string;
   name: string;
   leaderUserId: string;
   status?: ReviewGroupStatus;
@@ -115,7 +93,6 @@ export interface ReviewScoreItem {
   score: number;
   maxScore: number;
   reason: string;
-  confidence?: number;
 }
 
 export interface ReviewRiskItem {
@@ -135,7 +112,6 @@ export interface ReviewRiskRecord {
   evidenceLocation: Record<string, unknown>;
   suggestion: string | null;
   detector: string | null;
-  confidence: number | null;
   status: 'OPEN' | 'CONFIRMED' | 'IGNORED' | 'RESOLVED' | string;
   reviewerNote: string | null;
   createdAt: string;
@@ -259,6 +235,7 @@ export interface ReviewReport {
   totalScore: number | null;
   finalRecommendation: string | null;
   status: ReviewReportStatus;
+  riskReviewStatus: RiskReviewStatus | null;
   generatedAt: string | null;
   adjustedAt: string | null;
   createdAt: string;
@@ -286,7 +263,6 @@ export interface ReviewTask {
   id: string;
   documentId: string;
   submitterUserId: string;
-  batchId: string | null;
   groupId: string | null;
   assignedByUserId: string | null;
   leaderUserId: string | null;
@@ -320,6 +296,7 @@ export interface UpdateReviewReportPayload {
   totalScore?: number | null;
   finalRecommendation?: string | null;
   status?: ReviewReportStatus;
+  riskReviewStatus?: RiskReviewStatus | null;
 }
 
 export type { PageResponse };

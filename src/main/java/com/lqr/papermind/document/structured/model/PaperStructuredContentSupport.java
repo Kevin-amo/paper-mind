@@ -33,18 +33,35 @@ public final class PaperStructuredContentSupport {
     private PaperStructuredContentSupport() {
     }
 
+    /**
+     * 创建空的结构化内容。
+     *
+     * @return 空的结构化内容
+     */
     public static PaperStructuredContent emptyContent() {
         return new PaperStructuredContent(null, null, null, null, null, null, null, null, null, List.of(), null, null, List.of(), null, null, List.of());
     }
 
+    /**
+     * 创建空的字段证据映射。
+     *
+     * @param source 证据来源
+     * @return 空的字段证据映射
+     */
     public static Map<String, StructuredFieldEvidence> emptyEvidence(String source) {
         Map<String, StructuredFieldEvidence> evidence = new LinkedHashMap<>();
         for (String field : ALL_FIELDS) {
-            evidence.put(field, new StructuredFieldEvidence(field, source, 0.0, true, null));
+            evidence.put(field, new StructuredFieldEvidence(field, source, true, null));
         }
         return evidence;
     }
 
+    /**
+     * 获取内容中为空的字段列表。
+     *
+     * @param content 结构化内容
+     * @return 为空的字段列表
+     */
     public static List<String> emptyFields(PaperStructuredContent content) {
         List<String> fields = new ArrayList<>();
         for (String field : ALL_FIELDS) {
@@ -55,6 +72,12 @@ public final class PaperStructuredContentSupport {
         return fields;
     }
 
+    /**
+     * 判断值是否为空。
+     *
+     * @param value 要判断的值
+     * @return 是否为空
+     */
     public static boolean isEmpty(Object value) {
         if (value == null) {
             return true;
@@ -68,6 +91,13 @@ public final class PaperStructuredContentSupport {
         return false;
     }
 
+    /**
+     * 获取结构化内容中指定字段的值。
+     *
+     * @param content 结构化内容
+     * @param field   字段名
+     * @return 字段值
+     */
     public static Object value(PaperStructuredContent content, String field) {
         if (content == null) {
             return null;
@@ -93,6 +123,12 @@ public final class PaperStructuredContentSupport {
         };
     }
 
+    /**
+     * 从Map创建结构化内容。
+     *
+     * @param map 字段值映射
+     * @return 结构化内容
+     */
     public static PaperStructuredContent fromMap(Map<String, Object> map) {
         if (map == null) {
             return emptyContent();
@@ -117,12 +153,26 @@ public final class PaperStructuredContentSupport {
         );
     }
 
+    /**
+     * 设置结构化内容中指定字段的值。
+     *
+     * @param content 结构化内容
+     * @param field   字段名
+     * @param value   要设置的值
+     * @return 更新后的结构化内容
+     */
     public static PaperStructuredContent withValue(PaperStructuredContent content, String field, Object value) {
         Map<String, Object> values = toMap(content);
         values.put(field, value);
         return fromMap(values);
     }
 
+    /**
+     * 将结构化内容转换为Map。
+     *
+     * @param content 结构化内容
+     * @return 字段值映射
+     */
     public static Map<String, Object> toMap(PaperStructuredContent content) {
         Map<String, Object> values = new LinkedHashMap<>();
         for (String field : ALL_FIELDS) {
@@ -131,6 +181,12 @@ public final class PaperStructuredContentSupport {
         return values;
     }
 
+    /**
+     * 将值转换为文本字符串。
+     *
+     * @param value 要转换的值
+     * @return 文本字符串（如果为空则返回null）
+     */
     public static String text(Object value) {
         if (value == null) {
             return null;
@@ -142,6 +198,12 @@ public final class PaperStructuredContentSupport {
         return text.isEmpty() ? null : text;
     }
 
+    /**
+     * 将值转换为字符串列表。
+     *
+     * @param value 要转换的值
+     * @return 字符串列表
+     */
     public static List<String> texts(Object value) {
         if (value == null) {
             return List.of();
