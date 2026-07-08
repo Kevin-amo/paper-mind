@@ -14,13 +14,26 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 论文格式检查器，对比文档格式画像与模板规则，生成检查报告
+ */
 @Component
 public class PaperFormatChecker {
 
+    /** 毫米数值容差 */
     private static final double MM_TOLERANCE = 1.0;
+    /** 字号容差（磅） */
     private static final double FONT_TOLERANCE = 0.25;
+    /** 行距倍数容差 */
     private static final double LINE_SPACING_TOLERANCE = 0.05;
 
+    /**
+     * 执行格式检查，对比文档格式画像与模板规则
+     *
+     * @param spec    模板格式规则
+     * @param profile 文档格式画像
+     * @return 格式检查报告
+     */
     public FormatCheckReport check(FormatSpec spec, DocumentFormatProfile profile) {
         FormatCheckReport report = new FormatCheckReport();
         checkPage(spec.getPageRule(), profile.getPageRule(), report);
@@ -38,6 +51,7 @@ public class PaperFormatChecker {
         return report;
     }
 
+    /** 检查页面设置（尺寸、边距、装订线、页眉页脚距离） */
     private void checkPage(PageRule expected, PageRule actual, FormatCheckReport report) {
         if (expected == null || actual == null) {
             return;
@@ -56,6 +70,7 @@ public class PaperFormatChecker {
         compareMm(report, "FOOTER_DISTANCE", "页脚距", expected.getFooterDistanceMm(), actual.getFooterDistanceMm());
     }
 
+    /** 检查页眉页脚设置（页眉文字、居中、页码字段、页脚对齐） */
     private void checkHeaderFooter(HeaderFooterRule expected, HeaderFooterRule actual, FormatCheckReport report) {
         if (expected == null || actual == null) {
             return;
@@ -65,19 +80,26 @@ public class PaperFormatChecker {
                     "页眉文字不符合模板要求", "按学校模板设置页眉文字");
         }
         if (expected.isHeaderCentered() != actual.isHeaderCentered()) {
-            add(report, "HEADER_ALIGNMENT", "ERROR", "页眉", "居中", actual.isHeaderCentered() ? "居中" : "非居中",
-                    "页眉对齐方式不符合要求", "将页眉设置为居中");
+            add(report, "HEADER_ALIGNMENT", "ERROR", "页眉",
+                    expected.isHeaderCentered() ? "居中" : "非居中",
+                    actual.isHeaderCentered() ? "居中" : "非居中",
+                    "页眉对齐方式不符合要求",
+                    expected.isHeaderCentered() ? "将页眉设置为居中" : "将页眉设置为非居中");
         }
         if (expected.isFooterPageNumber() != actual.isFooterPageNumber()) {
             add(report, "FOOTER_PAGE_NUMBER", "ERROR", "页脚", "PAGE 字段页码", actual.isFooterPageNumber() ? "PAGE 字段页码" : "未识别 PAGE 字段页码",
                     "页脚页码字段不符合要求", "使用 Word 页码字段插入居中页码");
         }
         if (expected.isFooterCentered() != actual.isFooterCentered()) {
-            add(report, "FOOTER_ALIGNMENT", "ERROR", "页脚", "居中", actual.isFooterCentered() ? "居中" : "非居中",
-                    "页脚对齐方式不符合要求", "将页脚页码设置为居中");
+            add(report, "FOOTER_ALIGNMENT", "ERROR", "页脚",
+                    expected.isFooterCentered() ? "居中" : "非居中",
+                    actual.isFooterCentered() ? "居中" : "非居中",
+                    "页脚对齐方式不符合要求",
+                    expected.isFooterCentered() ? "将页脚页码设置为居中" : "将页脚页码设置为非居中");
         }
     }
 
+    /** 检查段落样式规则（字体、字号、行距、对齐方式） */
     private void checkParagraphRule(String prefix,
                                     String location,
                                     ParagraphStyleRule expected,
@@ -110,6 +132,7 @@ public class PaperFormatChecker {
         }
     }
 
+    /** 比较两个毫米数值是否在容差范围内 */
     private void compareMm(FormatCheckReport report, String code, String location, Double expected, Double actual) {
         if (!close(expected, actual, MM_TOLERANCE)) {
             add(report, code, "ERROR", "页面设置/" + location, mm(expected), mm(actual),
@@ -117,6 +140,7 @@ public class PaperFormatChecker {
         }
     }
 
+    /** 判断两个Double值是否在容差范围内 */
     private boolean close(Double expected, Double actual, double tolerance) {
         if (expected == null) {
             return true;
@@ -127,6 +151,7 @@ public class PaperFormatChecker {
         return Math.abs(expected - actual) <= tolerance;
     }
 
+    /** 向检查报告中添加一条违规记录 */
     private void add(FormatCheckReport report,
                      String code,
                      String severity,
@@ -138,6 +163,7 @@ public class PaperFormatChecker {
         report.getViolations().add(FormatViolation.of(code, severity, location, expected, actual, message, suggestion));
     }
 
+    /** 统计违规数量并设置报告状态（有ERROR则FAILED，否则PASSED） */
     private void summarize(FormatCheckReport report) {
         Map<String, Integer> summary = new LinkedHashMap<>();
         summary.put("ERROR", 0);
@@ -150,10 +176,12 @@ public class PaperFormatChecker {
         report.setStatus(summary.get("ERROR") > 0 ? "FAILED" : "PASSED");
     }
 
+    /** 格式化页面尺寸为 "宽 x 高" 的字符串 */
     private String pageSize(PageRule rule) {
         return mm(rule.getPageWidthMm()) + " x " + mm(rule.getPageHeightMm());
     }
 
+    /** 格式化毫米数值，为null时返回"未识别" */
     private String mm(Double value) {
         return value == null ? "未识别" : String.format(java.util.Locale.ROOT, "%.1fmm", value);
     }

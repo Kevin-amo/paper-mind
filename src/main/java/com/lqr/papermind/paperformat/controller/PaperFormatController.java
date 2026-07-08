@@ -25,6 +25,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 用户论文格式管理控制器，提供模板上传、查询、格式规则修改和自检接口
+ */
 @RestController
 @RequestMapping("/paper-format")
 @RequiredArgsConstructor
@@ -32,6 +35,7 @@ public class PaperFormatController {
 
     private final PaperFormatService paperFormatService;
 
+    /** 上传格式模板文件 */
     @PostMapping(path = "/templates", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public PaperFormatTemplateResponse uploadTemplate(@AuthenticationPrincipal SecurityUserPrincipal principal,
                                                       @RequestParam("file") MultipartFile file,
@@ -40,17 +44,20 @@ public class PaperFormatController {
         return paperFormatService.uploadTemplate(principal.getId(), isAdmin(principal), file, name, schoolName);
     }
 
+    /** 查询当前用户可见的模板列表 */
     @GetMapping("/templates")
     public List<PaperFormatTemplateResponse> listTemplates(@AuthenticationPrincipal SecurityUserPrincipal principal) {
         return paperFormatService.listTemplates(principal.getId(), isAdmin(principal));
     }
 
+    /** 获取单个模板详情 */
     @GetMapping("/templates/{templateId}")
     public PaperFormatTemplateResponse getTemplate(@AuthenticationPrincipal SecurityUserPrincipal principal,
                                                    @PathVariable UUID templateId) {
         return paperFormatService.getTemplate(principal.getId(), isAdmin(principal), templateId);
     }
 
+    /** 修改模板的格式规则 */
     @PatchMapping("/templates/{templateId}/spec")
     public PaperFormatTemplateResponse updateTemplateSpec(@AuthenticationPrincipal SecurityUserPrincipal principal,
                                                           @PathVariable UUID templateId,
@@ -58,18 +65,21 @@ public class PaperFormatController {
         return paperFormatService.updateTemplateSpec(principal.getId(), isAdmin(principal), templateId, request);
     }
 
+    /** 创建格式自检任务 */
     @PostMapping("/checks")
     public PaperFormatCheckJobResponse createCheck(@AuthenticationPrincipal SecurityUserPrincipal principal,
                                                    @Valid @RequestBody CreateFormatCheckRequest request) {
         return paperFormatService.createCheck(principal.getId(), isAdmin(principal), request, PaperFormatService.CHECK_SCOPE_USER_SELF_CHECK, null);
     }
 
+    /** 获取格式检查结果 */
     @GetMapping("/checks/{checkId}")
     public PaperFormatCheckJobResponse getCheck(@AuthenticationPrincipal SecurityUserPrincipal principal,
                                                 @PathVariable UUID checkId) {
         return paperFormatService.getCheck(principal.getId(), isAdmin(principal), checkId);
     }
 
+    /** 判断当前用户是否为管理员 */
     private boolean isAdmin(SecurityUserPrincipal principal) {
         return principal.getRoles().contains(RoleCodes.ADMIN);
     }

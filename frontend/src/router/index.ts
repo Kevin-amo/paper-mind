@@ -60,6 +60,12 @@ const router = createRouter({
       meta: { roles: ['ADMIN'] },
     },
     {
+      path: '/admin/paper-format-templates',
+      name: 'admin-paper-format-templates',
+      component: () => import('../views/admin/AdminPaperFormatTemplatesView.vue'),
+      meta: { roles: ['ADMIN'] },
+    },
+    {
       path: '/admin/audit-logs',
       name: 'admin-audit-logs',
       component: () => import('../views/admin/AdminAuditLogsView.vue'),

@@ -17,11 +17,22 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+/**
+ * DOCX包读取器，从docx文件（ZIP格式）中读取和解析XML部件
+ */
 final class DocxPackageReader {
 
+    /** 私有构造器，防止实例化 */
     private DocxPackageReader() {
     }
 
+    /**
+     * 从docx ZIP流中读取所有XML部件
+     *
+     * @param input docx文件输入流
+     * @return XML部件名称与内容的映射
+     * @throws java.io.IOException IO异常
+     */
     static Map<String, String> readXmlParts(InputStream input) throws java.io.IOException {
         Map<String, String> parts = new LinkedHashMap<>();
         try (ZipInputStream zip = new ZipInputStream(input)) {
@@ -37,6 +48,7 @@ final class DocxPackageReader {
         return parts;
     }
 
+    /** 将XML字符串解析为DOM Document对象 */
     static Document parse(String xml) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -48,6 +60,7 @@ final class DocxPackageReader {
         }
     }
 
+    /** 获取元素的属性值（优先w:前缀，无则取无前缀属性） */
     static String attr(Element element, String localName) {
         if (element == null) {
             return null;
@@ -60,6 +73,7 @@ final class DocxPackageReader {
         return plain.isBlank() ? null : plain;
     }
 
+    /** 获取父元素下第一个指定标签名的子元素 */
     static Element first(Element parent, String tagName) {
         if (parent == null) {
             return null;
@@ -68,6 +82,7 @@ final class DocxPackageReader {
         return nodes.getLength() == 0 ? null : (Element) nodes.item(0);
     }
 
+    /** 获取元素下所有w:t文本节点的拼接内容 */
     static String text(Element parent) {
         if (parent == null) {
             return "";
@@ -80,6 +95,7 @@ final class DocxPackageReader {
         return result.toString().trim();
     }
 
+    /** 判断元素中是否包含指定的域代码（w:instrText） */
     static boolean hasField(Element parent, String fieldName) {
         if (parent == null) {
             return false;
@@ -94,6 +110,7 @@ final class DocxPackageReader {
         return false;
     }
 
+    /** 获取段落的对齐方式（CENTER/RIGHT/BOTH等） */
     static String paragraphAlignment(Element paragraph) {
         Element pPr = first(paragraph, "w:pPr");
         Element jc = first(pPr, "w:jc");
@@ -109,6 +126,7 @@ final class DocxPackageReader {
         };
     }
 
+    /** 将twips（二十分之一磅）转换为毫米 */
     static Double twipsToMm(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -116,6 +134,15 @@ final class DocxPackageReader {
         return Integer.parseInt(value) / 1440.0 * 25.4;
     }
 
+    /** 将twips转换为磅 */
+    static Double twipsToPt(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return Integer.parseInt(value) / 20.0;
+    }
+
+    /** 将半磅值转换为磅 */
     static Double halfPointsToPt(String value) {
         if (value == null || value.isBlank()) {
             return null;
@@ -123,10 +150,12 @@ final class DocxPackageReader {
         return Integer.parseInt(value) / 2.0;
     }
 
+    /** 将字符串转换为UTF-8字节数组 */
     static byte[] bytes(String value) {
         return value.getBytes(StandardCharsets.UTF_8);
     }
 
+    /** 将字节数组解析为DOM Document对象 */
     static Document parseBytes(byte[] bytes) {
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -138,6 +167,7 @@ final class DocxPackageReader {
         }
     }
 
+    /** 获取父元素下所有指定标签名的直接子元素 */
     static Iterable<Element> childElements(Element parent, String tagName) {
         java.util.List<Element> elements = new java.util.ArrayList<>();
         if (parent == null) {

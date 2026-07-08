@@ -62,3 +62,9 @@ export interface PatchFormatSpecPayload {
   formatSpec?: Record<string, unknown> | null;
   confirmed?: boolean;
 }
+
+export interface UpdateFormatTemplatePayload {
+  name?: string | null;
+  schoolName?: string | null;
+  publicTemplate?: boolean | null;
+}

@@ -14,8 +14,12 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 论文格式检查器测试类，验证页面、页眉页脚、正文格式检查的正确性
+ */
 class PaperFormatCheckerTest {
 
+    /** 测试页面尺寸、页眉文字和正文字号不匹配时应生成清晰的违规报告 */
     @Test
     void checkShouldGenerateClearViolationsForMismatchedPageAndBodyFormat() {
         FormatSpec spec = spec();

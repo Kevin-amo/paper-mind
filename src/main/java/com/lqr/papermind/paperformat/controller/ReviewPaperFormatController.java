@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+/**
+ * 评审论文格式预检控制器，为评审任务提供格式预检的创建和查询接口
+ */
 @RestController
 @RequestMapping("/reviews/tasks/{taskId}/format-check")
 @RequiredArgsConstructor
@@ -24,6 +27,7 @@ public class ReviewPaperFormatController {
 
     private final PaperFormatService paperFormatService;
 
+    /** 创建评审任务的格式预检 */
     @PostMapping
     public PaperFormatCheckJobResponse createReviewPrecheck(@AuthenticationPrincipal SecurityUserPrincipal principal,
                                                             @PathVariable UUID taskId,
@@ -31,12 +35,14 @@ public class ReviewPaperFormatController {
         return paperFormatService.createReviewPrecheck(principal.getId(), isAdmin(principal), taskId, request.templateId());
     }
 
+    /** 获取评审任务最新的格式预检结果 */
     @GetMapping
     public PaperFormatCheckJobResponse getReviewPrecheck(@AuthenticationPrincipal SecurityUserPrincipal principal,
                                                          @PathVariable UUID taskId) {
         return paperFormatService.getLatestReviewPrecheck(principal.getId(), isAdmin(principal), taskId);
     }
 
+    /** 判断当前用户是否为管理员 */
     private boolean isAdmin(SecurityUserPrincipal principal) {
         return principal.getRoles().contains(RoleCodes.ADMIN);
     }

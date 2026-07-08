@@ -10,11 +10,15 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * DOCX格式画像提取器测试类，验证从docx文件中提取文档格式信息的正确性
+ */
 class DocxFormatProfileExtractorTest {
 
     @TempDir
     Path tempDir;
 
+    /** 测试提取正文和标题的有效样式（字体、字号、对齐等） */
     @Test
     void extractShouldResolveEffectiveBodyAndHeadingStyles() throws Exception {
         Path docx = DocxTestDocuments.studentDocx(tempDir);

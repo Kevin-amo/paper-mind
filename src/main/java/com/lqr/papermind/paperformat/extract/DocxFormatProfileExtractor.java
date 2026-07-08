@@ -12,14 +12,24 @@ import org.w3c.dom.Element;
 import java.io.InputStream;
 import java.util.Map;
 
+/**
+ * DOCX格式画像提取器，从docx文件中提取文档的实际格式信息
+ */
 @Component
 public class DocxFormatProfileExtractor {
 
+    /**
+     * 从docx输入流中提取文档格式画像（页面、页眉页脚、段落样式）
+     *
+     * @param input docx文件输入流
+     * @return 文档格式画像
+     * @throws IllegalArgumentException 解析失败时抛出
+     */
     public DocumentFormatProfile extract(InputStream input) {
         try {
             Map<String, String> parts = DocxPackageReader.readXmlParts(input);
             DocumentFormatProfile profile = new DocumentFormatProfile();
-            profile.setPageRule(new DocxFormatSpecExtractor().extract(new java.io.ByteArrayInputStream(toDocxLike(parts))).getPageRule());
+            profile.setPageRule(new DocxFormatSpecExtractor().extractOoxmlOnly(new java.io.ByteArrayInputStream(toDocxLike(parts))).getPageRule());
             profile.setHeaderFooterRule(readHeaderFooter(parts));
             readParagraphs(parts, profile);
             return profile;
@@ -28,6 +38,7 @@ public class DocxFormatProfileExtractor {
         }
     }
 
+    /** 将XML部分重新打包为docx字节数组 */
     private byte[] toDocxLike(Map<String, String> parts) throws java.io.IOException {
         java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
         try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(output)) {
@@ -40,10 +51,12 @@ public class DocxFormatProfileExtractor {
         return output.toByteArray();
     }
 
+    /** 读取页眉页脚规则 */
     private HeaderFooterRule readHeaderFooter(Map<String, String> parts) {
-        return new DocxFormatSpecExtractor().extract(new java.io.ByteArrayInputStream(uncheckedZip(parts))).getHeaderFooterRule();
+        return new DocxFormatSpecExtractor().extractOoxmlOnly(new java.io.ByteArrayInputStream(uncheckedZip(parts))).getHeaderFooterRule();
     }
 
+    /** 将XML部分打包为zip字节数组（包装IOException为IllegalStateException） */
     private byte[] uncheckedZip(Map<String, String> parts) {
         try {
             return toDocxLike(parts);
@@ -52,6 +65,7 @@ public class DocxFormatProfileExtractor {
         }
     }
 
+    /** 读取文档中所有段落的格式快照，分别归类为正文和标题 */
     private void readParagraphs(Map<String, String> parts, DocumentFormatProfile profile) {
         String documentXml = parts.get("word/document.xml");
         if (documentXml == null) {
@@ -93,12 +107,14 @@ public class DocxFormatProfileExtractor {
         }
     }
 
+    /** 获取段落的样式ID */
     private String paragraphStyleId(Element paragraph) {
         Element pPr = DocxPackageReader.first(paragraph, "w:pPr");
         Element pStyle = DocxPackageReader.first(pPr, "w:pStyle");
         return DocxPackageReader.attr(pStyle, "val");
     }
 
+    /** 根据样式ID解析标题级别（Heading1/2/3 -> 1/2/3） */
     private Integer headingLevel(String styleId) {
         if (styleId == null) {
             return null;
