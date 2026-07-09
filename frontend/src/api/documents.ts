@@ -6,8 +6,9 @@ import type {
   DocumentAsset,
   DocumentChunk,
   DocumentDetail,
-  DocumentIngestionResult,
+  DocumentJobResponse,
   DocumentSummary,
+  DocumentUploadAcceptedResponse,
   ListChunksParams,
   ListDocumentsParams,
   PageResponse,
@@ -34,12 +35,17 @@ export async function uploadDocument(payload: UploadDocumentPayload) {
     formData.append('title', payload.title);
   }
 
-  const { data } = await uploadHttp.post<DocumentIngestionResult>('/documents', formData, {
+  const { data } = await uploadHttp.post<DocumentUploadAcceptedResponse>('/documents', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
   });
 
+  return data;
+}
+
+export async function getDocumentUploadJob(jobId: string) {
+  const { data } = await http.get<DocumentJobResponse>(`/documents/jobs/${jobId}`);
   return data;
 }
 

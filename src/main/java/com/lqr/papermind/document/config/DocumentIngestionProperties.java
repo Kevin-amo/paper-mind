@@ -21,7 +21,7 @@ public record DocumentIngestionProperties(
             storageDir = "storage/document-ingestion";
         }
         if (keepUploadFile == null) {
-            keepUploadFile = false;
+            keepUploadFile = true;
         }
         if (maxRetryCount <= 0) {
             maxRetryCount = 3;
@@ -30,7 +30,7 @@ public record DocumentIngestionProperties(
             listener = new Listener(2, 4);
         }
         if (cleanup == null) {
-            cleanup = new Cleanup(true, Duration.ofHours(24), "0 0 * * * *");
+            cleanup = new Cleanup(false, Duration.ofHours(24), "0 0 * * * *");
         }
     }
 
@@ -48,7 +48,7 @@ public record DocumentIngestionProperties(
     public record Cleanup(Boolean enabled, Duration retention, String cron) {
         public Cleanup {
             if (enabled == null) {
-                enabled = true;
+                enabled = false;
             }
             if (retention == null || retention.isNegative() || retention.isZero()) {
                 retention = Duration.ofHours(24);

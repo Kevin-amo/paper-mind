@@ -62,6 +62,15 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+paperformat:
+  ai-extraction:
+    enabled: ${PAPERFORMAT_AI_EXTRACTION_ENABLED:true}
+    provider: ${PAPERFORMAT_AI_EXTRACTION_PROVIDER:existing}
+    model: ${PAPERFORMAT_AI_EXTRACTION_MODEL:qwen3.6-35b-a3b}
+    timeout: ${PAPERFORMAT_AI_EXTRACTION_TIMEOUT:60s}
+    max-input-chars: ${PAPERFORMAT_AI_EXTRACTION_MAX_INPUT_CHARS:12000}
+    min-confidence: ${PAPERFORMAT_AI_EXTRACTION_MIN_CONFIDENCE:0.70}
+
 logging:
   level:
     com.lqr.papermind: ${LOG_LEVEL_APP:INFO}
@@ -125,12 +134,12 @@ app:
       base-url: ${RAG_RERANK_BASE_URL:https://dashscope.aliyuncs.com}
   document-ingestion:
     storage-dir: ${DOCUMENT_INGESTION_STORAGE_DIR:storage/document-ingestion}
-    keep-upload-file: ${DOCUMENT_INGESTION_KEEP_UPLOAD_FILE:false}
+    keep-upload-file: ${DOCUMENT_INGESTION_KEEP_UPLOAD_FILE:true}
     # 上传文件最大重试次数
     max-retry-count: ${DOCUMENT_INGESTION_MAX_RETRY_COUNT:3}
     cleanup:
     # 清理任务是否启用
-      enabled: ${DOCUMENT_INGESTION_CLEANUP_ENABLED:true}
+      enabled: ${DOCUMENT_INGESTION_CLEANUP_ENABLED:false}
       # 清理任务保留时间
       retention: ${DOCUMENT_INGESTION_CLEANUP_RETENTION:24h}
       cron: "${DOCUMENT_INGESTION_CLEANUP_CRON:0 0 * * * *}"

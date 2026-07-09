@@ -18,6 +18,7 @@ import type {
   UpdateReviewRiskPayload,
   UploadReviewPaperPayload,
 } from '../types';
+import type { PaperFormatCheckJob } from '../types/paperFormat';
 
 export async function uploadReviewPaper(payload: UploadReviewPaperPayload) {
   const formData = new FormData();
@@ -74,6 +75,16 @@ export async function getReviewTaskStructuredParse(taskId: string) {
 
 export async function regenerateReviewTaskStructuredParse(taskId: string) {
   const { data } = await longRunningHttp.post<PaperStructuredParse>(`/reviews/tasks/${taskId}/structured-parse/regenerate`);
+  return data;
+}
+
+export async function createReviewFormatCheck(taskId: string, templateId: string) {
+  const { data } = await longRunningHttp.post<PaperFormatCheckJob>(`/reviews/tasks/${taskId}/format-check`, { templateId });
+  return data;
+}
+
+export async function getReviewFormatCheck(taskId: string) {
+  const { data } = await http.get<PaperFormatCheckJob>(`/reviews/tasks/${taskId}/format-check`);
   return data;
 }
 

@@ -1056,3 +1056,62 @@ comment on column public.review_audit_log.created_at is '创建时间';
 --
 -- 问答验证：
 --   前端主链路通过 /agent/ask/stream 发起 agent 流式问答。
+
+-- ===== paper_format.sql =====
+-- Paper format template and check job tables.
+
+create extension if not exists "uuid-ossp";
+
+create table if not exists public.paper_format_template (
+    id uuid primary key default uuid_generate_v4(),
+    owner_user_id uuid not null references public.sys_user(id) on delete cascade,
+    name varchar(160) not null,
+    school_name varchar(160),
+    file_name varchar(255) not null,
+    file_type varchar(64) not null,
+    storage_key varchar(1024) not null,
+    status varchar(32) not null default 'PARSING',
+    format_spec jsonb,
+    extraction_report jsonb,
+    confirmed boolean not null default false,
+    public_template boolean not null default false,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+
+    constraint chk_paper_format_template_status check (status in ('PARSING', 'READY', 'FAILED', 'NEED_CONFIRM'))
+);
+
+create index if not exists idx_paper_format_template_owner_updated
+    on public.paper_format_template using btree (owner_user_id, updated_at desc);
+
+create index if not exists idx_paper_format_template_public_ready
+    on public.paper_format_template using btree (public_template, status, updated_at desc)
+    where public_template = true;
+
+create table if not exists public.paper_format_check_job (
+    id uuid primary key default uuid_generate_v4(),
+    owner_user_id uuid not null references public.sys_user(id) on delete cascade,
+    template_id uuid not null references public.paper_format_template(id) on delete restrict,
+    document_id uuid references public.document(id) on delete set null,
+    source_id varchar(128) not null,
+    review_task_id uuid references public.review_task(id) on delete set null,
+    scope varchar(32) not null,
+    status varchar(32) not null default 'PENDING',
+    summary jsonb,
+    violations jsonb,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+
+    constraint chk_paper_format_check_scope check (scope in ('USER_SELF_CHECK', 'REVIEW_PRECHECK')),
+    constraint chk_paper_format_check_status check (status in ('PENDING', 'RUNNING', 'PASSED', 'FAILED', 'ERROR'))
+);
+
+create index if not exists idx_paper_format_check_owner_source_scope
+    on public.paper_format_check_job using btree (owner_user_id, source_id, scope, created_at desc);
+
+create index if not exists idx_paper_format_check_review_task
+    on public.paper_format_check_job using btree (review_task_id, scope, created_at desc)
+    where review_task_id is not null;
+
+create index if not exists idx_paper_format_check_template
+    on public.paper_format_check_job using btree (template_id, created_at desc);

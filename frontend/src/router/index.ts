@@ -30,6 +30,12 @@ const router = createRouter({
       meta: { roles: ['USER'] },
     },
     {
+      path: '/format',
+      name: 'paper-format-check',
+      component: () => import('../views/format/PaperFormatCheckView.vue'),
+      meta: { roles: ['USER'] },
+    },
+    {
       path: '/review',
       name: 'review-workspace',
       component: () => import('../views/review/ReviewWorkspaceView.vue'),
@@ -51,6 +57,12 @@ const router = createRouter({
       path: '/admin/reviews',
       name: 'admin-reviews',
       component: () => import('../views/admin/AdminReviewDashboardView.vue'),
+      meta: { roles: ['ADMIN'] },
+    },
+    {
+      path: '/admin/paper-format-templates',
+      name: 'admin-paper-format-templates',
+      component: () => import('../views/admin/AdminPaperFormatTemplatesView.vue'),
       meta: { roles: ['ADMIN'] },
     },
     {

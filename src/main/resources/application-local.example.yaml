@@ -91,10 +91,10 @@ app:
       base-url: https://dashscope.aliyuncs.com
   document-ingestion:
     storage-dir: storage/document-ingestion
-    keep-upload-file: false
+    keep-upload-file: true
     max-retry-count: 3
     cleanup:
-      enabled: true
+      enabled: false
       retention: 24h
       cron: "0 0 * * * *"
     listener:

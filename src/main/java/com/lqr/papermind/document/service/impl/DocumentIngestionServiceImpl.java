@@ -26,6 +26,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -109,7 +110,7 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
             log.info("文档入库解析完成 ownerUserId={} jobId={} sourceId={} fileName={} textLength={} assetCount={} costMs={}",
                     job.getOwnerUserId(), job.getId(), parsedDocument.source().sourceId(), job.getFileName(), textLength(parsedDocument.text()), assetCount(parsedDocument), elapsedMs(startNanos));
             DocumentIngestionResult result = processParsedDocument(job, parsedDocument, startNanos);
-            if (!documentIngestionProperties.keepUploadFile()) {
+            if (shouldDeleteUploadFile(job)) {
                 documentUploadStorageService.delete(job.getFilePath());
             }
             log.info("文档入库完成 ownerUserId={} jobId={} sourceId={} fileName={} chunkCount={} costMs={}",
@@ -248,6 +249,19 @@ public class DocumentIngestionServiceImpl implements DocumentIngestionService {
         documentIngestionJobService.markRunningStage(job.getOwnerUserId(), job.getId(), job.getSourceId(), status, progress);
         log.info("文档入库状态 ownerUserId={} jobId={} sourceId={} status={} progress={}",
                 job.getOwnerUserId(), job.getId(), job.getSourceId(), status, progress);
+    }
+
+    private boolean shouldDeleteUploadFile(DocumentIngestionJob job) {
+        return !documentIngestionProperties.keepUploadFile() && !isDocxUpload(job);
+    }
+
+    private boolean isDocxUpload(DocumentIngestionJob job) {
+        return hasDocxExtension(job == null ? null : job.getFileName())
+                || hasDocxExtension(job == null ? null : job.getFilePath());
+    }
+
+    private boolean hasDocxExtension(String value) {
+        return value != null && value.toLowerCase(Locale.ROOT).endsWith(".docx");
     }
 
     /**

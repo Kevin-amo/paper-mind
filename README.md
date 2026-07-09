@@ -424,11 +424,11 @@ src/main/resources/application-local.yaml
 | 配置项 | 说明 | 默认值 |
 | --- | --- | --- |
 | `app.document-ingestion.storage-dir` | 上传文件存储目录 | `storage/document-ingestion` |
-| `app.document-ingestion.keep-upload-file` | 入库后保留原始文件 | `false` |
+| `app.document-ingestion.keep-upload-file` | 入库后保留原始文件 | `true` |
 | `app.document-ingestion.max-retry-count` | 最大重试次数 | `3` |
 | `app.document-ingestion.listener.concurrency` | MQ 监听器初始并发 | `2` |
 | `app.document-ingestion.listener.max-concurrency` | MQ 监听器最大并发 | `4` |
-| `app.document-ingestion.cleanup.enabled` | 启用过期文件清理 | `true` |
+| `app.document-ingestion.cleanup.enabled` | 启用过期文件清理 | `false` |
 | `app.document-ingestion.cleanup.retention` | 文件保留时长 | `24h` |
 
 ### 安全配置 (`app.security`)

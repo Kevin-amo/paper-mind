@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import {
   Clock,
   DataAnalysis,
+  DocumentChecked,
   Files,
   Setting,
   SwitchButton,
@@ -12,7 +13,7 @@ import {
 import { useAuth } from '../../composables/useAuth';
 import LogoutConfirmDialog from '../common/LogoutConfirmDialog.vue';
 
-type AdminSection = 'users' | 'config' | 'tasks' | 'criteria' | 'audit-logs';
+type AdminSection = 'users' | 'config' | 'tasks' | 'criteria' | 'templates' | 'audit-logs';
 
 const props = defineProps<{
   active: AdminSection;
@@ -63,6 +64,13 @@ const navItems: Array<{
     path: '/admin/reviews',
     query: { tab: 'criteria' },
     icon: DataAnalysis,
+  },
+  {
+    key: 'templates',
+    title: '论文模板',
+    description: '学校格式模板维护',
+    path: '/admin/paper-format-templates',
+    icon: DocumentChecked,
   },
   {
     key: 'audit-logs',

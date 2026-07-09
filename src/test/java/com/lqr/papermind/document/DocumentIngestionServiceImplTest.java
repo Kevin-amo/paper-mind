@@ -197,6 +197,39 @@ class DocumentIngestionServiceImplTest {
         verify(documentUploadStorageService).delete("storage/scan.png");
     }
 
+    @Test
+    void processJobShouldKeepDocxUploadFileEvenWhenKeepUploadFileIsFalse() throws Exception {
+        service = new DocumentIngestionServiceImpl(
+                documentParsingService,
+                documentSplittingService,
+                embeddingService,
+                vectorWriteService,
+                documentPersistenceService,
+                documentIngestionJobService,
+                documentUploadStorageService,
+                new DocumentIngestionProperties("storage", false, 3, new DocumentIngestionProperties.Listener(2, 4), null),
+                paperStructuredParseService
+        );
+        Fixture fixture = fixture();
+        UUID ownerUserId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        DocumentIngestionJob job = new DocumentIngestionJob();
+        job.setId(jobId);
+        job.setOwnerUserId(ownerUserId);
+        job.setSourceId("source-1");
+        job.setFileName("paper.docx");
+        job.setFilePath("storage/paper.docx");
+        byte[] content = "docx-bytes".getBytes();
+        when(documentUploadStorageService.read("storage/paper.docx")).thenReturn(content);
+        when(documentParsingService.parse(eq("paper.docx"), eq(content), any())).thenReturn(fixture.parsedDocument());
+        when(documentSplittingService.split(fixture.source(), "页面文本")).thenReturn(List.of(fixture.chunk()));
+        when(embeddingService.embed(List.of(fixture.chunk()))).thenReturn(List.of());
+
+        service.processJob(job);
+
+        verify(documentUploadStorageService, never()).delete("storage/paper.docx");
+    }
+
     private Fixture fixture() {
         return fixture(null);
     }

@@ -3,6 +3,7 @@ package com.lqr.papermind.document.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.lqr.papermind.document.entity.DocumentIngestionJob;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.UUID;
@@ -11,6 +12,17 @@ import java.util.UUID;
  * 文档异步入库任务数据访问接口，负责任务状态流转更新。
  */
 public interface DocumentIngestionJobMapper extends BaseMapper<DocumentIngestionJob> {
+
+    @Select("""
+            select *
+            from public.document_ingestion_job
+            where owner_user_id = #{ownerUserId}
+              and source_id = #{sourceId}
+            order by created_at desc
+            limit 1
+            """)
+    DocumentIngestionJob selectLatestByOwnerAndSource(@Param("ownerUserId") UUID ownerUserId,
+                                                      @Param("sourceId") String sourceId);
 
     /**
      * 将任务标记为已入队状态。

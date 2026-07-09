@@ -32,6 +32,8 @@
         <pdfbox.version>2.0.31</pdfbox.version>
         <mybatis-plus.version>3.5.16</mybatis-plus.version>
         <aliyun.oss.version>3.18.5</aliyun.oss.version>
+        <docx4j.version>11.5.14</docx4j.version>
+        <commons-io.version>2.22.0</commons-io.version>
     </properties>
 
     <dependencyManagement>
@@ -77,6 +79,18 @@
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>${pdfbox.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.docx4j</groupId>
+            <artifactId>docx4j-JAXB-ReferenceImpl</artifactId>
+            <version>${docx4j.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${commons-io.version}</version>
         </dependency>
 
         <dependency>

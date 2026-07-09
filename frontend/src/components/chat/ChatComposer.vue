@@ -6,7 +6,7 @@ export default {
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Promotion, Setting, Plus } from '@element-plus/icons-vue';
+import { Promotion, Setting, Plus, Grid } from '@element-plus/icons-vue';
 
 const props = defineProps<{
   loading?: boolean;
@@ -19,6 +19,7 @@ const emit = defineEmits<{
 
 const question = ref('');
 const topK = ref(3);
+const moreMenuVisible = ref(false);
 const advancedVisible = ref(false);
 const topKOptions = Array.from({ length: 10 }, (_, index) => index + 1);
 
@@ -76,9 +77,24 @@ defineExpose({ fillQuestion });
             aria-label="上传论文"
             @click="emit('selectFiles')"
           />
-          <el-button class="composer-pill" text :icon="Setting" @click="advancedVisible = true">
-            Top K {{ topK }}
-          </el-button>
+          <el-dropdown trigger="click" placement="top" @visible-change="(visible) => moreMenuVisible = visible">
+            <el-button
+              class="composer-pill"
+              text
+              title="更多"
+              aria-label="更多功能"
+            >
+              更多
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu class="more-dropdown-menu">
+                <el-dropdown-item @click="advancedVisible = true; moreMenuVisible = false">
+                  <span class="menu-item-label">引用召回数量</span>
+                  <span class="menu-item-value">{{ topK }}</span>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
         <el-button
           class="send-button"
@@ -190,6 +206,12 @@ defineExpose({ fillQuestion });
   color: var(--app-text);
 }
 
+.composer-icon-button:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-surface-muted);
+  color: var(--app-primary);
+}
+
 .composer-pill {
   height: 34px;
   padding: 0 12px;
@@ -201,8 +223,7 @@ defineExpose({ fillQuestion });
   font-weight: 500;
 }
 
-.composer-pill:hover,
-.composer-icon-button:hover {
+.composer-pill:hover {
   border-color: var(--app-border-strong);
   background: var(--app-surface-muted);
   color: var(--app-primary);
@@ -291,6 +312,20 @@ defineExpose({ fillQuestion });
   color: var(--app-primary);
 }
 
+.menu-item-label {
+  font-size: 13px;
+  color: var(--app-text);
+}
+
+.menu-item-value {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--app-text-muted);
+  background: var(--app-surface-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
 :global(.advanced-dialog .el-dialog) {
   border-radius: 26px;
 }
@@ -325,5 +360,27 @@ defineExpose({ fillQuestion });
   :global(.advanced-dialog) {
     width: calc(100% - 28px) !important;
   }
+}
+</style>
+
+<style>
+.more-dropdown-menu {
+  min-width: 140px;
+  padding: 8px 0;
+  border-radius: 12px;
+  border: 1px solid var(--app-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.more-dropdown-menu .el-dropdown-menu__item {
+  padding: 10px 16px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.more-dropdown-menu .el-dropdown-menu__item:hover {
+  background: var(--app-surface-soft);
 }
 </style>
