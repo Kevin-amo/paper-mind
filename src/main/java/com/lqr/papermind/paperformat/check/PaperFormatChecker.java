@@ -93,13 +93,13 @@ public class PaperFormatChecker {
     }
 
     private List<FormatViolation> collapseRepeatedRoleViolations(String role, List<FormatViolation> violations) {
-        if (!"body".equals(role) || violations.size() < 2) {
+        if (violations.size() < 2) {
             return violations;
         }
         Map<String, List<FormatViolation>> groups = new LinkedHashMap<>();
         for (FormatViolation violation : violations) {
             String key = String.join("\u0001",
-                    normalizeBodyCode(violation.getCode()),
+                    normalizeViolationCode(role, violation.getCode()),
                     nullToEmpty(violation.getSeverity()),
                     nullToEmpty(violation.getExpected()),
                     nullToEmpty(violation.getMessage()),
@@ -111,18 +111,18 @@ public class PaperFormatChecker {
             if (group.size() == 1) {
                 result.add(group.getFirst());
             } else {
-                result.add(collapseBodyGroup(group));
+                result.add(collapseRoleGroup(role, group));
             }
         }
         return result;
     }
 
-    private FormatViolation collapseBodyGroup(List<FormatViolation> group) {
+    private FormatViolation collapseRoleGroup(String role, List<FormatViolation> group) {
         FormatViolation first = group.getFirst();
         return FormatViolation.of(
-                normalizeBodyCode(first.getCode()),
+                normalizeViolationCode(role, first.getCode()),
                 first.getSeverity(),
-                summarizeLocations(group),
+                summarizeLocations(role, group),
                 first.getExpected(),
                 summarizeActuals(group),
                 first.getMessage(),
@@ -130,11 +130,18 @@ public class PaperFormatChecker {
         );
     }
 
+    private String normalizeViolationCode(String role, String code) {
+        if ("body".equals(role)) {
+            return normalizeBodyCode(code);
+        }
+        return code == null ? "" : code;
+    }
+
     private String normalizeBodyCode(String code) {
         return code == null ? "" : code.replaceFirst("^BODY_\\d+_", "BODY_");
     }
 
-    private String summarizeLocations(List<FormatViolation> group) {
+    private String summarizeLocations(String role, List<FormatViolation> group) {
         List<String> locations = group.stream()
                 .map(FormatViolation::getLocation)
                 .map(this::paragraphMarker)
@@ -144,7 +151,7 @@ public class PaperFormatChecker {
         if (locations.size() > MAX_COLLAPSED_LOCATION_MARKERS) {
             markerText = markerText + "，等 " + group.size() + " 段";
         }
-        return "正文，共 " + group.size() + " 段（" + markerText + "）";
+        return roleLabel(role) + "，共 " + group.size() + " 段（" + markerText + "）";
     }
 
     private String paragraphMarker(String location) {

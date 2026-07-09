@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-/** Extracts template format requirements from fixed text, optional AI evidence, and OOXML fallback. */
+/** 从固定文本、可选的AI证据和OOXML备份中提取模板格式要求。*/
 @Component
 public class DocxFormatSpecExtractor {
 

@@ -173,6 +173,32 @@ class PaperFormatCheckerTest {
         });
     }
 
+    /** Repeated non-body role paragraphs should also be summarized to avoid long duplicate reports. */
+    @Test
+    void checkShouldCollapseRepeatedNonBodyRoleViolationsByProblemType() {
+        FormatSpec spec = new FormatSpec();
+        spec.setBodyRule(null);
+        ParagraphStyleRule headingRule = new ParagraphStyleRule();
+        headingRule.setEastAsiaFont("宋体");
+        spec.getRoleRules().put("heading2", headingRule);
+
+        DocumentFormatProfile profile = new DocumentFormatProfile();
+        profile.setRoleParagraphs(List.of(
+                snapshot(8, "1.1 First heading", "heading2", "黑体", 10.5, null),
+                snapshot(9, "1.2 Second heading", "heading2", "黑体", 10.5, null),
+                snapshot(10, "1.3 Third heading", "heading2", "黑体", 10.5, null)
+        ));
+
+        FormatCheckReport report = new PaperFormatChecker().check(spec, profile);
+
+        assertThat(report.getViolations()).filteredOn(violation -> violation.getCode().equals("HEADING_2_FONT")).singleElement()
+                .satisfies(violation -> {
+                    assertThat(violation.getLocation()).contains("#8", "#9", "#10");
+                    assertThat(violation.getActual()).contains("黑体");
+                });
+        assertThat(report.getSummary().get("ERROR")).isEqualTo(1);
+    }
+
     /** Collapsed body locations should stay readable even when a long document has many matching violations. */
     @Test
     void checkShouldLimitCollapsedBodyLocationSummary() {
