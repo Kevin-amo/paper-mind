@@ -5,3 +5,4 @@ export * from './conversation';
 export * from './review';
 export * from './reviewSubmission';
 export * from './paperFormat';
+export * from './aigcRewrite';

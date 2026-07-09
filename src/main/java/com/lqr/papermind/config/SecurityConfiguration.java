@@ -76,7 +76,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/paper-format/**").hasAnyRole("USER", "REVIEWER", "ADMIN")
                         .requestMatchers("/reviews/**", "/review-leader/**").hasAnyRole("REVIEWER", "ADMIN")
-                        .requestMatchers("/documents/**", "/conversations/**", "/agent/**", "/review-submissions/**").hasRole("USER")
+                        .requestMatchers("/documents/**", "/conversations/**", "/agent/**", "/review-submissions/**", "/aigc-rewrite/**").hasRole("USER")
                         .requestMatchers("/auth/**").authenticated()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

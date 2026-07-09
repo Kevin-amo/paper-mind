@@ -8,6 +8,7 @@ import DocumentLibraryDrawer from '../components/documents/DocumentLibraryDrawer
 import DocumentDetailDrawer from '../components/documents/DocumentDetailDrawer.vue';
 import ReviewSubmissionDrawer from '../components/review-submissions/ReviewSubmissionDrawer.vue';
 import AccountManagementDialog from '../components/user/AccountManagementDialog.vue';
+import AigcRewriteDialog from '../components/aigc/AigcRewriteDialog.vue';
 import { getErrorMessage } from '../api/http';
 import { useAuth } from '../composables/useAuth';
 import { clearAuthSession } from '../composables/authState';
@@ -26,6 +27,7 @@ const conversationsState = useConversations();
 const documentLibraryVisible = ref(false);
 const reviewSubmissionsVisible = ref(false);
 const accountManagementVisible = ref(false);
+const aigcRewriteVisible = ref(false);
 const avatarUploading = ref(false);
 const displayNameChanging = ref(false);
 const passwordChanging = ref(false);
@@ -230,6 +232,7 @@ onMounted(async () => {
       @open-documents="documentLibraryVisible = true"
       @open-review-submissions="reviewSubmissionsVisible = true"
       @open-format-check="router.push('/format')"
+      @open-aigc-rewrite="aigcRewriteVisible = true"
       @go-admin="router.push('/admin')"
       @open-account-management="accountManagementVisible = true"
       @logout="handleLogout"
@@ -296,6 +299,8 @@ onMounted(async () => {
       @request-email-code="handleRequestEmailCode"
       @change-email="handleChangeEmail"
     />
+
+    <AigcRewriteDialog v-model="aigcRewriteVisible" />
 
     <DocumentDetailDrawer
       v-model="documentsState.detailVisible.value"
