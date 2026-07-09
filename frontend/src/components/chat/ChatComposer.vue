@@ -6,7 +6,7 @@ export default {
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Promotion, Setting, Plus, Grid } from '@element-plus/icons-vue';
+import { DocumentChecked, MagicStick, Promotion, Setting, Plus } from '@element-plus/icons-vue';
 
 const props = defineProps<{
   loading?: boolean;
@@ -15,6 +15,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   submit: [payload: { question: string; topK?: number }];
   selectFiles: [];
+  openFormatCheck: [];
+  openAigcRewrite: [];
 }>();
 
 const question = ref('');
@@ -53,6 +55,20 @@ function fillQuestion(value: string) {
   submitQuestion();
 }
 
+function openFormatCheck() {
+  moreMenuVisible.value = false;
+  emit('openFormatCheck');
+}
+
+function openAigcRewrite() {
+  moreMenuVisible.value = false;
+  emit('openAigcRewrite');
+}
+
+function handleMoreMenuVisibleChange(visible: boolean) {
+  moreMenuVisible.value = visible;
+}
+
 defineExpose({ fillQuestion });
 </script>
 
@@ -77,7 +93,7 @@ defineExpose({ fillQuestion });
             aria-label="上传论文"
             @click="emit('selectFiles')"
           />
-          <el-dropdown trigger="click" placement="top" @visible-change="(visible) => moreMenuVisible = visible">
+          <el-dropdown trigger="click" placement="top" @visible-change="handleMoreMenuVisibleChange">
             <el-button
               class="composer-pill"
               text
@@ -88,7 +104,16 @@ defineExpose({ fillQuestion });
             </el-button>
             <template #dropdown>
               <el-dropdown-menu class="more-dropdown-menu">
+                <el-dropdown-item @click="openFormatCheck">
+                  <el-icon><DocumentChecked /></el-icon>
+                  <span class="menu-item-label">论文格式校对</span>
+                </el-dropdown-item>
+                <el-dropdown-item @click="openAigcRewrite">
+                  <el-icon><MagicStick /></el-icon>
+                  <span class="menu-item-label">AIGC 降重</span>
+                </el-dropdown-item>
                 <el-dropdown-item @click="advancedVisible = true; moreMenuVisible = false">
+                  <el-icon><Setting /></el-icon>
                   <span class="menu-item-label">引用召回数量</span>
                   <span class="menu-item-value">{{ topK }}</span>
                 </el-dropdown-item>
