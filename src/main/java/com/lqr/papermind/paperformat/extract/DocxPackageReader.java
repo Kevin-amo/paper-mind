@@ -20,7 +20,7 @@ import java.util.zip.ZipInputStream;
 /**
  * DOCX包读取器，从docx文件（ZIP格式）中读取和解析XML部件
  */
-final class DocxPackageReader {
+public final class DocxPackageReader {
 
     /** 私有构造器，防止实例化 */
     private DocxPackageReader() {
@@ -46,6 +46,31 @@ final class DocxPackageReader {
             }
         }
         return parts;
+    }
+
+    /** Reads all XML parts and exposes convenient lookup helpers. */
+    public static PackageParts read(InputStream input) throws java.io.IOException {
+        return new PackageParts(readXmlParts(input));
+    }
+
+    /** Immutable view of DOCX XML parts. */
+    public record PackageParts(Map<String, String> xmlParts) {
+        public java.util.Set<String> partNames() {
+            return java.util.Collections.unmodifiableSet(xmlParts.keySet());
+        }
+
+        public java.util.Optional<String> xml(String partName) {
+            return java.util.Optional.ofNullable(xmlParts.get(partName));
+        }
+
+        public java.util.Optional<Document> parsePart(String partName) {
+            return xml(partName).map(DocxPackageReader::parse);
+        }
+
+        public java.util.List<String> matching(String regex) {
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(regex);
+            return xmlParts.keySet().stream().filter(name -> pattern.matcher(name).matches()).toList();
+        }
     }
 
     /** 将XML字符串解析为DOM Document对象 */
@@ -91,6 +116,10 @@ final class DocxPackageReader {
         NodeList texts = parent.getElementsByTagName("w:t");
         for (int i = 0; i < texts.getLength(); i++) {
             result.append(texts.item(i).getTextContent());
+        }
+        NodeList instructions = parent.getElementsByTagName("w:instrText");
+        for (int i = 0; i < instructions.getLength(); i++) {
+            result.append(instructions.item(i).getTextContent());
         }
         return result.toString().trim();
     }

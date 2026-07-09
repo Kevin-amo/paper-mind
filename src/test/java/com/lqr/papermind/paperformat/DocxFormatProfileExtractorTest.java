@@ -42,4 +42,33 @@ class DocxFormatProfileExtractorTest {
             assertThat(heading.getAlignment()).isEqualTo("CENTER");
         });
     }
+
+    /** Student profiles should classify every paragraph role and preserve actual run-level formatting. */
+    @Test
+    void extractShouldClassifyStudentRolesAndResolveTocRunOverrides() throws Exception {
+        Path docx = DocxTestDocuments.studentRoleDocxWithMistakes(tempDir);
+
+        DocumentFormatProfile profile;
+        try (var input = Files.newInputStream(docx)) {
+            profile = new DocxFormatProfileExtractor().extract(input);
+        }
+
+        assertThat(profile.getParagraphs()).anySatisfy(paragraph -> {
+            assertThat(paragraph.getRole()).isEqualTo("cnAbstractContent");
+            assertThat(paragraph.getEastAsiaFont()).isEqualTo("黑体");
+        });
+        assertThat(profile.getParagraphs()).anySatisfy(paragraph -> {
+            assertThat(paragraph.getRole()).isEqualTo("tocEntry1");
+            assertThat(paragraph.getEastAsiaFont()).isEqualTo("黑体");
+            assertThat(paragraph.getFontSizePt()).isEqualTo(12.0);
+        });
+        assertThat(profile.getParagraphs()).anySatisfy(paragraph -> {
+            assertThat(paragraph.getRole()).isEqualTo("body");
+            assertThat(paragraph.getText()).contains("第二个正文段落");
+        });
+        assertThat(profile.getHeadings()).anySatisfy(heading -> {
+            assertThat(heading.getRole()).isEqualTo("heading2");
+            assertThat(heading.getLevel()).isEqualTo(2);
+        });
+    }
 }

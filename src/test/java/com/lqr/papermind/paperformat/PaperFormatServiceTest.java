@@ -174,6 +174,37 @@ class PaperFormatServiceTest {
         assertThat(captor.getValue().getConfirmed()).isFalse();
     }
 
+    /** Low-confidence AI rules should require administrator confirmation. */
+    @Test
+    void uploadTemplateShouldNeedConfirmWhenLowConfidenceAiRulesExist() throws Exception {
+        PaperFormatTemplateMapper templateMapper = mock(PaperFormatTemplateMapper.class);
+        DocumentUploadStorageService storageService = mock(DocumentUploadStorageService.class);
+        DocxFormatSpecExtractor specExtractor = mock(DocxFormatSpecExtractor.class);
+        PaperFormatServiceImpl service = service(
+                templateMapper,
+                mock(PaperFormatCheckJobMapper.class),
+                storageService,
+                mock(DocumentPersistenceService.class),
+                mock(DocumentIngestionJobMapper.class),
+                mock(DocxFormatProfileExtractor.class),
+                mock(PaperFormatChecker.class),
+                specExtractor
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "template.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx".getBytes());
+        when(storageService.store(any(), any(), any(), any(), any())).thenReturn(new DocumentUploadStorageService.StoredUpload("template.docx", "storage/template.docx"));
+        FormatSpec spec = new FormatSpec();
+        spec.getExtractionReport().put("conflicts", List.of());
+        spec.getExtractionReport().put("lowConfidenceAiRules", List.of(Map.of("fieldPath", "headerFooterRule.headerText")));
+        when(specExtractor.extract(any())).thenReturn(spec);
+
+        service.uploadTemplate(UUID.randomUUID(), false, file, "Template", "School");
+
+        ArgumentCaptor<PaperFormatTemplateEntity> captor = ArgumentCaptor.forClass(PaperFormatTemplateEntity.class);
+        verify(templateMapper).insert(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo("NEED_CONFIRM");
+        assertThat(captor.getValue().getConfirmed()).isFalse();
+    }
+
     /** 测试创建检查任务应持久化失败状态和违规记录 */
     @Test
     void createCheckShouldPersistFailedJobWithViolations() throws Exception {
@@ -272,6 +303,56 @@ class PaperFormatServiceTest {
         ArgumentCaptor<PaperFormatCheckJobEntity> captor = ArgumentCaptor.forClass(PaperFormatCheckJobEntity.class);
         verify(checkJobMapper).insert(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo("PASSED");
+    }
+
+    /** Student paper format checks must not trigger template AI extraction. */
+    @Test
+    void createCheckShouldNotCallSpecExtractorOrAiExtraction() throws Exception {
+        UUID ownerUserId = UUID.randomUUID();
+        UUID templateId = UUID.randomUUID();
+        PaperFormatCheckJobMapper checkJobMapper = mock(PaperFormatCheckJobMapper.class);
+        PaperFormatTemplateMapper templateMapper = mock(PaperFormatTemplateMapper.class);
+        DocumentUploadStorageService storageService = mock(DocumentUploadStorageService.class);
+        DocxFormatProfileExtractor profileExtractor = mock(DocxFormatProfileExtractor.class);
+        PaperFormatChecker checker = mock(PaperFormatChecker.class);
+        DocxFormatSpecExtractor throwingSpecExtractor = mock(DocxFormatSpecExtractor.class);
+        when(throwingSpecExtractor.extract(any())).thenThrow(new AssertionError("AI template extraction should not run during createCheck"));
+        DocumentPersistenceService documentPersistenceService = mock(DocumentPersistenceService.class);
+        DocumentIngestionJobMapper jobMapper = mock(DocumentIngestionJobMapper.class);
+        PaperFormatServiceImpl service = service(
+                templateMapper,
+                checkJobMapper,
+                storageService,
+                documentPersistenceService,
+                jobMapper,
+                profileExtractor,
+                checker,
+                throwingSpecExtractor
+        );
+        PaperFormatTemplateEntity template = new PaperFormatTemplateEntity();
+        template.setId(templateId);
+        template.setOwnerUserId(ownerUserId);
+        template.setStatus("READY");
+        template.setFormatSpec(new FormatSpec());
+        when(templateMapper.selectById(templateId)).thenReturn(template);
+        when(documentPersistenceService.findAnyDocument(ownerUserId, "source-a"))
+                .thenReturn(Optional.of(document(ownerUserId, "source-a")));
+        DocumentIngestionJob job = new DocumentIngestionJob();
+        job.setFileName("paper.docx");
+        job.setFilePath("storage/paper.docx");
+        when(jobMapper.selectLatestByOwnerAndSource(ownerUserId, "source-a")).thenReturn(job);
+        when(storageService.read("storage/paper.docx")).thenReturn("docx".getBytes());
+        when(profileExtractor.extract(any())).thenReturn(new DocumentFormatProfile());
+        FormatCheckReport report = new FormatCheckReport();
+        report.setStatus("PASSED");
+        report.setSummary(Map.of("ERROR", 0, "WARNING", 0, "REVIEW", 0));
+        report.setViolations(List.of());
+        when(checker.check(any(), any())).thenReturn(report);
+
+        service.createCheck(ownerUserId, false, new CreateFormatCheckRequest(templateId, "source-a"), "USER_SELF_CHECK", null);
+
+        verify(throwingSpecExtractor, never()).extract(any());
+        verify(checkJobMapper).insert(any(PaperFormatCheckJobEntity.class));
     }
 
     /** 测试原始上传文件丢失时应清晰报告错误 */

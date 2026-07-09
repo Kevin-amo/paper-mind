@@ -91,13 +91,241 @@ final class DocxTestDocuments {
         );
     }
 
+    /** Creates a template shaped like the software thesis example: custom styles plus requirement prose. */
+    static Path softwareExampleTemplateDocx(Path directory) throws IOException {
+        return writeDocx(
+                directory.resolve("software-example-template.docx"),
+                softwareExampleStylesXml(),
+                settingsXml(false),
+                headerXml("人工智能与信息工程学院毕业设计", true, null, "宋体", 18),
+                footerXml(true, true),
+                documentXml("""
+                        <w:p><w:pPr><w:pStyle w:val="aff1"/></w:pPr><w:r><w:t>基于 XX 系统的设计与实现</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>标题：宋体（加粗），五号，两端对齐。行距固定值16磅。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>目录</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>中文摘要字数要求：250-300字左右。内容：中文五号楷体，两端对齐，段前段后0磅。行距固定值16磅。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>关键词：信息系统；需求分析；数据库建模；XXX</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>英文摘要内容：英文Times New Roman，五号，两端对齐，固定值16磅行距，段前段后0磅。</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff3"/></w:pPr><w:r><w:t>1 绪论</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>一级标题：小四号黑体（加粗），多倍行距：1.35。</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff4"/></w:pPr><w:r><w:t>1.1 研究内容</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff5"/></w:pPr><w:r><w:t>1.1.1 业务描述</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC10"/></w:pPr><w:r><w:t>目录</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC1"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr><w:t>1 绪论</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC2"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr><w:t>1.1 研究内容</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC3"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr><w:t>1.1.1 业务描述</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>二级和三级节标题不用空行；中文宋体，英文Times New Roman，五号，两端对齐，固定值16磅，段前、段后均为0磅。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>正文文字：中文宋体，英文Times New Roman，五号，两端对齐，段落首行左缩进2个汉字符，固定值16磅，段前、段后均为0磅。</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff2"/></w:pPr><w:r><w:t>这是正文段落。</w:t></w:r></w:p>
+                        """, pgMarTwips(1134, 1134, 1134, 1417, 850, 850, 283))
+        );
+    }
+
+    /** Creates a template where prose requirements must outrank misleading style/template evidence. */
+    static Path misalignedSoftwareExampleTemplateDocx(Path directory) throws IOException {
+        return writeDocx(
+                directory.resolve("misaligned-software-example-template.docx"),
+                misalignedSoftwareExampleStylesXml(),
+                settingsXml(false),
+                headerXml("人工智能与信息工程学院毕业设计", true, null, "宋体", 18),
+                footerXml(true, true),
+                documentXml("""
+                        <w:p><w:pPr><w:pStyle w:val="aff1"/></w:pPr><w:r><w:t>基于 XX 系统的设计与实现</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>标题：宋体（加粗），五号，两端对齐。行距固定值16磅。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>目录</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>中文摘要字数要求：250-300字左右。内容：中文五号楷体，两端对齐，段前段后0磅。行距固定值16磅。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>中文关键词：楷体，五号；关键词三个到五个。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>英文摘要内容：英文Times New Roman，五号，两端对齐，固定值16磅行距，段前段后0磅。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>英文关键词：Times New Roman，五号。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>关键词：信息系统；需求分析；数据库建模；XXX</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>Keywords: information system; requirement analysis; database modeling</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff3"/></w:pPr><w:r><w:t>1 绪论</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff2"/></w:pPr><w:r><w:t>一级标题说明：小四号黑体（加粗），多倍行距：1.35。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>一级标题：小四号黑体（加粗），多倍行距：1.35。</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff4"/></w:pPr><w:r><w:t>1.1 研究内容</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff5"/></w:pPr><w:r><w:t>1.1.1 业务描述</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC10"/></w:pPr><w:r><w:t>目录</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC1"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr><w:t>1 绪论</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC2"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr><w:t>1.1 研究内容</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC3"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr><w:t>1.1.1 业务描述</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>二级和三级节标题不用空行；中文宋体，英文Times New Roman，五号，两端对齐，固定值16磅，段前、段后均为0磅。</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>正文文字：中文宋体，英文Times New Roman，五号，两端对齐，段落首行左缩进2个汉字符，固定值16磅，段前、段后均为0磅。</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff2"/></w:pPr><w:r><w:t>这是正文段落。</w:t></w:r></w:p>
+                        """, pgMarTwips(1134, 1134, 1134, 1417, 850, 850, 283))
+        );
+    }
+
+    /** Creates a software template where body style conflicts with text requirements. */
+    static Path conflictingSoftwareTemplateDocx(Path directory) throws IOException {
+        return writeDocx(
+                directory.resolve("conflicting-software-template.docx"),
+                softwareExampleStylesXml().replace("w:styleId=\"aff2\"><w:name w:val=\"论文正文\"",
+                        "w:styleId=\"aff2\"><w:name w:val=\"论文正文\"").replace("w:styleId=\"aff2\"", "w:styleId=\"aff2\""),
+                settingsXml(false),
+                headerXml("人工智能与信息工程学院毕业设计", true, null, "宋体", 18),
+                footerXml(true, true),
+                documentXml("""
+                        <w:p><w:pPr><w:pStyle w:val="aff2"/></w:pPr><w:r><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="21"/></w:rPr><w:t>正文示例</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>正文文字：中文宋体，英文Times New Roman，五号，两端对齐，段落首行左缩进2个汉字符，固定值16磅，段前、段后均为0磅。</w:t></w:r></w:p>
+                        """, pgMarTwips(1134, 1134, 1134, 1417, 850, 850, 283))
+        );
+    }
+
+    /** Creates a template where TOC10 can be mistaken for body if styleId is ignored. */
+    static Path toc10BodyCandidateTemplateDocx(Path directory) throws IOException {
+        return writeDocx(
+                directory.resolve("toc10-body-candidate-template.docx"),
+                softwareExampleStylesXml(),
+                settingsXml(false),
+                headerXml("Header", true, null, "瀹嬩綋", 18),
+                footerXml(true, true),
+                documentXml("""
+                        <w:p><w:pPr><w:pStyle w:val="TOC10"/></w:pPr><w:r><w:t>TOC title sample</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC1"/></w:pPr><w:r><w:t>1 Introduction</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC2"/></w:pPr><w:r><w:t>1.1 Background</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC3"/></w:pPr><w:r><w:t>1.1.1 Scope</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff2"/></w:pPr><w:r><w:t>Body paragraph sample.</w:t></w:r></w:p>
+                        """, pgMarTwips(1134, 1134, 1134, 1417, 850, 850, 283))
+        );
+    }
+
+    /** Creates a DOCX with all evidence-bearing parts. */
+    static Path richEvidenceTemplateDocx(Path directory) throws IOException {
+        String comments = """
+                <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:comment w:id="0"><w:p><w:r><w:t>批注中的格式说明</w:t></w:r></w:p></w:comment>
+                </w:comments>
+                """;
+        String footnotes = """
+                <w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:footnote w:id="1"><w:p><w:r><w:t>脚注中的格式说明</w:t></w:r></w:p></w:footnote>
+                </w:footnotes>
+                """;
+        String endnotes = """
+                <w:endnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:endnote w:id="1"><w:p><w:r><w:t>尾注中的格式说明</w:t></w:r></w:p></w:endnote>
+                </w:endnotes>
+                """;
+        return writeDocx(
+                directory.resolve("rich-evidence-template.docx"),
+                softwareExampleStylesXml(),
+                settingsXml(false),
+                headerXml("人工智能与信息工程学院毕业设计", true, null, "宋体", 18),
+                footerXml(true, true),
+                documentXml("""
+                        <w:p><w:r><w:t>正文中的格式说明</w:t></w:r></w:p>
+                        <w:tbl><w:tr><w:tc><w:p><w:pPr><w:pStyle w:val="aff2"/></w:pPr><w:r><w:t>表格中的格式说明</w:t></w:r></w:p></w:tc></w:tr></w:tbl>
+                        <w:p><w:r><w:pict><v:shape><v:textbox><w:txbxContent>
+                          <w:p><w:r><w:t>文本框里的格式说明</w:t></w:r></w:p>
+                        </w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>
+                        """, pgMarTwips(1134, 1134, 1134, 1417, 850, 850, 283)),
+                comments,
+                footnotes,
+                endnotes
+        );
+    }
+
+    /** Creates a document whose style uses Word theme font placeholders instead of concrete font names. */
+    static Path themePlaceholderFontDocx(Path directory) throws IOException {
+        String styles = """
+                <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:style w:type="paragraph" w:styleId="ThemeBody">
+                    <w:name w:val="Theme Body"/>
+                    <w:rPr><w:rFonts w:asciiTheme="minorHAnsi" w:hAnsiTheme="minorHAnsi" w:eastAsiaTheme="minorEastAsia"/><w:sz w:val="21"/></w:rPr>
+                  </w:style>
+                </w:styles>
+                """;
+        return writeDocx(
+                directory.resolve("theme-placeholder-font.docx"),
+                styles,
+                settingsXml(false),
+                headerXml("Header", true, null, "宋体", 18),
+                footerXml(true, true),
+                documentXml("""
+                        <w:p><w:pPr><w:pStyle w:val="ThemeBody"/></w:pPr><w:r><w:t>正文段落</w:t></w:r></w:p>
+                        """, pgMarTwips(1134, 1134, 1134, 1417, 850, 850, 283))
+        );
+    }
+
+    /** Creates a student paper with role-specific formatting mistakes. */
+    static Path studentRoleDocxWithMistakes(Path directory) throws IOException {
+        return writeDocx(
+                directory.resolve("student-role-mistakes.docx"),
+                softwareExampleStylesXml(),
+                settingsXml(false),
+                headerXml("人工智能与信息工程学院毕业设计", true, null, "宋体", 18),
+                footerXml(true, true),
+                documentXml("""
+                        <w:p><w:pPr><w:pStyle w:val="aff1"/></w:pPr><w:r><w:t>基于 XX 系统的设计与实现</w:t></w:r></w:p>
+                        <w:p><w:r><w:t>摘要</w:t></w:r></w:p>
+                        <w:p><w:r><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="21"/></w:rPr><w:t>这是中文摘要内容。</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="TOC1"/></w:pPr><w:r><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr><w:t>1 绪论\t1</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff3"/></w:pPr><w:r><w:t>1 绪论</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff4"/></w:pPr><w:r><w:t>1.1 正确标题</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff2"/></w:pPr><w:r><w:t>第一个正文段落。</w:t></w:r></w:p>
+                        <w:p><w:pPr><w:pStyle w:val="aff2"/></w:pPr><w:r><w:t>第二个正文段落。</w:t></w:r></w:p>
+                        """, pgMarTwips(1134, 1134, 1134, 1417, 850, 850, 283))
+        );
+    }
+
     /** 将XML部件写入docx ZIP文件 */
+    /** Creates a template with text boxes and comments for AI evidence tests. */
+    static Path aiAnnotatedTemplateDocx(Path directory, double topMarginMm) throws IOException {
+        int topTwips = (int) Math.round(topMarginMm / 25.4 * 1440.0);
+        String paragraphs = """
+                <w:p><w:r><w:t>摘要</w:t></w:r></w:p>
+                <w:p><w:r><w:t>关键词</w:t></w:r></w:p>
+                <w:p><w:r><w:t>Abstract</w:t></w:r></w:p>
+                <w:p><w:r><w:pict><v:shape><v:textbox><w:txbxContent>
+                  <w:p><w:r><w:t>标题：宋体（加粗），五号，两端对齐。行距固定值16磅。</w:t></w:r></w:p>
+                  <w:p><w:r><w:t>页眉：中文宋体，小五号，居中，人工智能与信息工程学院毕业设计</w:t></w:r></w:p>
+                  <w:p><w:r><w:t>英文摘要内容：Times New Roman，五号，两端对齐，固定值16磅，段前段后0磅</w:t></w:r></w:p>
+                </w:txbxContent></v:textbox></v:shape></w:pict></w:r></w:p>
+                """;
+        String comments = """
+                <w:comments xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:comment w:id="0"><w:p><w:r><w:t>封面不要出现页眉。</w:t></w:r></w:p></w:comment>
+                </w:comments>
+                """;
+        return writeDocx(
+                directory.resolve("ai-annotated-template.docx"),
+                defaultStylesXml(),
+                settingsXml(false),
+                headerXml("OOXML Header", true, null, "宋体", 18),
+                footerXml(false, true),
+                documentXml(paragraphs, pgMarTwips(topTwips, 1800, 1440, 1800, 851, 992, 0)),
+                comments
+        );
+    }
+
     private static Path writeDocx(Path path,
                                   String stylesXml,
                                   String settingsXml,
                                   String headerXml,
                                   String footerXml,
                                   String documentXml) throws IOException {
+        return writeDocx(path, stylesXml, settingsXml, headerXml, footerXml, documentXml, null);
+    }
+
+    private static Path writeDocx(Path path,
+                                  String stylesXml,
+                                  String settingsXml,
+                                  String headerXml,
+                                  String footerXml,
+                                  String documentXml,
+                                  String commentsXml) throws IOException {
+        return writeDocx(path, stylesXml, settingsXml, headerXml, footerXml, documentXml, commentsXml, null, null);
+    }
+
+    private static Path writeDocx(Path path,
+                                  String stylesXml,
+                                  String settingsXml,
+                                  String headerXml,
+                                  String footerXml,
+                                  String documentXml,
+                                  String commentsXml,
+                                  String footnotesXml,
+                                  String endnotesXml) throws IOException {
         try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(path))) {
             entry(zip, "[Content_Types].xml", """
                     <?xml version="1.0" encoding="UTF-8"?>
@@ -109,6 +337,9 @@ final class DocxTestDocuments {
                       <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
                       <Override PartName="/word/header1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>
                       <Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/>
+                      <Override PartName="/word/comments.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml"/>
+                      <Override PartName="/word/footnotes.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"/>
+                      <Override PartName="/word/endnotes.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml"/>
                     </Types>
                     """);
             entry(zip, "_rels/.rels", """
@@ -129,6 +360,15 @@ final class DocxTestDocuments {
             entry(zip, "word/header1.xml", headerXml);
             entry(zip, "word/footer1.xml", footerXml);
             entry(zip, "word/document.xml", documentXml);
+            if (commentsXml != null) {
+                entry(zip, "word/comments.xml", commentsXml);
+            }
+            if (footnotesXml != null) {
+                entry(zip, "word/footnotes.xml", footnotesXml);
+            }
+            if (endnotesXml != null) {
+                entry(zip, "word/endnotes.xml", endnotesXml);
+            }
         }
         return path;
     }
@@ -155,6 +395,49 @@ final class DocxTestDocuments {
                 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
                   <w:style w:type="paragraph" w:styleId="HeaderBase"><w:pPr><w:jc w:val="center"/></w:pPr></w:style>
                   <w:style w:type="paragraph" w:styleId="HeaderDerived"><w:basedOn w:val="HeaderBase"/><w:rPr><w:rFonts w:eastAsia="宋体"/><w:sz w:val="18"/></w:rPr></w:style>
+                </w:styles>
+                """;
+    }
+
+    private static String softwareExampleStylesXml() {
+        return """
+                <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:docDefaults>
+                    <w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:rPrDefault>
+                    <w:pPrDefault><w:pPr><w:spacing w:line="320" w:lineRule="exact"/><w:jc w:val="both"/></w:pPr></w:pPrDefault>
+                  </w:docDefaults>
+                  <w:style w:type="paragraph" w:styleId="aff1"><w:name w:val="论文题目"/><w:pPr><w:jc w:val="both"/></w:pPr><w:rPr><w:b/><w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="aff2"><w:name w:val="论文正文"/><w:pPr><w:jc w:val="both"/><w:spacing w:after="0" w:before="0" w:line="320" w:lineRule="exact"/><w:ind w:firstLine="420"/></w:pPr><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="tocTitle"><w:name w:val="目录标题"/><w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:rFonts w:eastAsia="黑体"/><w:sz w:val="32"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="TOC10"><w:name w:val="TOC 标题1"/><w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:rFonts w:eastAsia="黑体"/><w:sz w:val="32"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="TOC1"><w:name w:val="toc 1"/><w:pPr><w:spacing w:after="0" w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="TOC2"><w:name w:val="toc 2"/><w:pPr><w:spacing w:after="0" w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="TOC3"><w:name w:val="toc 3"/><w:pPr><w:spacing w:after="0" w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="aff3"><w:name w:val="一级标题"/><w:pPr><w:jc w:val="left"/><w:spacing w:line="324" w:lineRule="auto"/></w:pPr><w:rPr><w:b/><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="aff4"><w:name w:val="二级标题"/><w:pPr><w:jc w:val="left"/><w:spacing w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="aff5"><w:name w:val="三级标题"/><w:pPr><w:jc w:val="left"/><w:spacing w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:style>
+                </w:styles>
+                """;
+    }
+
+    private static String misalignedSoftwareExampleStylesXml() {
+        return """
+                <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                  <w:docDefaults>
+                    <w:rPrDefault><w:rPr><w:rFonts w:ascii="宋体" w:hAnsi="宋体" w:eastAsia="宋体"/><w:sz w:val="18"/></w:rPr></w:rPrDefault>
+                    <w:pPrDefault><w:pPr><w:spacing w:line="240" w:lineRule="auto"/><w:jc w:val="both"/></w:pPr></w:pPrDefault>
+                  </w:docDefaults>
+                  <w:style w:type="paragraph" w:styleId="aff1"><w:name w:val="论文题目"/><w:pPr><w:jc w:val="both"/></w:pPr><w:rPr><w:b/><w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="aff2"><w:name w:val="论文正文"/><w:pPr><w:jc w:val="both"/><w:spacing w:after="0" w:before="0" w:line="320" w:lineRule="exact"/><w:ind w:firstLine="420"/></w:pPr><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="tocTitle"><w:name w:val="目录标题"/><w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:rFonts w:eastAsia="黑体"/><w:sz w:val="32"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="TOC10"><w:name w:val="TOC 标题1"/><w:pPr><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:rFonts w:eastAsia="黑体"/><w:sz w:val="32"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="TOC1"><w:name w:val="toc 1"/><w:pPr><w:spacing w:after="0" w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="TOC2"><w:name w:val="toc 2"/><w:pPr><w:spacing w:after="0" w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="TOC3"><w:name w:val="toc 3"/><w:pPr><w:spacing w:after="0" w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="HeadingBase"><w:rPr><w:b/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="aff3"><w:name w:val="一级标题"/><w:pPr><w:jc w:val="left"/><w:spacing w:line="240" w:lineRule="auto"/></w:pPr><w:rPr><w:b/><w:rFonts w:eastAsia="黑体"/><w:sz w:val="24"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="aff4"><w:name w:val="二级标题"/><w:basedOn w:val="HeadingBase"/><w:pPr><w:jc w:val="left"/><w:spacing w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:style>
+                  <w:style w:type="paragraph" w:styleId="aff5"><w:name w:val="三级标题"/><w:basedOn w:val="HeadingBase"/><w:pPr><w:jc w:val="left"/><w:spacing w:line="320" w:lineRule="exact"/></w:pPr><w:rPr><w:rFonts w:ascii="Times New Roman" w:eastAsia="宋体"/><w:sz w:val="21"/></w:rPr></w:style>
                 </w:styles>
                 """;
     }
@@ -196,7 +479,7 @@ final class DocxTestDocuments {
     /** 生成document.xml（包含段落内容和页面设置） */
     private static String documentXml(String paragraphs, String pgMar) {
         return """
-                <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+                <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
                   <w:body>
                     %s
                     <w:sectPr>

@@ -31,6 +31,6 @@ class SecurityPropertiesTest {
 
         assertThat(jwt.issuer()).isEqualTo("paper-mind");
         assertThat(jwt.secret()).isEqualTo(TEST_SECRET);
-        assertThat(jwt.accessTokenTtl()).isEqualTo(Duration.ofHours(2));
+        assertThat(jwt.accessTokenTtl()).isEqualTo(Duration.ofHours(12));
     }
 }

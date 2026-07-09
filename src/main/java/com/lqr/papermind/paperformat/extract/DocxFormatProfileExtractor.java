@@ -6,8 +6,6 @@ import com.lqr.papermind.paperformat.model.PageRule;
 import com.lqr.papermind.paperformat.model.ParagraphFormatSnapshot;
 import com.lqr.papermind.paperformat.model.ParagraphStyleRule;
 import org.springframework.stereotype.Component;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -31,7 +29,7 @@ public class DocxFormatProfileExtractor {
             DocumentFormatProfile profile = new DocumentFormatProfile();
             profile.setPageRule(new DocxFormatSpecExtractor().extractOoxmlOnly(new java.io.ByteArrayInputStream(toDocxLike(parts))).getPageRule());
             profile.setHeaderFooterRule(readHeaderFooter(parts));
-            readParagraphs(parts, profile);
+            readParagraphs(DocxPackageReader.read(new java.io.ByteArrayInputStream(toDocxLike(parts))), profile);
             return profile;
         } catch (Exception ex) {
             throw new IllegalArgumentException("DOCX 格式画像解析失败", ex);
@@ -66,39 +64,15 @@ public class DocxFormatProfileExtractor {
     }
 
     /** 读取文档中所有段落的格式快照，分别归类为正文和标题 */
-    private void readParagraphs(Map<String, String> parts, DocumentFormatProfile profile) {
-        String documentXml = parts.get("word/document.xml");
-        if (documentXml == null) {
-            return;
-        }
-        DocxStyleSupport.Styles styles = DocxStyleSupport.parse(parts.get("word/styles.xml"));
-        Document document = DocxPackageReader.parse(documentXml);
-        Element body = DocxPackageReader.first(document.getDocumentElement(), "w:body");
+    private void readParagraphs(DocxPackageReader.PackageParts parts, DocumentFormatProfile profile) {
+        TemplateEvidenceExtractor extractor = new TemplateEvidenceExtractor(DocxStyleResolver.from(parts));
         int index = 0;
-        for (Element paragraph : DocxPackageReader.childElements(body, "w:p")) {
-            String text = DocxPackageReader.text(paragraph);
-            if (text.isBlank()) {
+        for (TemplateEvidence item : extractor.extract(parts)) {
+            ParagraphFormatSnapshot snapshot = snapshot(index++, item);
+            profile.getRoleParagraphs().add(snapshot);
+            if (!"word/document.xml".equals(item.partName())) {
                 continue;
             }
-            String styleId = paragraphStyleId(paragraph);
-            ParagraphStyleRule effective = DocxStyleSupport.merge(
-                    styles.docDefaults(),
-                    styles.style("Normal"),
-                    styles.style(styleId),
-                    DocxStyleSupport.readRule(paragraph)
-            );
-            ParagraphFormatSnapshot snapshot = new ParagraphFormatSnapshot();
-            snapshot.setIndex(index++);
-            snapshot.setText(text);
-            snapshot.setStyleId(styleId);
-            snapshot.setLevel(headingLevel(styleId));
-            snapshot.setAsciiFont(effective.getAsciiFont());
-            snapshot.setEastAsiaFont(effective.getEastAsiaFont());
-            snapshot.setFontSizePt(effective.getFontSizePt());
-            snapshot.setLineSpacingMultiple(effective.getLineSpacingMultiple());
-            snapshot.setFirstLineIndentMm(effective.getFirstLineIndentMm());
-            snapshot.setAlignment(effective.getAlignment());
-            snapshot.setBold(effective.getBold());
             if (snapshot.getLevel() == null) {
                 profile.getParagraphs().add(snapshot);
             } else {
@@ -107,22 +81,37 @@ public class DocxFormatProfileExtractor {
         }
     }
 
-    /** 获取段落的样式ID */
-    private String paragraphStyleId(Element paragraph) {
-        Element pPr = DocxPackageReader.first(paragraph, "w:pPr");
-        Element pStyle = DocxPackageReader.first(pPr, "w:pStyle");
-        return DocxPackageReader.attr(pStyle, "val");
+    private ParagraphFormatSnapshot snapshot(int index, TemplateEvidence item) {
+        ParagraphStyleRule effective = item.effectiveStyle();
+        ParagraphFormatSnapshot snapshot = new ParagraphFormatSnapshot();
+        snapshot.setIndex(index);
+        snapshot.setParagraphIndex(item.paragraphIndex());
+        snapshot.setText(item.text());
+        snapshot.setRole(item.role());
+        snapshot.setPartName(item.partName());
+        snapshot.setStyleId(item.styleId());
+        snapshot.setStyleName(item.styleName());
+        snapshot.setLevel(headingLevel(item.role()));
+        snapshot.setAsciiFont(effective.getAsciiFont());
+        snapshot.setHAnsiFont(effective.getHAnsiFont());
+        snapshot.setEastAsiaFont(effective.getEastAsiaFont());
+        snapshot.setFontSizePt(effective.getFontSizePt());
+        snapshot.setLineSpacingMultiple(effective.getLineSpacingMultiple());
+        snapshot.setLineSpacingRule(effective.getLineSpacingRule());
+        snapshot.setLineSpacingPt(effective.getLineSpacingPt());
+        snapshot.setSpaceBeforePt(effective.getSpaceBeforePt());
+        snapshot.setSpaceAfterPt(effective.getSpaceAfterPt());
+        snapshot.setFirstLineIndentMm(effective.getFirstLineIndentMm());
+        snapshot.setAlignment(effective.getAlignment());
+        snapshot.setBold(effective.getBold());
+        return snapshot;
     }
 
-    /** 根据样式ID解析标题级别（Heading1/2/3 -> 1/2/3） */
-    private Integer headingLevel(String styleId) {
-        if (styleId == null) {
-            return null;
-        }
-        return switch (styleId) {
-            case "Heading1" -> 1;
-            case "Heading2" -> 2;
-            case "Heading3" -> 3;
+    private Integer headingLevel(String role) {
+        return switch (role == null ? "" : role) {
+            case "heading1" -> 1;
+            case "heading2" -> 2;
+            case "heading3" -> 3;
             default -> null;
         };
     }

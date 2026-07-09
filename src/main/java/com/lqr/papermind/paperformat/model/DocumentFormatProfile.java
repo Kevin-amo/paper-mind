@@ -18,4 +18,6 @@ public class DocumentFormatProfile {
     private List<ParagraphFormatSnapshot> paragraphs = new ArrayList<>();
     /** 标题段落格式快照列表 */
     private List<ParagraphFormatSnapshot> headings = new ArrayList<>();
+    /** 所有已识别角色的段落格式快照列表 */
+    private List<ParagraphFormatSnapshot> roleParagraphs = new ArrayList<>();
 }

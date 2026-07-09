@@ -40,6 +40,11 @@ final class DocxStyleSupport {
             String id = DocxPackageReader.attr(style, "styleId");
             if (id != null) {
                 styles.elements.put(id, style);
+                Element name = DocxPackageReader.first(style, "w:name");
+                String styleName = DocxPackageReader.attr(name, "val");
+                if (styleName != null) {
+                    styles.names.put(id, styleName);
+                }
                 Element basedOn = DocxPackageReader.first(style, "w:basedOn");
                 String parentId = DocxPackageReader.attr(basedOn, "val");
                 if (parentId != null) {
@@ -143,6 +148,7 @@ final class DocxStyleSupport {
         private final Map<String, ParagraphStyleRule> byId = new LinkedHashMap<>();
         private final Map<String, Element> elements = new LinkedHashMap<>();
         private final Map<String, String> basedOn = new LinkedHashMap<>();
+        private final Map<String, String> names = new LinkedHashMap<>();
 
         /** 获取文档默认样式 */
         ParagraphStyleRule docDefaults() {
@@ -152,6 +158,24 @@ final class DocxStyleSupport {
         /** 根据样式ID获取已解析的样式规则 */
         ParagraphStyleRule style(String styleId) {
             return byId.get(styleId);
+        }
+
+        /** 按 Word 样式显示名称关键字查找样式 ID。 */
+        String styleIdByNameContaining(String token) {
+            if (token == null || token.isBlank()) {
+                return null;
+            }
+            for (Map.Entry<String, String> entry : names.entrySet()) {
+                if (entry.getValue() != null && entry.getValue().contains(token)) {
+                    return entry.getKey();
+                }
+            }
+            return null;
+        }
+
+        /** 获取 Word 样式显示名称。 */
+        String styleName(String styleId) {
+            return names.get(styleId);
         }
 
         /** 递归解析样式继承链，合并父样式和当前样式 */

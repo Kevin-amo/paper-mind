@@ -11,6 +11,8 @@ import com.lqr.papermind.paperformat.model.ParagraphStyleRule;
 import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -26,6 +28,8 @@ public class PaperFormatChecker {
     private static final double FONT_TOLERANCE = 0.25;
     /** 行距倍数容差 */
     private static final double LINE_SPACING_TOLERANCE = 0.05;
+    /** 聚合正文违规时最多展示的段落定位数量 */
+    private static final int MAX_COLLAPSED_LOCATION_MARKERS = 8;
 
     /**
      * 执行格式检查，对比文档格式画像与模板规则
@@ -38,8 +42,10 @@ public class PaperFormatChecker {
         FormatCheckReport report = new FormatCheckReport();
         checkPage(spec.getPageRule(), profile.getPageRule(), report);
         checkHeaderFooter(spec.getHeaderFooterRule(), profile.getHeaderFooterRule(), report);
-        ParagraphFormatSnapshot body = profile.getParagraphs().isEmpty() ? null : profile.getParagraphs().getFirst();
-        checkParagraphRule("BODY", "正文", spec.getBodyRule(), body, "ERROR", report);
+        if (spec.getRoleRules() == null || !spec.getRoleRules().containsKey("body")) {
+            ParagraphFormatSnapshot body = profile.getParagraphs().isEmpty() ? null : profile.getParagraphs().getFirst();
+            checkParagraphRule("BODY", "正文", spec.getBodyRule(), body, "ERROR", report);
+        }
         spec.getHeadingRules().forEach((level, rule) -> {
             ParagraphFormatSnapshot actual = profile.getHeadings().stream()
                     .filter(item -> Objects.equals(item.getLevel(), level))
@@ -47,8 +53,301 @@ public class PaperFormatChecker {
                     .orElse(null);
             checkParagraphRule("HEADING_" + level, level + "级标题", rule, actual, "WARNING", report);
         });
+        checkSectionRules(spec, profile, report);
+        checkRoleRules(spec, profile, report);
         summarize(report);
         return report;
+    }
+
+    private void checkRoleRules(FormatSpec spec, DocumentFormatProfile profile, FormatCheckReport report) {
+        if (spec.getRoleRules() == null || spec.getRoleRules().isEmpty()) {
+            return;
+        }
+        List<ParagraphFormatSnapshot> snapshots = new ArrayList<>();
+        if (profile.getRoleParagraphs() != null && !profile.getRoleParagraphs().isEmpty()) {
+            snapshots.addAll(profile.getRoleParagraphs());
+        } else {
+            if (profile.getParagraphs() != null) {
+                snapshots.addAll(profile.getParagraphs());
+            }
+            if (profile.getHeadings() != null) {
+                snapshots.addAll(profile.getHeadings());
+            }
+        }
+        snapshots.sort(java.util.Comparator.comparingInt(ParagraphFormatSnapshot::getIndex));
+        spec.getRoleRules().forEach((role, rule) -> {
+            List<ParagraphFormatSnapshot> matches = snapshots.stream()
+                    .filter(item -> role.equals(item.getRole()))
+                    .toList();
+            if (matches.isEmpty()) {
+                add(report, roleCode(role) + "_MISSING", "WARNING", roleLabel(role), "存在", "未识别",
+                        roleLabel(role) + "未识别", "检查是否使用了模板中的对应样式");
+                return;
+            }
+            FormatCheckReport roleReport = new FormatCheckReport();
+            for (ParagraphFormatSnapshot actual : matches) {
+                checkRoleParagraph(role, rule, actual, roleReport);
+            }
+            report.getViolations().addAll(collapseRepeatedRoleViolations(role, roleReport.getViolations()));
+        });
+    }
+
+    private List<FormatViolation> collapseRepeatedRoleViolations(String role, List<FormatViolation> violations) {
+        if (!"body".equals(role) || violations.size() < 2) {
+            return violations;
+        }
+        Map<String, List<FormatViolation>> groups = new LinkedHashMap<>();
+        for (FormatViolation violation : violations) {
+            String key = String.join("\u0001",
+                    normalizeBodyCode(violation.getCode()),
+                    nullToEmpty(violation.getSeverity()),
+                    nullToEmpty(violation.getExpected()),
+                    nullToEmpty(violation.getMessage()),
+                    nullToEmpty(violation.getSuggestion()));
+            groups.computeIfAbsent(key, ignored -> new ArrayList<>()).add(violation);
+        }
+        List<FormatViolation> result = new ArrayList<>();
+        for (List<FormatViolation> group : groups.values()) {
+            if (group.size() == 1) {
+                result.add(group.getFirst());
+            } else {
+                result.add(collapseBodyGroup(group));
+            }
+        }
+        return result;
+    }
+
+    private FormatViolation collapseBodyGroup(List<FormatViolation> group) {
+        FormatViolation first = group.getFirst();
+        return FormatViolation.of(
+                normalizeBodyCode(first.getCode()),
+                first.getSeverity(),
+                summarizeLocations(group),
+                first.getExpected(),
+                summarizeActuals(group),
+                first.getMessage(),
+                first.getSuggestion()
+        );
+    }
+
+    private String normalizeBodyCode(String code) {
+        return code == null ? "" : code.replaceFirst("^BODY_\\d+_", "BODY_");
+    }
+
+    private String summarizeLocations(List<FormatViolation> group) {
+        List<String> locations = group.stream()
+                .map(FormatViolation::getLocation)
+                .map(this::paragraphMarker)
+                .distinct()
+                .toList();
+        String markerText = String.join("、", locations.stream().limit(MAX_COLLAPSED_LOCATION_MARKERS).toList());
+        if (locations.size() > MAX_COLLAPSED_LOCATION_MARKERS) {
+            markerText = markerText + "，等 " + group.size() + " 段";
+        }
+        return "正文，共 " + group.size() + " 段（" + markerText + "）";
+    }
+
+    private String paragraphMarker(String location) {
+        if (location == null || location.isBlank()) {
+            return "未知段落";
+        }
+        int marker = location.lastIndexOf('#');
+        return marker >= 0 ? location.substring(marker) : location;
+    }
+
+    private String summarizeActuals(List<FormatViolation> group) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (FormatViolation violation : group) {
+            counts.merge(nullToEmpty(violation.getActual()), 1, Integer::sum);
+        }
+        return counts.entrySet().stream()
+                .map(entry -> entry.getValue() == group.size()
+                        ? entry.getKey()
+                        : entry.getKey() + "（" + entry.getValue() + "段）")
+                .reduce((left, right) -> left + "；" + right)
+                .orElse("");
+    }
+
+    private void checkRoleParagraph(String role,
+                                    ParagraphStyleRule expected,
+                                    ParagraphFormatSnapshot actual,
+                                    FormatCheckReport report) {
+        String code = roleCode(role);
+        String indexedCode = "body".equals(role) ? code + "_" + actual.getIndex() : code;
+        String location = roleLabel(role) + "#" + actual.getIndex();
+        if (expected.getEastAsiaFont() != null && actual.getEastAsiaFont() != null && !expected.getEastAsiaFont().equals(actual.getEastAsiaFont())) {
+            add(report, code + "_FONT", "ERROR", location, expected.getEastAsiaFont(), actual.getEastAsiaFont(),
+                    roleLabel(role) + "字体不符合要求", "将" + roleLabel(role) + "中文字体设置为" + expected.getEastAsiaFont());
+        }
+        String expectedAscii = firstNonBlank(expected.getAsciiFont(), expected.getLatinFont());
+        String actualAscii = firstNonBlank(actual.getAsciiFont(), actual.getHAnsiFont());
+        if (expectedAscii != null && actualAscii != null && !expectedAscii.equals(actualAscii)) {
+            add(report, code + "_ASCII_FONT", "ERROR", location, expectedAscii, actualAscii,
+                    roleLabel(role) + "英文字体不符合要求", "将" + roleLabel(role) + "英文字体设置为" + expectedAscii);
+        }
+        if (!close(expected.getFontSizePt(), actual.getFontSizePt(), FONT_TOLERANCE)) {
+            add(report, code + "_FONT_SIZE", "ERROR", location, expected.getFontSizePt() + "pt", actual.getFontSizePt() + "pt",
+                    roleLabel(role) + "字号不符合要求", "将" + roleLabel(role) + "字号设置为" + expected.getFontSizePt() + "pt");
+        }
+        if (expected.getLineSpacingRule() != null && actual.getLineSpacingRule() != null && !expected.getLineSpacingRule().equals(actual.getLineSpacingRule())) {
+            add(report, indexedCode + "_LINE_SPACING_RULE", "ERROR", location, expected.getLineSpacingRule(), actual.getLineSpacingRule(),
+                    roleLabel(role) + "行距规则不符合要求", "按模板调整行距规则");
+        }
+        if (!close(expected.getLineSpacingPt(), actual.getLineSpacingPt(), FONT_TOLERANCE)) {
+            add(report, indexedCode + "_LINE_SPACING", "ERROR", location, expected.getLineSpacingPt() + "pt", actual.getLineSpacingPt() + "pt",
+                    roleLabel(role) + "固定行距不符合要求", "按模板调整固定行距");
+        }
+        if (!close(expected.getLineSpacingMultiple(), actual.getLineSpacingMultiple(), LINE_SPACING_TOLERANCE)) {
+            add(report, indexedCode + "_LINE_SPACING", "ERROR", location, expected.getLineSpacingMultiple() + "倍", actual.getLineSpacingMultiple() + "倍",
+                    roleLabel(role) + "行距倍数不符合要求", "按模板调整行距倍数");
+        }
+        if (expected.getAlignment() != null && actual.getAlignment() != null && !expected.getAlignment().equals(actual.getAlignment())) {
+            add(report, code + "_ALIGNMENT", "ERROR", location, expected.getAlignment(), actual.getAlignment(),
+                    roleLabel(role) + "对齐方式不符合要求", "按模板调整对齐方式");
+        }
+        if (expected.getBold() != null && actual.getBold() != null && !expected.getBold().equals(actual.getBold())) {
+            add(report, code + "_BOLD", "ERROR", location, expected.getBold() ? "加粗" : "不加粗", actual.getBold() ? "加粗" : "不加粗",
+                    roleLabel(role) + "加粗设置不符合要求", "按模板调整加粗设置");
+        }
+    }
+
+    private void checkSectionRules(FormatSpec spec, DocumentFormatProfile profile, FormatCheckReport report) {
+        if (spec.getSectionRules() == null || spec.getSectionRules().isEmpty()) {
+            return;
+        }
+        List<ParagraphFormatSnapshot> snapshots = new ArrayList<>();
+        if (profile.getParagraphs() != null) {
+            snapshots.addAll(profile.getParagraphs());
+        }
+        if (profile.getHeadings() != null) {
+            snapshots.addAll(profile.getHeadings());
+        }
+        snapshots.sort(java.util.Comparator.comparingInt(ParagraphFormatSnapshot::getIndex));
+        spec.getSectionRules().forEach((section, rule) -> {
+            ParagraphFormatSnapshot actual = sectionSnapshot(section, snapshots);
+            checkParagraphRule("SECTION_" + sectionCode(section), sectionLabel(section), rule, actual, "ERROR", report);
+        });
+    }
+
+    private ParagraphFormatSnapshot sectionSnapshot(String section, List<ParagraphFormatSnapshot> paragraphs) {
+        if (paragraphs == null || paragraphs.isEmpty()) {
+            return null;
+        }
+        return switch (section) {
+            case "title" -> paragraphs.getFirst();
+            case "abstractLabel", "abstractContent" -> firstStartingWith(paragraphs, "摘要");
+            case "tocTitle" -> firstMatchingAny(paragraphs, List.of("目录", "目次", "contents", "table of contents"));
+            case "keywordsLabel" -> firstStartingWith(paragraphs, "关键词");
+            case "englishAbstractContent" -> firstStartingWithIgnoreCase(paragraphs, "abstract");
+            default -> null;
+        };
+    }
+
+    private ParagraphFormatSnapshot firstStartingWith(List<ParagraphFormatSnapshot> paragraphs, String prefix) {
+        return paragraphs.stream()
+                .filter(item -> item.getText() != null && item.getText().strip().startsWith(prefix))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private ParagraphFormatSnapshot firstStartingWithIgnoreCase(List<ParagraphFormatSnapshot> paragraphs, String prefix) {
+        return paragraphs.stream()
+                .filter(item -> item.getText() != null && item.getText().strip().toLowerCase(java.util.Locale.ROOT).startsWith(prefix))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private ParagraphFormatSnapshot firstMatchingAny(List<ParagraphFormatSnapshot> paragraphs, List<String> values) {
+        return paragraphs.stream()
+                .filter(item -> item.getText() != null && values.stream().anyMatch(value -> item.getText().strip().equalsIgnoreCase(value)))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String sectionCode(String section) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < section.length(); i++) {
+            char ch = section.charAt(i);
+            if (Character.isUpperCase(ch) && i > 0) {
+                result.append('_');
+            }
+            result.append(Character.toUpperCase(ch));
+        }
+        return result.toString();
+    }
+
+    private String sectionLabel(String section) {
+        return switch (section) {
+            case "title" -> "标题";
+            case "tocTitle" -> "目录标题";
+            case "abstractLabel" -> "摘要标签";
+            case "abstractContent" -> "摘要内容";
+            case "keywordsLabel" -> "关键词标签";
+            case "englishAbstractContent" -> "英文摘要内容";
+            default -> section;
+        };
+    }
+
+    private String roleCode(String role) {
+        return switch (role) {
+            case "paperTitle" -> "PAPER_TITLE";
+            case "authorLine" -> "AUTHOR_LINE";
+            case "advisorLine" -> "ADVISOR_LINE";
+            case "cnAbstractTitle" -> "CN_ABSTRACT_TITLE";
+            case "cnAbstractContent" -> "CN_ABSTRACT_CONTENT";
+            case "cnKeywordsLabel" -> "CN_KEYWORDS_LABEL";
+            case "cnKeywordsContent" -> "CN_KEYWORDS_CONTENT";
+            case "enAbstractTitle" -> "EN_ABSTRACT_TITLE";
+            case "enAbstractContent" -> "EN_ABSTRACT_CONTENT";
+            case "enKeywordsLabel" -> "EN_KEYWORDS_LABEL";
+            case "enKeywordsContent" -> "EN_KEYWORDS_CONTENT";
+            case "tocTitle" -> "TOC_TITLE";
+            case "tocEntry1" -> "TOC_ENTRY_1";
+            case "tocEntry2" -> "TOC_ENTRY_2";
+            case "tocEntry3" -> "TOC_ENTRY_3";
+            case "body" -> "BODY";
+            case "heading1" -> "HEADING_1";
+            case "heading2" -> "HEADING_2";
+            case "heading3" -> "HEADING_3";
+            case "header" -> "HEADER";
+            case "footerPageNumber" -> "FOOTER_PAGE_NUMBER";
+            case "references" -> "REFERENCES";
+            case "figureCaption" -> "FIGURE_CAPTION";
+            case "tableCaption" -> "TABLE_CAPTION";
+            default -> sectionCode(role);
+        };
+    }
+
+    private String roleLabel(String role) {
+        return switch (role) {
+            case "paperTitle" -> "论文题目";
+            case "cnAbstractContent" -> "中文摘要内容";
+            case "cnKeywordsLabel" -> "中文关键词标签";
+            case "enAbstractContent" -> "英文摘要内容";
+            case "enKeywordsLabel" -> "英文关键词标签";
+            case "tocTitle" -> "目录标题";
+            case "tocEntry1" -> "一级目录项";
+            case "tocEntry2" -> "二级目录项";
+            case "tocEntry3" -> "三级目录项";
+            case "body" -> "正文";
+            case "heading1" -> "一级标题";
+            case "heading2" -> "二级标题";
+            case "heading3" -> "三级标题";
+            case "header" -> "页眉";
+            case "footerPageNumber" -> "页脚页码";
+            case "references" -> "参考文献";
+            case "figureCaption" -> "图标题";
+            case "tableCaption" -> "表标题";
+            default -> role;
+        };
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return first == null || first.isBlank() ? second : first;
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     /** 检查页面设置（尺寸、边距、装订线、页眉页脚距离） */

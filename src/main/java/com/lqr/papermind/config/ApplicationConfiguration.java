@@ -4,6 +4,7 @@ import com.lqr.papermind.auth.config.SecurityProperties;
 import com.lqr.papermind.document.config.DocumentIngestionProperties;
 import com.lqr.papermind.literature.config.LiteratureSearchProperties;
 import com.lqr.papermind.common.mail.config.ResendProperties;
+import com.lqr.papermind.paperformat.config.PaperFormatAiExtractionProperties;
 import com.lqr.papermind.rag.config.RagProperties;
 import com.lqr.papermind.common.storage.config.OssProperties;
 import org.apache.tika.Tika;
@@ -16,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
  * 这里集中注册跨模块复用的基础组件，业务服务只依赖接口或明确的基础 Bean。
  */
 @Configuration
-@EnableConfigurationProperties({RagProperties.class, SecurityProperties.class, OssProperties.class, DocumentIngestionProperties.class, LiteratureSearchProperties.class, ResendProperties.class})
+@EnableConfigurationProperties({RagProperties.class, SecurityProperties.class, OssProperties.class, DocumentIngestionProperties.class, LiteratureSearchProperties.class, ResendProperties.class, PaperFormatAiExtractionProperties.class})
 public class ApplicationConfiguration {
 
     /**

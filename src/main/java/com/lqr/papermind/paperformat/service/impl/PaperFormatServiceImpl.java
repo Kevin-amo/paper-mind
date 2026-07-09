@@ -88,7 +88,7 @@ public class PaperFormatServiceImpl implements PaperFormatService {
             FormatSpec spec = specExtractor.extract(input);
             entity.setFormatSpec(spec);
             entity.setExtractionReport(spec.getExtractionReport());
-            entity.setStatus(hasExtractionConflicts(spec) ? TEMPLATE_STATUS_NEED_CONFIRM : TEMPLATE_STATUS_READY);
+            entity.setStatus(requiresExtractionConfirmation(spec) ? TEMPLATE_STATUS_NEED_CONFIRM : TEMPLATE_STATUS_READY);
             entity.setConfirmed(TEMPLATE_STATUS_READY.equals(entity.getStatus()));
         } catch (RuntimeException ex) {
             entity.setStatus(TEMPLATE_STATUS_FAILED);
@@ -280,12 +280,16 @@ public class PaperFormatServiceImpl implements PaperFormatService {
     }
 
     /** 判断格式规则解析是否存在冲突 */
-    private boolean hasExtractionConflicts(FormatSpec spec) {
+    private boolean requiresExtractionConfirmation(FormatSpec spec) {
         if (spec == null || spec.getExtractionReport() == null) {
             return false;
         }
         Object conflicts = spec.getExtractionReport().get("conflicts");
-        return conflicts instanceof java.util.Collection<?> collection && !collection.isEmpty();
+        if (conflicts instanceof java.util.Collection<?> collection && !collection.isEmpty()) {
+            return true;
+        }
+        Object lowConfidenceAiRules = spec.getExtractionReport().get("lowConfidenceAiRules");
+        return lowConfidenceAiRules instanceof java.util.Collection<?> collection && !collection.isEmpty();
     }
     /** 根据检查范围和来源ID解析文档信息 */
     private CheckDocument resolveDocument(UUID currentUserId, boolean admin, String scope, String sourceId, UUID reviewTaskId) {

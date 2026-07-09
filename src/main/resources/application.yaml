@@ -62,6 +62,15 @@ spring:
 server:
   port: ${SERVER_PORT:8080}
 
+paperformat:
+  ai-extraction:
+    enabled: ${PAPERFORMAT_AI_EXTRACTION_ENABLED:true}
+    provider: ${PAPERFORMAT_AI_EXTRACTION_PROVIDER:existing}
+    model: ${PAPERFORMAT_AI_EXTRACTION_MODEL:qwen3.6-35b-a3b}
+    timeout: ${PAPERFORMAT_AI_EXTRACTION_TIMEOUT:60s}
+    max-input-chars: ${PAPERFORMAT_AI_EXTRACTION_MAX_INPUT_CHARS:12000}
+    min-confidence: ${PAPERFORMAT_AI_EXTRACTION_MIN_CONFIDENCE:0.70}
+
 logging:
   level:
     com.lqr.papermind: ${LOG_LEVEL_APP:INFO}
