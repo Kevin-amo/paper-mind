@@ -239,7 +239,7 @@ public class DocxFormatSpecExtractor {
                     addIgnoredRoleCandidateWarning(warnings, item.role(), item.styleId(), "non-body evidence");
                     continue;
                 }
-                putPreferredInstance(spec.getRoleRules(), item.role(), instance);
+                putPreferredInstance(spec.getRoleRules(), item.role(), instance, warnings);
             }
 
             Map<String, ParagraphStyleRule> textRules = textRoleRules(spec);
@@ -352,19 +352,58 @@ public class DocxFormatSpecExtractor {
     }
 
     private boolean shouldBackfillKeywordContent(ParagraphStyleRule rule) {
-        return rule == null || (rule.getEastAsiaFont() == null && rule.getAsciiFont() == null && rule.getFontSizePt() == null);
+        return rule == null
+                || (rule.getEastAsiaFont() == null && rule.getAsciiFont() == null && rule.getFontSizePt() == null)
+                || isLowTrustKeywordFont(rule.getAsciiFont())
+                || isLowTrustKeywordFont(rule.getLatinFont())
+                || !Objects.equals(rule.getAsciiFont(), "Times New Roman")
+                || !Objects.equals(rule.getHAnsiFont(), "Times New Roman")
+                || !Objects.equals(rule.getLatinFont(), "Times New Roman")
+                || isNinePoint(rule);
     }
 
     private boolean shouldBackfillCnKeywordContent(ParagraphStyleRule rule) {
-        return rule == null || rule.getEastAsiaFont() == null || rule.getFontSizePt() == null;
+        return rule == null
+                || rule.getEastAsiaFont() == null
+                || rule.getFontSizePt() == null
+                || isLowTrustKeywordFont(rule.getEastAsiaFont())
+                || !"楷体".equals(rule.getEastAsiaFont())
+                || isNinePoint(rule);
     }
 
     private boolean shouldBackfillEnKeywordLabel(ParagraphStyleRule rule) {
         return rule == null
                 || rule.getAsciiFont() == null
                 || rule.getFontSizePt() == null
-                || "宋体".equals(rule.getAsciiFont())
-                || "宋体".equals(rule.getLatinFont());
+                || isLowTrustKeywordFont(rule.getAsciiFont())
+                || isLowTrustKeywordFont(rule.getLatinFont())
+                || !Objects.equals(rule.getAsciiFont(), "Times New Roman")
+                || !Objects.equals(rule.getHAnsiFont(), "Times New Roman")
+                || !Objects.equals(rule.getLatinFont(), "Times New Roman")
+                || isNinePoint(rule);
+    }
+
+    private boolean isLowTrustKeywordFont(String font) {
+        if (font == null || font.isBlank()) {
+            return false;
+        }
+        String normalized = font.toLowerCase(java.util.Locale.ROOT);
+        return "宋体".equals(font)
+                || normalized.contains("minor")
+                || normalized.contains("theme");
+    }
+
+    private boolean isNinePoint(ParagraphStyleRule rule) {
+        return rule != null
+                && rule.getFontSizePt() != null
+                && Math.abs(rule.getFontSizePt() - 9.0) <= 0.01;
+    }
+
+    private boolean isKeywordRole(String role) {
+        return "cnKeywordsLabel".equals(role)
+                || "cnKeywordsContent".equals(role)
+                || "enKeywordsLabel".equals(role)
+                || "enKeywordsContent".equals(role);
     }
 
     private void copySectionRole(FormatSpec spec, Map<String, ParagraphStyleRule> rules, String section, String role) {
@@ -374,9 +413,15 @@ public class DocxFormatSpecExtractor {
         }
     }
 
-    private void putPreferredInstance(Map<String, ParagraphStyleRule> roleRules, String role, ParagraphStyleRule candidate) {
+    private void putPreferredInstance(Map<String, ParagraphStyleRule> roleRules,
+                                      String role,
+                                      ParagraphStyleRule candidate,
+                                      List<String> warnings) {
         ParagraphStyleRule current = roleRules.get(role);
         if (current != null && "TEXT_REQUIREMENT".equals(current.getSourcePriority())) {
+            if (isKeywordRole(role)) {
+                warnKeywordOverride(warnings, role, candidate);
+            }
             return;
         }
         if (current == null || instanceScore(candidate) > instanceScore(current)) {
@@ -960,6 +1005,7 @@ public class DocxFormatSpecExtractor {
 
     private void copy(ParagraphStyleRule source, ParagraphStyleRule target) {
         target.setAsciiFont(source.getAsciiFont());
+        target.setHAnsiFont(source.getHAnsiFont());
         target.setEastAsiaFont(source.getEastAsiaFont());
         target.setFontSizePt(source.getFontSizePt());
         target.setLineSpacingMultiple(source.getLineSpacingMultiple());

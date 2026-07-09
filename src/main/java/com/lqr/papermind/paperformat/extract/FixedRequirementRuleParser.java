@@ -26,7 +26,7 @@ final class FixedRequirementRuleParser {
     /** 匹配段前段后间距 */
     private static final Pattern SPACE_BEFORE_AFTER = Pattern.compile("段前[、,，]?段后均为\\s*([0-9]+(?:\\.[0-9]+)?)\\s*磅");
     /** 匹配“多倍行距：1.35”等标题行距描述 */
-    private static final Pattern MULTIPLE_LINE_SPACING_VALUE = Pattern.compile("多倍行距\\s*[：:]\\s*([0-9]+(?:\\.[0-9]+)?)");
+    private static final Pattern MULTIPLE_LINE_SPACING_VALUE = Pattern.compile("多倍行距\\s*(?:[：:]\\s*)?([0-9]+(?:\\.[0-9]+)?)");
     /** 匹配“1.35倍行距”等标题行距描述 */
     private static final Pattern MULTIPLE_LINE_SPACING_PREFIX = Pattern.compile("([0-9]+(?:\\.[0-9]+)?)\\s*倍行距");
     /** 匹配参考文献类型标记 */
@@ -67,10 +67,7 @@ final class FixedRequirementRuleParser {
             result.formatSpec().getPageRule().setDuplexPrint(true);
             result.mark("pageRule.duplexPrint", "双面打印");
         }
-        if (text.contains("对称页边距")) {
-            result.formatSpec().getPageRule().setMirrorMargins(true);
-            result.mark("pageRule.mirrorMargins", "对称页边距");
-        }
+        // mirrorMargins 仅从 OOXML settings.xml 判定，文本"对称页边距"不可靠
         Matcher matcher = CM_VALUE.matcher(text);
         while (matcher.find()) {
             String label = matcher.group(1);
@@ -193,50 +190,52 @@ final class FixedRequirementRuleParser {
             result.mark("roleRules.cnKeywordsLabel.bold", "中文关键词标签加粗");
 
             ParagraphStyleRule content = result.formatSpec().getRoleRules().computeIfAbsent("cnKeywordsContent", ignored -> new ParagraphStyleRule());
-            content.setEastAsiaFont(cnLine.contains("楷体") ? "楷体" : content.getEastAsiaFont());
+            content.setEastAsiaFont("楷体");
             if (cnLine.contains("五号")) {
                 content.setFontSizePt(FontSizeNameMapper.toPt("五号"));
+            } else if (content.getFontSizePt() == null) {
+                content.setFontSizePt(10.5);
             }
             content.setSourcePriority("TEXT_REQUIREMENT");
             content.setEvidenceText(cnLine);
-            if (content.getEastAsiaFont() != null) {
-                result.mark("roleRules.cnKeywordsContent.eastAsiaFont", "中文关键词楷体");
-            }
-            if (content.getFontSizePt() != null) {
-                result.mark("roleRules.cnKeywordsContent.fontSizePt", "中文关键词五号");
-            }
+            result.mark("roleRules.cnKeywordsContent.eastAsiaFont", "中文关键词楷体");
+            result.mark("roleRules.cnKeywordsContent.fontSizePt", "中文关键词五号");
         }
 
         String enLine = linesContaining(text, "英文关键词").stream().findFirst().orElse("");
-        if (!enLine.isBlank() && enLine.contains("Times New Roman")) {
+        if (!enLine.isBlank()) {
             ParagraphStyleRule label = result.formatSpec().getRoleRules().computeIfAbsent("enKeywordsLabel", ignored -> new ParagraphStyleRule());
             label.setAsciiFont("Times New Roman");
+            label.setHAnsiFont("Times New Roman");
             label.setLatinFont("Times New Roman");
             if (enLine.contains("五号")) {
                 label.setFontSizePt(FontSizeNameMapper.toPt("五号"));
+            } else if (label.getFontSizePt() == null) {
+                label.setFontSizePt(10.5);
             }
             label.setBold(true);
             label.setSourcePriority("TEXT_REQUIREMENT");
             label.setEvidenceText(enLine);
             result.mark("roleRules.enKeywordsLabel.asciiFont", "英文关键词 Times New Roman");
+            result.mark("roleRules.enKeywordsLabel.hAnsiFont", "英文关键词 Times New Roman");
             result.mark("roleRules.enKeywordsLabel.latinFont", "英文关键词 Times New Roman");
-            if (label.getFontSizePt() != null) {
-                result.mark("roleRules.enKeywordsLabel.fontSizePt", "英文关键词五号");
-            }
+            result.mark("roleRules.enKeywordsLabel.fontSizePt", "英文关键词五号");
 
             ParagraphStyleRule content = result.formatSpec().getRoleRules().computeIfAbsent("enKeywordsContent", ignored -> new ParagraphStyleRule());
             content.setAsciiFont("Times New Roman");
+            content.setHAnsiFont("Times New Roman");
             content.setLatinFont("Times New Roman");
             if (enLine.contains("五号")) {
                 content.setFontSizePt(FontSizeNameMapper.toPt("五号"));
+            } else if (content.getFontSizePt() == null) {
+                content.setFontSizePt(10.5);
             }
             content.setSourcePriority("TEXT_REQUIREMENT");
             content.setEvidenceText(enLine);
             result.mark("roleRules.enKeywordsContent.asciiFont", "英文关键词内容 Times New Roman");
+            result.mark("roleRules.enKeywordsContent.hAnsiFont", "英文关键词内容 Times New Roman");
             result.mark("roleRules.enKeywordsContent.latinFont", "英文关键词内容 Times New Roman");
-            if (content.getFontSizePt() != null) {
-                result.mark("roleRules.enKeywordsContent.fontSizePt", "英文关键词内容五号");
-            }
+            result.mark("roleRules.enKeywordsContent.fontSizePt", "英文关键词内容五号");
         }
     }
 
@@ -275,6 +274,7 @@ final class FixedRequirementRuleParser {
         if (text.contains("英文摘要内容") && text.contains("Times New Roman")) {
             var englishAbstract = result.formatSpec().getSectionRules().computeIfAbsent("englishAbstractContent", ignored -> new com.lqr.papermind.paperformat.model.ParagraphStyleRule());
             englishAbstract.setAsciiFont("Times New Roman");
+            englishAbstract.setHAnsiFont("Times New Roman");
             englishAbstract.setLatinFont("Times New Roman");
             englishAbstract.setFontSizePt(FontSizeNameMapper.toPt("五号"));
             englishAbstract.setAlignment("BOTH");
@@ -326,15 +326,19 @@ final class FixedRequirementRuleParser {
                 });
                 heading.setEastAsiaFont("宋体");
                 heading.setAsciiFont("Times New Roman");
+                heading.setHAnsiFont("Times New Roman");
                 heading.setLatinFont("Times New Roman");
                 heading.setFontSizePt(FontSizeNameMapper.toPt("五号"));
                 heading.setAlignment("BOTH");
                 heading.setLineSpacingRule("FIXED");
                 heading.setLineSpacingPt(16.0);
+                heading.setLineSpacingMultiple(null);
                 heading.setSpaceBeforePt(0.0);
                 heading.setSpaceAfterPt(0.0);
                 result.mark("headingRules." + level + ".eastAsiaFont", level + "级标题宋体");
                 result.mark("headingRules." + level + ".fontSizePt", level + "级标题五号");
+                result.mark("headingRules." + level + ".lineSpacingRule", level + "级标题固定行距");
+                result.mark("headingRules." + level + ".lineSpacingPt", level + "级标题16磅行距");
             }
         }
     }

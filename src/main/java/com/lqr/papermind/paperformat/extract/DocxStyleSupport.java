@@ -68,6 +68,9 @@ final class DocxStyleSupport {
             if (rule.getAsciiFont() != null) {
                 result.setAsciiFont(rule.getAsciiFont());
             }
+            if (rule.getHAnsiFont() != null) {
+                result.setHAnsiFont(rule.getHAnsiFont());
+            }
             if (rule.getEastAsiaFont() != null) {
                 result.setEastAsiaFont(rule.getEastAsiaFont());
             }
@@ -76,6 +79,11 @@ final class DocxStyleSupport {
             }
             if (rule.getLineSpacingMultiple() != null) {
                 result.setLineSpacingMultiple(rule.getLineSpacingMultiple());
+                result.setLineSpacingRule(null);
+                result.setLineSpacingPt(null);
+            }
+            if (rule.getLineSpacingRule() != null || rule.getLineSpacingPt() != null) {
+                result.setLineSpacingMultiple(null);
             }
             if (rule.getLineSpacingRule() != null) {
                 result.setLineSpacingRule(rule.getLineSpacingRule());

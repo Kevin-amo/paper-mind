@@ -216,19 +216,50 @@ class DocxFormatSpecExtractorTest {
             spec = new DocxFormatSpecExtractor().extract(input);
         }
 
-        assertThat(spec.getHeadingRules().get(1).getLineSpacingMultiple()).isEqualTo(1.35);
-        assertThat(spec.getHeadingRules().get(1).getLineSpacingRule()).isNull();
-        assertThat(spec.getHeadingRules().get(2).getBold()).isNull();
-        assertThat(spec.getHeadingRules().get(3).getBold()).isNull();
+        HeadingStyleRule heading1 = spec.getHeadingRules().get(1);
+        HeadingStyleRule heading2 = spec.getHeadingRules().get(2);
+        HeadingStyleRule heading3 = spec.getHeadingRules().get(3);
+
+        assertThat(heading1.getLineSpacingMultiple()).isEqualTo(1.35);
+        assertThat(heading1.getLineSpacingRule()).isNull();
+        assertThat(spec.getRoleRules().get("heading1").getLineSpacingMultiple()).isEqualTo(1.35);
+        assertThat(spec.getRoleRules().get("heading1").getLineSpacingRule()).isNull();
+        assertThat(heading2.getBold()).isNull();
+        assertThat(heading3.getBold()).isNull();
+        assertThat(heading2.getLineSpacingRule()).isEqualTo("FIXED");
+        assertThat(heading2.getLineSpacingPt()).isEqualTo(16.0);
+        assertThat(heading2.getLineSpacingMultiple()).isNull();
+        assertThat(heading3.getLineSpacingRule()).isEqualTo("FIXED");
+        assertThat(heading3.getLineSpacingPt()).isEqualTo(16.0);
+        assertThat(heading3.getLineSpacingMultiple()).isNull();
         assertThat(spec.getRoleRules().get("cnKeywordsLabel").getBold()).isTrue();
         assertThat(spec.getRoleRules().get("cnKeywordsContent").getEastAsiaFont()).isEqualTo("楷体");
         assertThat(spec.getRoleRules().get("cnKeywordsContent").getFontSizePt()).isEqualTo(10.5);
         assertThat(spec.getRoleRules().get("enKeywordsLabel").getAsciiFont()).isEqualTo("Times New Roman");
+        assertThat(spec.getRoleRules().get("enKeywordsLabel").getHAnsiFont()).isEqualTo("Times New Roman");
+        assertThat(spec.getRoleRules().get("enKeywordsLabel").getLatinFont()).isEqualTo("Times New Roman");
         assertThat(spec.getRoleRules().get("enKeywordsLabel").getFontSizePt()).isEqualTo(10.5);
         assertThat(spec.getRoleRules().get("enKeywordsContent").getAsciiFont()).isEqualTo("Times New Roman");
+        assertThat(spec.getRoleRules().get("enKeywordsContent").getHAnsiFont()).isEqualTo("Times New Roman");
+        assertThat(spec.getRoleRules().get("enKeywordsContent").getLatinFont()).isEqualTo("Times New Roman");
         assertThat(spec.getRoleRules().get("enKeywordsContent").getFontSizePt()).isEqualTo(10.5);
+        assertThat(spec.getBodyRule().getStyleId()).isEqualTo("aff2");
+        assertThat(spec.getRoleRules().get("body").getStyleId()).isEqualTo("aff2");
         assertThat(spec.getBodyRule().getEvidenceText()).contains("正文").doesNotContain("一级标题");
         assertThat(spec.getRoleRules().get("body").getEvidenceText()).contains("正文").doesNotContain("一级标题");
+        assertThat(spec.getRoleRules().get("tocTitle").getStyleId()).isEqualTo("TOC10");
+        assertThat(spec.getRoleRules().get("tocEntry1").getStyleId()).isEqualTo("TOC1");
+        assertThat(spec.getRoleRules().get("tocEntry2").getStyleId()).isEqualTo("TOC2");
+        assertThat(spec.getRoleRules().get("tocEntry3").getStyleId()).isEqualTo("TOC3");
+
+        List<String> warnings = (List<String>) spec.getExtractionReport().get("warnings");
+        List<Map<String, Object>> conflicts = (List<Map<String, Object>>) spec.getExtractionReport().get("conflicts");
+        String diagnostics = warnings + " " + conflicts;
+        assertThat(diagnostics)
+                .contains("ignored body candidate")
+                .contains("TOC10")
+                .contains("heading")
+                .contains("keyword");
     }
 
     @Test
