@@ -125,7 +125,6 @@ public class AigcRewriteServiceImpl implements AigcRewriteService {
             return fallbackResponse(cleanedText, "模型返回格式异常，请人工复核");
         }
 
-        String riskLevel = response.riskLevel() != null ? response.riskLevel() : "MEDIUM";
         List<AigcRiskPatternResponse> riskPatterns = response.riskPatterns() != null
                 ? response.riskPatterns() : Collections.emptyList();
         String rewrittenText = response.rewrittenText() != null ? response.rewrittenText() : cleanedText;
@@ -136,7 +135,7 @@ public class AigcRewriteServiceImpl implements AigcRewriteService {
         AigcQualityScoreResponse qualityScore = response.qualityScore() != null
                 ? response.qualityScore() : AigcQualityScoreResponse.defaultScore();
 
-        return new AigcRewriteResponse(riskLevel, riskPatterns, rewrittenText, changeNotes, warnings, qualityScore);
+        return new AigcRewriteResponse(riskPatterns, rewrittenText, changeNotes, warnings, qualityScore);
     }
 
     /**
@@ -146,7 +145,6 @@ public class AigcRewriteServiceImpl implements AigcRewriteService {
         List<String> warnings = new ArrayList<>();
         warnings.add(warning);
         return new AigcRewriteResponse(
-                "MEDIUM",
                 Collections.emptyList(),
                 text,
                 Collections.emptyList(),

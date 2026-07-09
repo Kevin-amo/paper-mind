@@ -94,7 +94,6 @@ class AigcRewriteControllerTest {
         AigcRewriteRequest request = new AigcRewriteRequest(
                 VALID_PARAGRAPH, null, null, null, null);
         AigcRewriteResponse expected = new AigcRewriteResponse(
-                "LOW",
                 Collections.emptyList(),
                 "改写后的文本",
                 Collections.emptyList(),

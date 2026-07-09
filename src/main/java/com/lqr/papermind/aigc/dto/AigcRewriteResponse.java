@@ -5,11 +5,9 @@ import java.util.List;
 /**
  * 段落学术润色响应。
  *
- * <p>Prompt rules adapted from Yezery/aigc-down-skill, MIT License.
- * Repository: https://github.com/Yezery/aigc-down-skill</p>
+ * <p>Repository: https://github.com/Yezery/aigc-down-skill</p>
  */
 public record AigcRewriteResponse(
-        String riskLevel,
         List<AigcRiskPatternResponse> riskPatterns,
         String rewrittenText,
         List<String> changeNotes,

@@ -63,7 +63,6 @@ public class AigcRewritePromptTemplate {
             你必须只输出合法 JSON，不输出 Markdown 代码块，不添加任何额外解释文字。
             JSON 字段必须完全符合以下结构：
             {
-              "riskLevel": "LOW 或 MEDIUM 或 HIGH",
               "riskPatterns": [
                 {"type": "问题类型", "evidence": "原文触发表达", "suggestion": "修改方向"}
               ],
@@ -81,7 +80,6 @@ public class AigcRewritePromptTemplate {
             }
 
             字段说明：
-            - riskLevel：根据原文中 AI 模式数量和严重程度判定。LOW=少量轻微特征，MEDIUM=多处明显特征，HIGH=高度模板化。
             - riskPatterns：列出原文中识别到的 AI 写作模式，每项包含类型、原文证据和修改方向。如无风险，返回空数组。
             - rewrittenText：改写后的完整段落。
             - changeNotes：列出主要修改说明。

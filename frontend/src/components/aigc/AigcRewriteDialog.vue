@@ -51,23 +51,6 @@ const scoreItems = computed(() => {
   ];
 });
 
-function riskTagType(level: string) {
-  switch (level) {
-    case 'LOW': return 'success';
-    case 'HIGH': return 'danger';
-    default: return 'warning';
-  }
-}
-
-function riskText(level: string) {
-  switch (level) {
-    case 'LOW': return '低风险';
-    case 'MEDIUM': return '中风险';
-    case 'HIGH': return '高风险';
-    default: return level;
-  }
-}
-
 async function handleRewrite() {
   if (!canSubmit.value) return;
   loading.value = true;
@@ -195,12 +178,6 @@ function handleReset() {
       <!-- 结果区 -->
       <section v-if="result" class="rewrite-result-section">
         <div class="result-header">
-          <div class="result-risk">
-            <span class="result-label">风险等级</span>
-            <el-tag :type="riskTagType(result.riskLevel)" size="large">
-              {{ riskText(result.riskLevel) }}
-            </el-tag>
-          </div>
           <el-button :icon="CopyDocument" plain size="small" @click="handleCopy">
             复制改写结果
           </el-button>
@@ -301,25 +278,16 @@ function handleReset() {
 
 .form-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 10px;
+  margin-top: 16px;
 }
 
 .result-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
-}
-
-.result-risk {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.result-label {
-  color: var(--app-text-muted);
-  font-size: 13px;
 }
 
 .result-block {

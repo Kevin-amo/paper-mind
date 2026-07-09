@@ -48,7 +48,6 @@ class AigcRewriteServiceImplTest {
     void rewrite_normalRequest_returnsStructuredResult() {
         String validJson = """
                 {
-                  "riskLevel": "HIGH",
                   "riskPatterns": [
                     {"type": "理论起笔", "evidence": "依据社会建构主义理论", "suggestion": "将理论移至段中"}
                   ],
@@ -71,7 +70,6 @@ class AigcRewriteServiceImplTest {
                 VALID_PARAGRAPH, null, null, null, null);
         AigcRewriteResponse result = service.rewrite(request);
 
-        assertThat(result.riskLevel()).isEqualTo("HIGH");
         assertThat(result.riskPatterns()).hasSize(1);
         assertThat(result.riskPatterns().get(0).type()).isEqualTo("理论起笔");
         assertThat(result.rewrittenText()).contains("社会建构主义理论");
@@ -85,7 +83,6 @@ class AigcRewriteServiceImplTest {
         String codeBlockJson = """
                 ```json
                 {
-                  "riskLevel": "MEDIUM",
                   "riskPatterns": [],
                   "rewrittenText": "改写后的文本",
                   "changeNotes": ["调整了句式"],
@@ -100,7 +97,6 @@ class AigcRewriteServiceImplTest {
                 VALID_PARAGRAPH, null, null, null, null);
         AigcRewriteResponse result = service.rewrite(request);
 
-        assertThat(result.riskLevel()).isEqualTo("MEDIUM");
         assertThat(result.rewrittenText()).isEqualTo("改写后的文本");
         assertThat(result.qualityScore().overall()).isEqualTo(7);
     }
@@ -113,7 +109,6 @@ class AigcRewriteServiceImplTest {
                 VALID_PARAGRAPH, null, null, null, null);
         AigcRewriteResponse result = service.rewrite(request);
 
-        assertThat(result.riskLevel()).isEqualTo("MEDIUM");
         assertThat(result.warnings()).contains("模型返回格式异常，请人工复核");
         assertThat(result.qualityScore().overall()).isEqualTo(0);
         assertThat(result.qualityScore().directness()).isEqualTo(0);
@@ -127,7 +122,6 @@ class AigcRewriteServiceImplTest {
                 VALID_PARAGRAPH, null, null, null, null);
         AigcRewriteResponse result = service.rewrite(request);
 
-        assertThat(result.riskLevel()).isEqualTo("MEDIUM");
         assertThat(result.warnings()).contains("模型返回为空，请人工复核");
         assertThat(result.qualityScore().overall()).isEqualTo(0);
     }
@@ -137,7 +131,6 @@ class AigcRewriteServiceImplTest {
         String jsonWithExtra = """
                 好的，以下是改写结果：
                 {
-                  "riskLevel": "LOW",
                   "riskPatterns": [],
                   "rewrittenText": "改写后的文本",
                   "changeNotes": [],
@@ -152,7 +145,6 @@ class AigcRewriteServiceImplTest {
                 VALID_PARAGRAPH, null, null, null, null);
         AigcRewriteResponse result = service.rewrite(request);
 
-        assertThat(result.riskLevel()).isEqualTo("LOW");
         assertThat(result.rewrittenText()).isEqualTo("改写后的文本");
         assertThat(result.qualityScore().overall()).isEqualTo(9);
     }
@@ -165,7 +157,6 @@ class AigcRewriteServiceImplTest {
                 VALID_PARAGRAPH, null, null, null, null);
         AigcRewriteResponse result = service.rewrite(request);
 
-        assertThat(result.riskLevel()).isEqualTo("MEDIUM");
         assertThat(result.warnings()).contains("模型返回为空，请人工复核");
     }
 
@@ -173,7 +164,6 @@ class AigcRewriteServiceImplTest {
     void rewrite_defaultsAppliedWhenNull() {
         String validJson = """
                 {
-                  "riskLevel": "LOW",
                   "riskPatterns": [],
                   "rewrittenText": "改写后的文本",
                   "changeNotes": [],
@@ -188,7 +178,6 @@ class AigcRewriteServiceImplTest {
         AigcRewriteResponse result = service.rewrite(request);
 
         // Verify the service handled null discipline and rewriteStrength gracefully
-        assertThat(result.riskLevel()).isEqualTo("LOW");
         assertThat(result.rewrittenText()).isEqualTo("改写后的文本");
     }
 }

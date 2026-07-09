@@ -13,10 +13,7 @@ export interface AigcRiskPattern {
   suggestion: string;
 }
 
-export type AigcRiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
-
 export interface AigcRewriteResponse {
-  riskLevel: AigcRiskLevel;
   riskPatterns: AigcRiskPattern[];
   rewrittenText: string;
   changeNotes: string[];
