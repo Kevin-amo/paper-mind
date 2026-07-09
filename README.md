@@ -1,6 +1,6 @@
 # Paper Mind
 
-Paper Mind 是一个面向论文辅助评审场景的智能平台，支持用户端论文上传与问答、评审端结构化解析与多维评分、AI 辅助评语与风险提示、评审组长分配与共识确认、后台用户和角色管理。系统基于 DashScope / Qwen 模型链路，集成 OpenAlex 外部文献检索。
+Paper Mind 是一个面向论文辅助评审场景的智能平台，支持用户端论文上传与问答、AIGC 降重润色、论文格式校对、评审端结构化解析与多维评分、AI 辅助评语与风险提示、评审组长分配与共识确认、后台用户和角色管理。系统基于 DashScope / Qwen 模型链路，集成 OpenAlex 外部文献检索。
 
 项目包含两部分：
 
@@ -52,6 +52,26 @@ Paper Mind 是一个面向论文辅助评审场景的智能平台，支持用户
 - 评审组长工作台：任务分配、报告查看、共识管理
 - 评审操作留档（before/after 快照与 diff）
 
+### AIGC 降重润色
+
+- 段落级学术文本 AI 改写，帮助降低 AIGC 检测风险
+- 三等改写强度（light / standard / strong），适应不同降重需求
+- 风险模式识别：自动检测机械化表达、句式重复等典型 AIGC 特征
+- 多维质量评分：直白度、节奏感、学术语气、信息密度、语义保留等指标
+- 学科领域与保留术语定制，确保改写符合专业语境
+- 改写变更说明与警告提示，用户可甄别采纳
+
+### 论文格式校对
+
+- 论文格式模板上传（支持 .docx），自动提取页面、页眉页脚、段落样式等格式规则
+- AI 辅助格式要求提取（可选），从学校模板说明文档中智能抽取格式规范
+- 文档与模板自动比对检查：页面尺寸与边距、页眉页脚、字体/字号/行距/对齐
+- 角色级段落定位（标题、作者、摘要、正文、参考文献、图表标题等）
+- 多级标题、目录项等结构化内容逐项检查
+- 违规分级展示（ERROR / WARNING / REVIEW），正文违规智能聚合防止信息过载
+- 管理员模板管理：模板发布、确认、公开/取消发布
+- 评审任务格式预检集成，评审员可在评审流程中查看论文格式检查结果
+
 ### 基础设施
 
 - Redis、RabbitMQ、PostgreSQL/pgvector 本地 Docker 编排
@@ -99,6 +119,7 @@ paper-mind/
 │   │   ├── java/com/lqr/papermind/
 │   │   │   ├── agent/           # Agent 编排、工具调用和流式问答入口
 │   │   │   ├── ai/              # LLM、Embedding、Prompt 构造
+│   │   │   ├── aigc/            # AIGC 降重润色：风险识别、文本改写、质量评分
 │   │   │   ├── auth/            # 认证、用户、角色、JWT、验证码频控
 │   │   │   ├── common/          # 通用响应、异常、日志和类型处理
 │   │   │   ├── config/          # Spring Security、MyBatis 和应用配置
@@ -106,6 +127,7 @@ paper-mind/
 │   │   │   ├── document/        # 文档上传、解析、切分、入库、资源管理和结构化解析
 │   │   │   ├── literature/      # OpenAlex 外部文献检索、意图解析和缓存
 │   │   │   ├── mail/            # Resend 邮件发送配置和服务
+│   │   │   ├── paperformat/     # 论文格式校对：模板管理、格式检查、AI 规则提取
 │   │   │   ├── rag/             # RAG 检索、Rerank 和回答
 │   │   │   ├── review/          # 论文辅助评审任务、评分报告、评审标准、共识和留档
 │   │   │   ├── storage/         # 阿里云 OSS 对象存储
@@ -408,6 +430,17 @@ src/main/resources/application-local.yaml
 | `app.rag.rerank.candidate-multiplier` | 候选倍数 | `3` |
 | `app.rag.rerank.timeout` | 精排序超时 | `10s` |
 
+### 论文格式校对配置 (`paperformat`)
+
+| 配置项 | 说明 | 默认值 |
+| --- | --- | --- |
+| `paperformat.ai-extraction.enabled` | 启用 AI 辅助格式要求提取 | `true` |
+| `paperformat.ai-extraction.provider` | AI 提取提供者 | `existing` |
+| `paperformat.ai-extraction.model` | AI 提取模型 | `qwen3.6-35b-a3b` |
+| `paperformat.ai-extraction.timeout` | AI 提取超时 | `60s` |
+| `paperformat.ai-extraction.max-input-chars` | AI 提取最大输入字符数 | `12000` |
+| `paperformat.ai-extraction.min-confidence` | AI 提取最低置信度 | `0.70` |
+
 ### 文献检索配置 (`app.literature.search`)
 
 | 配置项 | 说明 | 默认值 |
@@ -533,6 +566,12 @@ Authorization: Bearer <access-token>
 | `GET` | `/conversations/{conversationId}/messages` | 查询会话消息 |
 | `DELETE` | `/conversations/{conversationId}` | 删除会话 |
 
+### AIGC 降重 (`/aigc-rewrite`)
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/aigc-rewrite/text` | 段落学术润色，返回改写文本、风险模式与质量评分 |
+
 ### 评审 (`/reviews`)
 
 | 方法 | 路径 | 权限 | 说明 |
@@ -597,6 +636,35 @@ Authorization: Bearer <access-token>
 | `POST` | `/review-leader/groups/{groupId}/tasks/{taskId}/consensus/recalculate` | 重新计算评审共识 |
 | `PATCH` | `/review-leader/groups/{groupId}/tasks/{taskId}/consensus` | 更新评审共识 |
 | `POST` | `/review-leader/groups/{groupId}/tasks/{taskId}/consensus/confirm` | 确认评审共识 |
+
+### 论文格式校对 (`/paper-format`)
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/paper-format/templates` | 上传格式模板文件 |
+| `GET` | `/paper-format/templates` | 查询当前用户可见的模板列表 |
+| `GET` | `/paper-format/templates/{templateId}` | 获取单个模板详情 |
+| `PATCH` | `/paper-format/templates/{templateId}/spec` | 修改模板的格式规则 |
+| `POST` | `/paper-format/checks` | 创建格式自检任务 |
+| `GET` | `/paper-format/checks/{checkId}` | 获取格式检查结果 |
+
+### 评审论文格式预检 (`/reviews/tasks/{taskId}/format-check`)
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `POST` | `/reviews/tasks/{taskId}/format-check` | 创建评审任务的格式预检 |
+| `GET` | `/reviews/tasks/{taskId}/format-check` | 获取评审任务最新的格式预检结果 |
+
+### 管理员 - 论文格式 (`/admin/paper-format/templates`)
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| `GET` | `/admin/paper-format/templates` | 获取所有模板列表 |
+| `GET` | `/admin/paper-format/templates/{templateId}` | 获取模板详情 |
+| `POST` | `/admin/paper-format/templates` | 上传新模板 |
+| `PATCH` | `/admin/paper-format/templates/{templateId}` | 更新模板基本信息 |
+| `POST` | `/admin/paper-format/templates/{templateId}/confirm` | 确认模板为就绪状态 |
+| `DELETE` | `/admin/paper-format/templates/{templateId}` | 取消模板公开发布 |
 
 ### 管理员 - 用户管理 (`/admin/users`)
 
