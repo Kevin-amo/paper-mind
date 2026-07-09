@@ -17,6 +17,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   submit: [payload: { question: string; topK?: number }];
   openDocuments: [];
+  openFormatCheck: [];
+  openAigcRewrite: [];
   dropFiles: [files: File[]];
   selectFiles: [];
 }>();
@@ -42,6 +44,8 @@ function handleExample(question: string) {
         :loading="props.loading"
         @submit="emit('submit', $event)"
         @open-documents="emit('openDocuments')"
+        @open-format-check="emit('openFormatCheck')"
+        @open-aigc-rewrite="emit('openAigcRewrite')"
         @select-files="emit('selectFiles')"
       />
     </ChatDropZone>

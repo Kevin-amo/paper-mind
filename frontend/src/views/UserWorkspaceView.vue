@@ -231,8 +231,6 @@ onMounted(async () => {
       @rename-conversation="conversationsState.renameConversation"
       @open-documents="documentLibraryVisible = true"
       @open-review-submissions="reviewSubmissionsVisible = true"
-      @open-format-check="router.push('/format')"
-      @open-aigc-rewrite="aigcRewriteVisible = true"
       @go-admin="router.push('/admin')"
       @open-account-management="accountManagementVisible = true"
       @logout="handleLogout"
@@ -247,6 +245,8 @@ onMounted(async () => {
       :current-user-avatar-url="currentUserAvatarUrl"
       @submit="handleChatSubmit"
       @open-documents="documentLibraryVisible = true"
+      @open-format-check="router.push('/format')"
+      @open-aigc-rewrite="aigcRewriteVisible = true"
       @drop-files="handleDropFiles"
       @select-files="handleSelectFiles"
     />

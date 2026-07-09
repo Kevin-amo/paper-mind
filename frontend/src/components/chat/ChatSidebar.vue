@@ -12,7 +12,6 @@ import {
   DocumentAdd,
   Delete,
   EditPen,
-  MagicStick,
   MoreFilled,
   Plus,
   SwitchButton,
@@ -44,8 +43,6 @@ const emit = defineEmits<{
   renameConversation: [conversationId: string, title: string];
   openDocuments: [];
   openReviewSubmissions: [];
-  openFormatCheck: [];
-  openAigcRewrite: [];
   goAdmin: [];
   openAccountManagement: [];
   logout: [];
@@ -218,14 +215,6 @@ function conversationTitle(conversation: Conversation) {
       <button class="nav-item" type="button" @click="emit('openReviewSubmissions')">
         <el-icon><DocumentAdd /></el-icon>
         <span>Submissions</span>
-      </button>
-      <button class="nav-item" type="button" @click="emit('openFormatCheck')">
-        <el-icon><Collection /></el-icon>
-        <span>Format</span>
-      </button>
-      <button class="nav-item" type="button" @click="emit('openAigcRewrite')">
-        <el-icon><MagicStick /></el-icon>
-        <span>润色</span>
       </button>
       <button v-if="props.isAdmin" class="nav-item" type="button" @click="emit('goAdmin')">
         <el-icon><Setting /></el-icon>
