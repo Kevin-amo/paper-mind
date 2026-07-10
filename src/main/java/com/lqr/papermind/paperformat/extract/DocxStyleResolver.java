@@ -11,7 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** Resolves effective paragraph/run style from Word OOXML defaults, named styles, and direct formatting. */
+/** 从 Word OOXML 默认样式、命名样式和直接格式化中解析段落/文本的有效样式。 */
 public class DocxStyleResolver {
 
     private final ParagraphStyleRule docDefaults;

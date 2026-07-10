@@ -5,7 +5,7 @@ import com.lqr.papermind.paperformat.model.FormatSpec;
 import java.util.List;
 import java.util.Map;
 
-/** Evidence collected from a template DOCX for fixed and AI-assisted requirement extraction. */
+/** 从模板 DOCX 中收集的证据，用于固定规则和 AI 辅助的需求提取。 */
 public record DocxTemplateEvidence(
         List<String> bodyParagraphs,
         List<String> textBoxTexts,

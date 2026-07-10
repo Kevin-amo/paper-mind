@@ -240,7 +240,8 @@
 .review-page .el-button,
 .leader-page .el-button,
 .auth-layout .el-button,
-.user-app-shell .el-button {
+.user-app-shell .el-button,
+.paper-mind-review-shell .el-button {
   --el-button-border-color: var(--app-border);
   --el-button-bg-color: var(--app-surface);
   --el-button-text-color: var(--app-text);
@@ -267,7 +268,9 @@
 .auth-layout .el-button:hover,
 .auth-layout .el-button:active,
 .user-app-shell .el-button:hover,
-.user-app-shell .el-button:active {
+.user-app-shell .el-button:active,
+.paper-mind-review-shell .el-button:hover,
+.paper-mind-review-shell .el-button:active {
   transform: none;
 }
 
@@ -275,7 +278,8 @@
 .review-page .el-button--small,
 .leader-page .el-button--small,
 .auth-layout .el-button--small,
-.user-app-shell .el-button--small {
+.user-app-shell .el-button--small,
+.paper-mind-review-shell .el-button--small {
   height: 32px;
   border-radius: var(--app-radius-sm);
 }
@@ -284,7 +288,8 @@
 .review-page .el-button--primary,
 .leader-page .el-button--primary,
 .auth-layout .el-button--primary,
-.user-app-shell .el-button--primary {
+.user-app-shell .el-button--primary,
+.paper-mind-review-shell .el-button--primary {
   --el-button-bg-color: var(--app-primary);
   --el-button-border-color: var(--app-primary);
   --el-button-text-color: var(--app-text-on-primary);
@@ -303,11 +308,13 @@
 .leader-page .el-button--primary.is-disabled,
 .auth-layout .el-button--primary.is-disabled,
 .user-app-shell .el-button--primary.is-disabled,
+.paper-mind-review-shell .el-button--primary.is-disabled,
 .admin-layout .el-button--primary.is-disabled:hover,
 .review-page .el-button--primary.is-disabled:hover,
 .leader-page .el-button--primary.is-disabled:hover,
 .auth-layout .el-button--primary.is-disabled:hover,
-.user-app-shell .el-button--primary.is-disabled:hover {
+.user-app-shell .el-button--primary.is-disabled:hover,
+.paper-mind-review-shell .el-button--primary.is-disabled:hover {
   opacity: 0.45;
 }
 
@@ -315,7 +322,8 @@
 .review-page .el-button--success,
 .leader-page .el-button--success,
 .auth-layout .el-button--success,
-.user-app-shell .el-button--success {
+.user-app-shell .el-button--success,
+.paper-mind-review-shell .el-button--success {
   --el-button-bg-color: var(--app-success);
   --el-button-border-color: var(--app-success);
   --el-button-hover-bg-color: var(--app-success-hover);
@@ -330,11 +338,13 @@
 .leader-page .el-button--success.is-disabled,
 .auth-layout .el-button--success.is-disabled,
 .user-app-shell .el-button--success.is-disabled,
+.paper-mind-review-shell .el-button--success.is-disabled,
 .admin-layout .el-button--success.is-disabled:hover,
 .review-page .el-button--success.is-disabled:hover,
 .leader-page .el-button--success.is-disabled:hover,
 .auth-layout .el-button--success.is-disabled:hover,
-.user-app-shell .el-button--success.is-disabled:hover {
+.user-app-shell .el-button--success.is-disabled:hover,
+.paper-mind-review-shell .el-button--success.is-disabled:hover {
   opacity: 0.45;
 }
 
@@ -342,7 +352,8 @@
 .review-page .el-button.is-text,
 .leader-page .el-button.is-text,
 .auth-layout .el-button.is-text,
-.user-app-shell .el-button.is-text {
+.user-app-shell .el-button.is-text,
+.paper-mind-review-shell .el-button.is-text {
   color: var(--app-text);
 }
 
@@ -360,7 +371,10 @@
 .auth-layout .el-textarea__inner,
 .user-app-shell .el-input__wrapper,
 .user-app-shell .el-select__wrapper,
-.user-app-shell .el-textarea__inner {
+.user-app-shell .el-textarea__inner,
+.paper-mind-review-shell .el-input__wrapper,
+.paper-mind-review-shell .el-select__wrapper,
+.paper-mind-review-shell .el-textarea__inner {
   min-height: 40px;
   border-radius: var(--app-radius-md) !important;
   background: var(--app-surface) !important;
@@ -381,7 +395,10 @@
 .auth-layout .el-textarea__inner:hover,
 .user-app-shell .el-input__wrapper:hover,
 .user-app-shell .el-select__wrapper:hover,
-.user-app-shell .el-textarea__inner:hover {
+.user-app-shell .el-textarea__inner:hover,
+.paper-mind-review-shell .el-input__wrapper:hover,
+.paper-mind-review-shell .el-select__wrapper:hover,
+.paper-mind-review-shell .el-textarea__inner:hover {
   box-shadow: 0 0 0 1px var(--app-border-strong) inset !important;
 }
 
@@ -399,7 +416,10 @@
 .auth-layout .el-textarea__inner:focus,
 .user-app-shell .el-input__wrapper.is-focus,
 .user-app-shell .el-select__wrapper:focus-within,
-.user-app-shell .el-textarea__inner:focus {
+.user-app-shell .el-textarea__inner:focus,
+.paper-mind-review-shell .el-input__wrapper.is-focus,
+.paper-mind-review-shell .el-select__wrapper:focus-within,
+.paper-mind-review-shell .el-textarea__inner:focus {
   box-shadow:
     0 0 0 1px var(--app-primary) inset,
     var(--app-shadow-focus) !important;

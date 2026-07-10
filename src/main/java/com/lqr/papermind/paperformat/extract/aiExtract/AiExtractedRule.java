@@ -1,6 +1,6 @@
-package com.lqr.papermind.paperformat.extract.ai;
+package com.lqr.papermind.paperformat.extract.aiExtract;
 
-/** A single AI-extracted format requirement candidate. */
+/** AI 提取的单条格式要求候选项。 */
 public record AiExtractedRule(
         String fieldPath,
         Object value,

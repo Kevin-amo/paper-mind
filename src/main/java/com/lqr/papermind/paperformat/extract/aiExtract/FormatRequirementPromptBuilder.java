@@ -1,4 +1,4 @@
-package com.lqr.papermind.paperformat.extract.ai;
+package com.lqr.papermind.paperformat.extract.aiExtract;
 
 import com.lqr.papermind.ai.service.PromptConstructionService;
 import com.lqr.papermind.paperformat.extract.DocxTemplateEvidence;
@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-/** Builds prompts for AI-assisted template format requirement extraction. */
+/** 构建用于 AI 辅助模板格式需求提取的提示词。 */
 @Component
 public class FormatRequirementPromptBuilder {
 

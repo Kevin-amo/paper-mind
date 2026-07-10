@@ -2,7 +2,7 @@ package com.lqr.papermind.paperformat.extract;
 
 import com.lqr.papermind.paperformat.model.ParagraphStyleRule;
 
-/** Paragraph-level evidence extracted from a DOCX template or student paper. */
+/** 从 DOCX 模板或学生论文中提取的段落级格式证据。 */
 public record TemplateEvidence(
         String text,
         String styleId,

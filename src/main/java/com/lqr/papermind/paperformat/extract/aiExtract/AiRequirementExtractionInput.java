@@ -1,4 +1,4 @@
-package com.lqr.papermind.paperformat.extract.ai;
+package com.lqr.papermind.paperformat.extract.aiExtract;
 
 import com.lqr.papermind.paperformat.extract.DocxTemplateEvidence;
 

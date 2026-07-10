@@ -48,12 +48,12 @@ public final class DocxPackageReader {
         return parts;
     }
 
-    /** Reads all XML parts and exposes convenient lookup helpers. */
+    /** 读取所有 XML 部件并提供便捷的查找方法。 */
     public static PackageParts read(InputStream input) throws java.io.IOException {
         return new PackageParts(readXmlParts(input));
     }
 
-    /** Immutable view of DOCX XML parts. */
+    /** DOCX XML 部件的不可变视图。 */
     public record PackageParts(Map<String, String> xmlParts) {
         public java.util.Set<String> partNames() {
             return java.util.Collections.unmodifiableSet(xmlParts.keySet());

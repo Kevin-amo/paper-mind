@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/** Extracts paragraph-level evidence from all relevant DOCX XML parts. */
+/** 从所有相关的 DOCX XML 部件中提取段落级格式证据。 */
 public class TemplateEvidenceExtractor {
 
     private final DocxStyleResolver styleResolver;

@@ -1,11 +1,11 @@
 package com.lqr.papermind.paperformat.config;
 
 import com.lqr.papermind.ai.service.LlmService;
-import com.lqr.papermind.paperformat.extract.ai.AiFormatRequirementExtractor;
-import com.lqr.papermind.paperformat.extract.ai.AiRequirementResultMapper;
-import com.lqr.papermind.paperformat.extract.ai.DisabledFormatRequirementAiExtractor;
-import com.lqr.papermind.paperformat.extract.ai.FormatRequirementAiExtractor;
-import com.lqr.papermind.paperformat.extract.ai.FormatRequirementPromptBuilder;
+import com.lqr.papermind.paperformat.extract.aiExtract.AiFormatRequirementExtractor;
+import com.lqr.papermind.paperformat.extract.aiExtract.AiRequirementResultMapper;
+import com.lqr.papermind.paperformat.extract.aiExtract.DisabledFormatRequirementAiExtractor;
+import com.lqr.papermind.paperformat.extract.aiExtract.FormatRequirementAiExtractor;
+import com.lqr.papermind.paperformat.extract.aiExtract.FormatRequirementPromptBuilder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;

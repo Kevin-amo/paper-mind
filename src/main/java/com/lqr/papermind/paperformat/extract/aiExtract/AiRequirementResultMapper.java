@@ -1,4 +1,4 @@
-package com.lqr.papermind.paperformat.extract.ai;
+package com.lqr.papermind.paperformat.extract.aiExtract;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-/** Parses and white-list maps AI JSON output into format rule candidates. */
+/** 解析 AI 的 JSON 输出并通过白名单映射为格式规则候选项。 */
 @Component
 @RequiredArgsConstructor
 public class AiRequirementResultMapper {

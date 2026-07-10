@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Extracts textual and structural evidence from a template DOCX. */
+/** 从模板 DOCX 中提取文本和结构证据。 */
 @Component
 @RequiredArgsConstructor
 public class DocxTemplateEvidenceExtractor {

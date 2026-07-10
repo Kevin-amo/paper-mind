@@ -1,6 +1,6 @@
-package com.lqr.papermind.paperformat.extract.ai;
+package com.lqr.papermind.paperformat.extract.aiExtract;
 
-/** No-op implementation used when AI extraction is disabled. */
+/** AI 提取功能禁用时使用的空实现。 */
 public class DisabledFormatRequirementAiExtractor implements FormatRequirementAiExtractor {
     @Override
     public AiRequirementExtractionResult extract(AiRequirementExtractionInput input) {

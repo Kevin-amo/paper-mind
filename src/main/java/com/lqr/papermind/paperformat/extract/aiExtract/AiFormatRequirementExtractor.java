@@ -1,10 +1,10 @@
-package com.lqr.papermind.paperformat.extract.ai;
+package com.lqr.papermind.paperformat.extract.aiExtract;
 
 import com.lqr.papermind.ai.service.LlmService;
 import com.lqr.papermind.ai.service.PromptConstructionService;
 import lombok.RequiredArgsConstructor;
 
-/** AI-backed implementation using the project's existing LLM abstraction. */
+/** 基于项目现有 LLM 抽象层的 AI 格式需求提取器实现。 */
 @RequiredArgsConstructor
 public class AiFormatRequirementExtractor implements FormatRequirementAiExtractor {
 

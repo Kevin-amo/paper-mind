@@ -1,10 +1,10 @@
-package com.lqr.papermind.paperformat.extract.ai;
+package com.lqr.papermind.paperformat.extract.aiExtract;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Result returned by AI-assisted template requirement extraction. */
+/** AI 辅助模板需求提取的结果。 */
 public class AiRequirementExtractionResult {
     private final List<AiExtractedRule> rules = new ArrayList<>();
     private final List<Map<String, Object>> referenceRequirements = new ArrayList<>();

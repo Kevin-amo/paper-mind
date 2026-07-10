@@ -2,7 +2,7 @@ package com.lqr.papermind.paperformat.extract;
 
 import java.util.Locale;
 
-/** Classifies DOCX paragraphs into thesis structure roles. */
+/** 将 DOCX 段落归类为论文结构角色（标题、正文、摘要等）。 */
 public final class RoleClassifier {
 
     public String classify(String text, String styleId, String partName, int paragraphIndex) {

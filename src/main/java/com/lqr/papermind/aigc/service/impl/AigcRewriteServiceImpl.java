@@ -23,9 +23,6 @@ import java.util.List;
  *
  * <p>调用大模型对段落进行改写，并对模型返回的 JSON 进行容错解析。
  * 当模型输出格式异常时，返回合法的降级响应而非 500 错误。</p>
- *
- * <p>Prompt rules adapted from Yezery/aigc-down-skill, MIT License.
- * Repository: https://github.com/Yezery/aigc-down-skill</p>
  */
 @Slf4j
 @Service

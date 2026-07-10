@@ -2,12 +2,12 @@ package com.lqr.papermind.paperformat.extract;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lqr.papermind.paperformat.config.PaperFormatAiExtractionProperties;
-import com.lqr.papermind.paperformat.extract.ai.AiExtractedRule;
-import com.lqr.papermind.paperformat.extract.ai.AiRequirementExtractionInput;
-import com.lqr.papermind.paperformat.extract.ai.AiRequirementExtractionResult;
-import com.lqr.papermind.paperformat.extract.ai.AiRequirementResultMapper;
-import com.lqr.papermind.paperformat.extract.ai.DisabledFormatRequirementAiExtractor;
-import com.lqr.papermind.paperformat.extract.ai.FormatRequirementAiExtractor;
+import com.lqr.papermind.paperformat.extract.aiExtract.AiExtractedRule;
+import com.lqr.papermind.paperformat.extract.aiExtract.AiRequirementExtractionInput;
+import com.lqr.papermind.paperformat.extract.aiExtract.AiRequirementExtractionResult;
+import com.lqr.papermind.paperformat.extract.aiExtract.AiRequirementResultMapper;
+import com.lqr.papermind.paperformat.extract.aiExtract.DisabledFormatRequirementAiExtractor;
+import com.lqr.papermind.paperformat.extract.aiExtract.FormatRequirementAiExtractor;
 import com.lqr.papermind.paperformat.model.FormatSpec;
 import com.lqr.papermind.paperformat.model.HeadingStyleRule;
 import com.lqr.papermind.paperformat.model.HeaderFooterRule;

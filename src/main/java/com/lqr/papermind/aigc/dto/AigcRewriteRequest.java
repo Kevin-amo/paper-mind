@@ -8,9 +8,6 @@ import java.util.List;
 
 /**
  * 段落学术润色请求。
- *
- * <p>Prompt rules adapted from Yezery/aigc-down-skill, MIT License.
- * Repository: https://github.com/Yezery/aigc-down-skill</p>
  */
 public record AigcRewriteRequest(
 
